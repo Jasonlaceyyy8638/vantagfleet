@@ -28,19 +28,19 @@ export function InviteButton({ orgId }: { orgId: string }) {
   };
 
   return (
-    <div className="rounded-xl border border-slate-700/80 bg-slate-800/80 p-5">
+    <div className="rounded-xl border border-[#30363d] bg-card p-5">
       <div className="flex items-center gap-2 mb-2">
-        <UserPlus className="size-5 text-slate-400" />
-        <h2 className="font-semibold text-white">Invite team members</h2>
+        <UserPlus className="size-5 text-cloud-dancer/60" />
+        <h2 className="font-semibold text-cloud-dancer">Invite team members</h2>
       </div>
-      <p className="text-sm text-slate-400 mb-4">
+      <p className="text-sm text-cloud-dancer/70 mb-4">
         Generate a link for employees to join this organization.
       </p>
       <button
         type="button"
         onClick={handleGenerate}
         disabled={loading}
-        className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary-600 hover:bg-primary-500 disabled:opacity-50 text-white text-sm font-medium"
+        className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-cyber-amber hover:bg-cyber-amber/90 disabled:opacity-50 text-deep-ink text-sm font-medium"
       >
         {loading ? 'Generating…' : 'Invite'}
       </button>
@@ -51,14 +51,14 @@ export function InviteButton({ orgId }: { orgId: string }) {
             type="text"
             readOnly
             value={link}
-            className="flex-1 px-3 py-2 rounded-lg bg-slate-900 border border-slate-600 text-slate-300 text-sm"
+            className="flex-1 px-3 py-2 rounded-lg bg-deep-ink border border-[#30363d] text-cloud-dancer text-sm"
           />
           <button
             type="button"
             onClick={handleCopy}
-            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-slate-600 text-slate-300 text-sm hover:bg-slate-700/50"
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-[#30363d] text-cloud-dancer text-sm hover:bg-deep-ink"
           >
-            {copied ? <Check className="size-4 text-emerald-400" /> : <Copy className="size-4" />}
+            {copied ? <Check className="size-4 text-transformative-teal" /> : <Copy className="size-4" />}
             {copied ? 'Copied' : 'Copy'}
           </button>
         </div>

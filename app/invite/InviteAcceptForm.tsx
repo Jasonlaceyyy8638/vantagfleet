@@ -62,7 +62,7 @@ export function InviteAcceptForm({ token, orgName }: { token: string; orgName: s
   return (
     <form onSubmit={submit} className="space-y-4">
       <div>
-        <label htmlFor="email" className="block text-sm font-medium text-slate-300 mb-1">
+        <label htmlFor="email" className="block text-sm font-medium text-cloud-dancer mb-1">
           Email
         </label>
         <input
@@ -71,12 +71,12 @@ export function InviteAcceptForm({ token, orgName }: { token: string; orgName: s
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
-          className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-600 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-primary-500"
+          className="w-full px-3 py-2 rounded-lg bg-deep-ink border border-[#30363d] text-cloud-dancer placeholder-cloud-dancer/50 focus:outline-none focus:ring-2 focus:ring-transformative-teal"
           placeholder="you@company.com"
         />
       </div>
       <div>
-        <label htmlFor="password" className="block text-sm font-medium text-slate-300 mb-1">
+        <label htmlFor="password" className="block text-sm font-medium text-cloud-dancer mb-1">
           Password
         </label>
         <input
@@ -86,21 +86,21 @@ export function InviteAcceptForm({ token, orgName }: { token: string; orgName: s
           onChange={(e) => setPassword(e.target.value)}
           required
           minLength={isSignUp ? 6 : 1}
-          className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-600 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-primary-500"
+          className="w-full px-3 py-2 rounded-lg bg-deep-ink border border-[#30363d] text-cloud-dancer placeholder-cloud-dancer/50 focus:outline-none focus:ring-2 focus:ring-transformative-teal"
         />
       </div>
       {message && <p className="text-sm text-red-400">{message}</p>}
       <button
         type="submit"
         disabled={loading}
-        className="w-full py-2.5 rounded-lg bg-primary-600 hover:bg-primary-500 disabled:opacity-50 text-white font-medium"
+        className="w-full py-2.5 rounded-lg bg-cyber-amber hover:bg-cyber-amber/90 disabled:opacity-50 text-deep-ink font-medium"
       >
         {loading ? 'Please wait…' : isSignUp ? 'Sign up & join' : 'Sign in & join'}
       </button>
       <button
         type="button"
         onClick={() => setIsSignUp((v) => !v)}
-        className="w-full text-sm text-slate-400 hover:text-slate-300"
+        className="w-full text-sm text-cloud-dancer/70 hover:text-cloud-dancer"
       >
         {isSignUp ? 'Already have an account? Sign in.' : 'Need an account? Sign up.'}
       </button>

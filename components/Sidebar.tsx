@@ -1,6 +1,7 @@
 'use client';
 
 import { OrgSwitcher } from '@/components/OrgSwitcher';
+import { Logo } from '@/components/Logo';
 import type { Organization } from '@/lib/types';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -38,15 +39,19 @@ export function Sidebar({
   };
 
   return (
-    <aside className="w-64 shrink-0 border-r border-slate-700/80 bg-slate-900/95 flex flex-col">
-      <div className="p-4 border-b border-slate-700/80">
-        <Link href="/dashboard" className="block text-lg font-semibold text-white">
-          Vantag Fleet
+    <aside className="w-64 shrink-0 border-r border-border bg-midnight-ink/80 backdrop-blur-md flex flex-col">
+      <div className="p-4 border-b border-border">
+        <Link href="/dashboard" className="flex items-center gap-3">
+          <Logo size={32} />
+          <span className="flex items-baseline gap-1 tracking-[0.2em]">
+            <span className="font-bold text-cyber-amber text-base">VANTAG</span>
+            <span className="font-light text-electric-teal text-base">FLEET</span>
+          </span>
         </Link>
-        <p className="text-xs text-slate-400 mt-0.5">Compliance</p>
+        <p className="text-xs text-soft-cloud/60 mt-0.5 ml-11">Compliance</p>
       </div>
-      <div className="p-3 border-b border-slate-700/80">
-        <p className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-2">
+      <div className="p-3 border-b border-border">
+        <p className="text-xs font-medium text-soft-cloud/50 uppercase tracking-wider mb-2">
           Organization
         </p>
         <OrgSwitcher
@@ -64,8 +69,8 @@ export function Sidebar({
               href={item.href}
               className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                 isActive
-                  ? 'bg-primary-600/20 text-primary-300'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/80'
+                  ? 'bg-electric-teal/20 text-electric-teal'
+                  : 'text-soft-cloud/70 hover:text-soft-cloud hover:bg-midnight-ink/60'
               }`}
             >
               <Icon className="size-5 shrink-0" />
@@ -74,11 +79,11 @@ export function Sidebar({
           );
         })}
       </nav>
-      <div className="p-3 border-t border-slate-700/80">
+      <div className="p-3 border-t border-border">
         <button
           type="button"
           onClick={signOut}
-          className="flex items-center gap-3 w-full px-3 py-2 rounded-lg text-sm text-slate-400 hover:text-slate-200 hover:bg-slate-800/80"
+          className="flex items-center gap-3 w-full px-3 py-2 rounded-lg text-sm text-soft-cloud/70 hover:text-soft-cloud hover:bg-midnight-ink/60"
         >
           <LogOut className="size-5 shrink-0" />
           Sign out

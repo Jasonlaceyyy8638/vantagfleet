@@ -68,7 +68,7 @@ export function SignUpForm() {
     return (
       <form onSubmit={handleCompanySubmit} className="space-y-4">
         <div>
-          <label htmlFor="companyName" className="block text-sm font-medium text-slate-300 mb-1">
+          <label htmlFor="companyName" className="block text-sm font-medium text-cloud-dancer mb-1">
             Company name
           </label>
           <input
@@ -77,12 +77,12 @@ export function SignUpForm() {
             value={companyName}
             onChange={(e) => setCompanyName(e.target.value)}
             required
-            className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-600 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-primary-500"
+            className="w-full px-3 py-2 rounded-lg bg-deep-ink border border-[#30363d] text-cloud-dancer placeholder-cloud-dancer/50 focus:outline-none focus:ring-2 focus:ring-transformative-teal"
             placeholder="Acme Trucking LLC"
           />
         </div>
         <div>
-          <label htmlFor="usdot" className="block text-sm font-medium text-slate-300 mb-1">
+          <label htmlFor="usdot" className="block text-sm font-medium text-cloud-dancer mb-1">
             USDOT number
           </label>
           <input
@@ -90,7 +90,7 @@ export function SignUpForm() {
             type="text"
             value={usdot}
             onChange={(e) => setUsdot(e.target.value)}
-            className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-600 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-primary-500"
+            className="w-full px-3 py-2 rounded-lg bg-deep-ink border border-[#30363d] text-cloud-dancer placeholder-cloud-dancer/50 focus:outline-none focus:ring-2 focus:ring-transformative-teal"
             placeholder="Optional"
           />
         </div>
@@ -98,7 +98,7 @@ export function SignUpForm() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full py-2.5 rounded-lg bg-primary-600 hover:bg-primary-500 disabled:opacity-50 text-white font-medium"
+          className="w-full py-2.5 rounded-lg bg-cyber-amber hover:bg-cyber-amber/90 disabled:opacity-50 text-deep-ink font-medium"
         >
           {loading ? 'Creating…' : 'Continue'}
         </button>
@@ -108,9 +108,9 @@ export function SignUpForm() {
 
   return (
     <form onSubmit={handleAccountSubmit} className="space-y-4">
-      <p className="text-slate-400 text-sm">Company: <span className="text-white">{companyName}</span></p>
+      <p className="text-cloud-dancer/70 text-sm">Company: <span className="text-cloud-dancer">{companyName}</span></p>
       <div>
-        <label htmlFor="fullName" className="block text-sm font-medium text-slate-300 mb-1">
+        <label htmlFor="fullName" className="block text-sm font-medium text-cloud-dancer mb-1">
           Full name
         </label>
         <input
@@ -118,12 +118,12 @@ export function SignUpForm() {
           type="text"
           value={fullName}
           onChange={(e) => setFullName(e.target.value)}
-          className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-600 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-primary-500"
+          className="w-full px-3 py-2 rounded-lg bg-deep-ink border border-[#30363d] text-cloud-dancer placeholder-cloud-dancer/50 focus:outline-none focus:ring-2 focus:ring-transformative-teal"
           placeholder="Your name"
         />
       </div>
       <div>
-        <label htmlFor="email" className="block text-sm font-medium text-slate-300 mb-1">
+        <label htmlFor="email" className="block text-sm font-medium text-cloud-dancer mb-1">
           Email
         </label>
         <input
@@ -132,12 +132,12 @@ export function SignUpForm() {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
-          className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-600 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-primary-500"
+          className="w-full px-3 py-2 rounded-lg bg-deep-ink border border-[#30363d] text-cloud-dancer placeholder-cloud-dancer/50 focus:outline-none focus:ring-2 focus:ring-transformative-teal"
           placeholder="you@company.com"
         />
       </div>
       <div>
-        <label htmlFor="password" className="block text-sm font-medium text-slate-300 mb-1">
+        <label htmlFor="password" className="block text-sm font-medium text-cloud-dancer mb-1">
           Password
         </label>
         <input
@@ -147,7 +147,7 @@ export function SignUpForm() {
           onChange={(e) => setPassword(e.target.value)}
           required
           minLength={6}
-          className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-600 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-primary-500"
+          className="w-full px-3 py-2 rounded-lg bg-deep-ink border border-[#30363d] text-cloud-dancer placeholder-cloud-dancer/50 focus:outline-none focus:ring-2 focus:ring-transformative-teal"
         />
       </div>
       {message && <p className="text-sm text-red-400">{message}</p>}
@@ -155,14 +155,14 @@ export function SignUpForm() {
         <button
           type="button"
           onClick={() => setStep('company')}
-          className="py-2.5 px-4 rounded-lg border border-slate-600 text-slate-300 hover:bg-slate-700/50"
+          className="py-2.5 px-4 rounded-lg border border-[#30363d] text-cloud-dancer hover:bg-deep-ink"
         >
           Back
         </button>
         <button
           type="submit"
           disabled={loading}
-          className="flex-1 py-2.5 rounded-lg bg-primary-600 hover:bg-primary-500 disabled:opacity-50 text-white font-medium"
+          className="flex-1 py-2.5 rounded-lg bg-cyber-amber hover:bg-cyber-amber/90 disabled:opacity-50 text-deep-ink font-medium"
         >
           {loading ? 'Signing up…' : 'Sign up'}
         </button>

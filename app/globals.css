@@ -3,10 +3,12 @@
 @tailwind utilities;
 
 :root {
-  --background: #0f172a;
-  --foreground: #f1f5f9;
-  --card: #1e293b;
-  --border: #334155;
+  --background: #0B0F19;
+  --foreground: #E2E8F0;
+  --card: #131922;
+  --border: #1e293b;
+  --primary: #00F5D4;
+  --accent: #FFB000;
 }
 
 body {

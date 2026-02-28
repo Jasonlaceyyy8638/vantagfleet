@@ -23,7 +23,7 @@ export default async function DashboardLayout({
   if (orgIds.length === 0) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4">
-        <div className="text-center text-slate-400">
+        <div className="text-center text-cloud-dancer/70">
           <p>No organization assigned. Contact your admin or create an organization.</p>
         </div>
       </div>

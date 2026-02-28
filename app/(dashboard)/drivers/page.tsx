@@ -24,7 +24,7 @@ export default async function DriversPage() {
   if (!orgId) {
     return (
       <div className="p-6 md:p-8">
-        <p className="text-slate-400">No organization selected.</p>
+        <p className="text-cloud-dancer/70">No organization selected.</p>
       </div>
     );
   }
@@ -37,8 +37,8 @@ export default async function DriversPage() {
 
   return (
     <div className="p-6 md:p-8 max-w-5xl">
-      <h1 className="text-2xl font-bold text-white mb-2">Drivers</h1>
-      <p className="text-slate-400 mb-6">Manage drivers and view med card compliance status.</p>
+      <h1 className="text-2xl font-bold text-cloud-dancer mb-2">Drivers</h1>
+      <p className="text-cloud-dancer/70 mb-6">Manage drivers and view med card compliance status.</p>
       <DriverListClient orgId={orgId} initialDrivers={drivers ?? []} />
     </div>
   );

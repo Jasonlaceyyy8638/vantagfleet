@@ -20,7 +20,7 @@ export function ComplianceStatusBadge({ medCardExpiry }: { medCardExpiry: string
 
   if (status === null) {
     return (
-      <span className="inline-flex items-center rounded-md bg-slate-600/50 px-2 py-0.5 text-xs font-medium text-slate-400">
+      <span className="inline-flex items-center rounded-md bg-card px-2 py-0.5 text-xs font-medium text-cloud-dancer/60">
         No date
       </span>
     );
@@ -36,14 +36,14 @@ export function ComplianceStatusBadge({ medCardExpiry }: { medCardExpiry: string
 
   if (status === 'warning') {
     return (
-      <span className="inline-flex items-center rounded-md bg-amber-500/20 px-2 py-0.5 text-xs font-semibold text-amber-400 ring-1 ring-inset ring-amber-500/30">
+      <span className="inline-flex items-center rounded-md bg-cyber-amber/20 px-2 py-0.5 text-xs font-semibold text-cyber-amber ring-1 ring-inset ring-cyber-amber/30">
         WARNING
       </span>
     );
   }
 
   return (
-    <span className="inline-flex items-center rounded-md bg-emerald-500/20 px-2 py-0.5 text-xs font-medium text-emerald-400 ring-1 ring-inset ring-emerald-500/30">
+    <span className="inline-flex items-center rounded-md bg-transformative-teal/20 px-2 py-0.5 text-xs font-medium text-transformative-teal ring-1 ring-inset ring-transformative-teal/30">
       OK
     </span>
   );

@@ -24,7 +24,7 @@ export function OrgSwitcher({
   if (organizations.length === 0) return null;
   if (organizations.length === 1)
     return (
-      <div className="px-3 py-2 rounded-lg bg-slate-800/80 text-slate-200 text-sm font-medium">
+      <div className="px-3 py-2 rounded-lg bg-deep-ink text-cloud-dancer text-sm font-medium">
         {current?.name ?? '—'}
       </div>
     );
@@ -34,7 +34,7 @@ export function OrgSwitcher({
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg bg-slate-800/80 hover:bg-slate-700/80 text-slate-200 text-sm font-medium"
+        className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg bg-deep-ink hover:bg-deep-ink/80 text-cloud-dancer text-sm font-medium"
       >
         <span className="truncate">{current?.name ?? 'Select org'}</span>
         <ChevronDown className={`size-4 shrink-0 transition ${open ? 'rotate-180' : ''}`} />
@@ -42,17 +42,17 @@ export function OrgSwitcher({
       {open && (
         <>
           <div className="fixed inset-0 z-10" aria-hidden onClick={() => setOpen(false)} />
-          <ul className="absolute left-0 right-0 top-full mt-1 z-20 rounded-lg border border-slate-600 bg-slate-800 shadow-lg py-1 max-h-60 overflow-auto">
+          <ul className="absolute left-0 right-0 top-full mt-1 z-20 rounded-lg border border-[#30363d] bg-card shadow-lg py-1 max-h-60 overflow-auto">
             {organizations.map((org) => (
               <li key={org.id}>
                 <button
                   type="button"
                   onClick={() => handleSelect(org.id)}
-                  className={`w-full text-left px-3 py-2 text-sm hover:bg-slate-700 ${org.id === currentOrgId ? 'bg-slate-700/80 text-white' : 'text-slate-200'}`}
+                  className={`w-full text-left px-3 py-2 text-sm hover:bg-deep-ink ${org.id === currentOrgId ? 'bg-deep-ink text-cloud-dancer' : 'text-cloud-dancer/90'}`}
                 >
                   {org.name}
                   {org.usdot_number && (
-                    <span className="text-slate-400 ml-2">USDOT {org.usdot_number}</span>
+                    <span className="text-cloud-dancer/60 ml-2">USDOT {org.usdot_number}</span>
                   )}
                 </button>
               </li>
