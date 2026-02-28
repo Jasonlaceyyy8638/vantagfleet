@@ -28,7 +28,7 @@ async function getCurrentOrgId(supabase: Awaited<ReturnType<typeof createClient>
     .from('profiles')
     .select('org_id')
     .eq('user_id', user.id);
-  const orgIds = [...new Set((profiles ?? []).map((p) => p.org_id))];
+  const orgIds = Array.from(new Set((profiles ?? []).map((p) => p.org_id)));
   const cookieStore = await cookies();
   const stored = cookieStore.get(ORG_COOKIE)?.value;
   return stored && orgIds.includes(stored) ? stored : orgIds[0] ?? null;

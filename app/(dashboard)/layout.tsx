@@ -19,7 +19,7 @@ export default async function DashboardLayout({
     .select('org_id')
     .eq('user_id', user.id);
 
-  const orgIds = [...new Set((profiles ?? []).map((p) => p.org_id))];
+  const orgIds = Array.from(new Set((profiles ?? []).map((p) => p.org_id)));
   if (orgIds.length === 0) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4">
