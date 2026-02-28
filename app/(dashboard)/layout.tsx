@@ -32,7 +32,7 @@ export default async function DashboardLayout({
 
   const { data: organizations } = await supabase
     .from('organizations')
-    .select('id, name, usdot_number, status')
+    .select('id, name, usdot_number, status, created_at, updated_at')
     .in('id', orgIds)
     .order('name');
 
