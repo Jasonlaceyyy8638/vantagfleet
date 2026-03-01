@@ -30,6 +30,32 @@ export function isMissingOrExpired(dateStr: string | null): boolean {
   return isExpired(dateStr);
 }
 
+/** Buckets for DQ/document expiry: within 60, 30, or 7 days. */
+export function getExpiryBucketDays(dateStr: string | null): number | null {
+  return getDaysUntil(dateStr);
+}
+
+export type ExpiryStatus = 'safe' | 'warning' | 'expired';
+
+/**
+ * Returns compliance status for badge: Safe (Electric Teal) >30 days,
+ * Warning (Yellow) within 30 days, Expired (Red) past due.
+ */
+export function getExpiryStatus(dateStr: string | null): ExpiryStatus | null {
+  if (!dateStr) return null;
+  const days = getDaysUntil(dateStr);
+  if (days === null) return null;
+  if (days < 0) return 'expired';
+  if (days <= 30) return 'warning';
+  return 'safe';
+}
+
+/** True if expiry is within the given number of days (and not yet expired). */
+export function isWithinDays(dateStr: string | null, days: number): boolean {
+  const d = getDaysUntil(dateStr);
+  return d !== null && d >= 0 && d <= days;
+}
+
 /**
  * Compute compliance score from:
  * - drivers: med_card_expiry (missing or expired = penalty)

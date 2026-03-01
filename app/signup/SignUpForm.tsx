@@ -27,7 +27,7 @@ export function SignUpForm() {
     e.preventDefault();
     setLoading(true);
     setMessage('');
-    const result = await createOrganization(companyName.trim(), usdot.trim() || null);
+    const result = await createOrganization(companyName.trim(), usdot.trim());
     setLoading(false);
     if (result.error) {
       setMessage(result.error);
@@ -83,15 +83,16 @@ export function SignUpForm() {
         </div>
         <div>
           <label htmlFor="usdot" className="block text-sm font-medium text-cloud-dancer mb-1">
-            USDOT number
+            USDOT number *
           </label>
           <input
             id="usdot"
             type="text"
             value={usdot}
             onChange={(e) => setUsdot(e.target.value)}
+            required
             className="w-full px-3 py-2 rounded-lg bg-deep-ink border border-[#30363d] text-cloud-dancer placeholder-cloud-dancer/50 focus:outline-none focus:ring-2 focus:ring-transformative-teal"
-            placeholder="Optional"
+            placeholder="e.g. 1234567"
           />
         </div>
         {message && <p className="text-sm text-red-400">{message}</p>}

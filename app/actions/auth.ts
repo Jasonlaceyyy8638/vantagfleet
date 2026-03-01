@@ -4,11 +4,13 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 
-export async function createOrganization(name: string, usdot_number: string | null) {
+export async function createOrganization(name: string, usdot_number: string) {
+  const trimmed = usdot_number?.trim();
+  if (!trimmed) return { error: 'USDOT number is required.' };
   const supabase = createAdminClient();
   const { data, error } = await supabase
     .from('organizations')
-    .insert({ name, usdot_number: usdot_number || null, status: 'active' })
+    .insert({ name, usdot_number: trimmed, status: 'active' })
     .select('id')
     .single();
   if (error) return { error: error.message };

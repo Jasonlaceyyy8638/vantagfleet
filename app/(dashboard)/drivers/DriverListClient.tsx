@@ -2,8 +2,9 @@
 
 import { createClient } from '@/lib/supabase/client';
 import { ComplianceStatusBadge } from '@/components/ComplianceStatusBadge';
+import { DocumentUpload } from '@/components/DocumentUpload';
 import { useState } from 'react';
-import { UserPlus, Loader2 } from 'lucide-react';
+import { UserPlus, Loader2, FileText } from 'lucide-react';
 
 type Driver = {
   id: string;
@@ -14,15 +15,27 @@ type Driver = {
   clearinghouse_status: string | null;
 };
 
+type ComplianceDoc = {
+  id: string;
+  driver_id: string | null;
+  doc_type: string;
+  file_path: string;
+  expiry_date: string | null;
+};
+
 export function DriverListClient({
   orgId,
   initialDrivers,
+  initialComplianceDocs = [],
 }: {
   orgId: string;
   initialDrivers: Driver[];
+  initialComplianceDocs?: ComplianceDoc[];
 }) {
   const [drivers, setDrivers] = useState<Driver[]>(initialDrivers);
+  const [complianceDocs, setComplianceDocs] = useState<ComplianceDoc[]>(initialComplianceDocs);
   const [showForm, setShowForm] = useState(false);
+  const [docsDriverId, setDocsDriverId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [name, setName] = useState('');
@@ -32,6 +45,9 @@ export function DriverListClient({
   const [clearinghouseStatus, setClearinghouseStatus] = useState('');
 
   const supabase = createClient();
+  const docsDriver = docsDriverId ? drivers.find((d) => d.id === docsDriverId) : null;
+  const docsForDriver = (driverId: string) =>
+    complianceDocs.filter((d) => d.driver_id === driverId);
 
   const handleAddDriver = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -170,6 +186,7 @@ export function DriverListClient({
                 <th className="text-left py-3 px-4 text-xs font-semibold text-cloud-dancer/60 uppercase tracking-wider">License</th>
                 <th className="text-left py-3 px-4 text-xs font-semibold text-cloud-dancer/60 uppercase tracking-wider">Med card expiry</th>
                 <th className="text-left py-3 px-4 text-xs font-semibold text-cloud-dancer/60 uppercase tracking-wider">Compliance status</th>
+                <th className="text-left py-3 px-4 text-xs font-semibold text-cloud-dancer/60 uppercase tracking-wider">DQ Docs</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#30363d]">
@@ -187,12 +204,61 @@ export function DriverListClient({
                   <td className="py-3 px-4">
                     <ComplianceStatusBadge medCardExpiry={d.med_card_expiry} />
                   </td>
+                  <td className="py-3 px-4">
+                    <button
+                      type="button"
+                      onClick={() => setDocsDriverId(d.id)}
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-white/20 text-soft-cloud/80 hover:bg-white/10 text-sm"
+                    >
+                      <FileText className="size-4" />
+                      Docs ({docsForDriver(d.id).length})
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         )}
       </div>
+
+      {docsDriverId && docsDriver && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70"
+          role="dialog"
+          aria-label="DQ document upload"
+          onClick={() => setDocsDriverId(null)}
+        >
+          <div
+            className="bg-card border border-white/10 rounded-2xl p-6 max-w-md w-full max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex justify-end mb-2">
+              <button
+                type="button"
+                onClick={() => setDocsDriverId(null)}
+                className="text-soft-cloud/60 hover:text-soft-cloud p-1 rounded text-xl leading-none"
+                aria-label="Close"
+              >
+                ×
+              </button>
+            </div>
+            <DocumentUpload
+              driverId={docsDriver.id}
+              driverName={docsDriver.name}
+              orgId={orgId}
+              initialDocs={docsForDriver(docsDriver.id).map((d) => ({
+                id: d.id,
+                doc_type: d.doc_type,
+                file_path: d.file_path,
+                expiry_date: d.expiry_date,
+              }))}
+              onDocAdded={(doc) =>
+                setComplianceDocs((prev) => [...prev, { ...doc, driver_id: docsDriver.id }])
+              }
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -13,6 +13,8 @@ import {
   Settings,
   LogOut,
   Smartphone,
+  DollarSign,
+  ShieldCheck,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 
@@ -20,7 +22,9 @@ const nav = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/drivers', label: 'Drivers', icon: Users },
   { href: '/vehicles', label: 'Vehicles', icon: Truck },
+  { href: '/loads', label: 'Loads', icon: DollarSign },
   { href: '/compliance', label: 'Compliance', icon: FileCheck },
+  { href: '/regulatory', label: 'Regulatory', icon: ShieldCheck },
   { href: '/roadside-mode', label: 'Roadside', icon: Smartphone },
   { href: '/settings', label: 'Settings', icon: Settings },
 ];
