@@ -8,6 +8,7 @@ import {
   type CustomerRow,
   type ChargeRow,
 } from '@/app/actions/admin';
+import { createRefund, REFUND_REASONS } from '@/app/actions/stripe-refund';
 import { Search, Plus, DollarSign, Loader2, RefreshCw } from 'lucide-react';
 
 export function AdminSupportClient() {
@@ -15,12 +16,22 @@ export function AdminSupportClient() {
   const [customers, setCustomers] = useState<CustomerRow[]>([]);
   const [chargesByCustomer, setChargesByCustomer] = useState<Record<string, ChargeRow[]>>({});
   const [loading, setLoading] = useState(false);
-  const [refunding, setRefunding] = useState<string | null>(null);
   const [addModal, setAddModal] = useState(false);
   const [addName, setAddName] = useState('');
   const [addUsdot, setAddUsdot] = useState('');
   const [addSubmitting, setAddSubmitting] = useState(false);
   const [addError, setAddError] = useState<string | null>(null);
+
+  const [refundModal, setRefundModal] = useState<{ charge: ChargeRow; stripeCustomerId: string; orgId: string } | null>(null);
+  const [refundReason, setRefundReason] = useState<string>(REFUND_REASONS[0].value);
+  const [refundAmountCents, setRefundAmountCents] = useState<string>('');
+  const [refundSubmitting, setRefundSubmitting] = useState(false);
+  const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
+  const showToast = useCallback((type: 'success' | 'error', message: string) => {
+    setToast({ type, message });
+    setTimeout(() => setToast(null), 5000);
+  }, []);
 
   const doSearch = useCallback(async () => {
     setLoading(true);
@@ -45,28 +56,40 @@ export function AdminSupportClient() {
     });
   }, [customers]);
 
-  const handleRefund = async (chargeId: string) => {
-    setRefunding(chargeId);
+  const openRefundModal = (charge: ChargeRow, stripeCustomerId: string, orgId: string) => {
+    setRefundModal({ charge, stripeCustomerId, orgId });
+    setRefundReason(REFUND_REASONS[0].value);
+    setRefundAmountCents('');
+  };
+
+  const handleConfirmRefund = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!refundModal) return;
+    setRefundSubmitting(true);
     try {
-      const res = await fetch('/api/admin/refund', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ charge_id: chargeId }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        alert(data.error || 'Refund failed');
+      const amountCents = refundAmountCents.trim()
+        ? Math.round(Number(refundAmountCents) * 100)
+        : undefined;
+      if (refundAmountCents.trim() && (Number.isNaN(Number(refundAmountCents)) || (amountCents ?? 0) < 1)) {
+        showToast('error', 'Enter a valid amount.');
         return;
       }
-      const customerId = Object.keys(chargesByCustomer).find((cid) =>
-        chargesByCustomer[cid].some((ch) => ch.id === chargeId)
-      );
-      if (customerId) {
-        const updated = await getCustomerCharges(customerId);
-        setChargesByCustomer((prev) => ({ ...prev, [customerId]: updated }));
+      const result = await createRefund({
+        chargeId: refundModal.charge.id,
+        reason: refundReason,
+        amountCents,
+        targetOrgId: refundModal.orgId,
+      });
+      if ('error' in result) {
+        showToast('error', result.error);
+        return;
       }
+      showToast('success', 'Refund processed successfully.');
+      setRefundModal(null);
+      const updated = await getCustomerCharges(refundModal.stripeCustomerId);
+      setChargesByCustomer((prev) => ({ ...prev, [refundModal.stripeCustomerId]: updated }));
     } finally {
-      setRefunding(null);
+      setRefundSubmitting(false);
     }
   };
 
@@ -90,7 +113,16 @@ export function AdminSupportClient() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 relative">
+      {toast && (
+        <div
+          className={`fixed top-4 left-1/2 -translate-x-1/2 z-[100] px-4 py-3 rounded-lg shadow-lg flex items-center gap-2 ${
+            toast.type === 'success' ? 'bg-electric-teal/90 text-midnight-ink' : 'bg-red-500/90 text-white'
+          }`}
+        >
+          {toast.message}
+        </div>
+      )}
       <h1 className="text-2xl font-bold text-soft-cloud">Support — Customer search</h1>
       <p className="text-soft-cloud/70">
         Search customers, add new ones (DB + Stripe), and issue refunds on recent payments.
@@ -178,16 +210,12 @@ export function AdminSupportClient() {
                             </span>
                             <button
                               type="button"
-                              onClick={() => handleRefund(ch.id)}
-                              disabled={refunding !== null || ch.status !== 'succeeded'}
+                              onClick={() => openRefundModal(ch, org.stripe_customer_id!, org.id)}
+                              disabled={ch.refunded || ch.status !== 'succeeded'}
                               className="inline-flex items-center gap-1 px-2 py-1 rounded bg-cyber-amber/20 text-cyber-amber text-xs font-medium hover:bg-cyber-amber/30 disabled:opacity-50"
                             >
-                              {refunding === ch.id ? (
-                                <Loader2 className="size-3 animate-spin" />
-                              ) : (
-                                <RefreshCw className="size-3" />
-                              )}
-                              Issue Refund
+                              <RefreshCw className="size-3" />
+                              Refund
                             </button>
                           </li>
                         ))}
@@ -256,6 +284,79 @@ export function AdminSupportClient() {
                 >
                   {addSubmitting ? <Loader2 className="size-4 animate-spin" /> : null}
                   Create customer
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {refundModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+          onClick={() => !refundSubmitting && setRefundModal(null)}
+        >
+          <div
+            className="w-full max-w-md rounded-xl border border-white/10 bg-card p-6 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="text-lg font-semibold text-soft-cloud mb-4">Confirm refund</h2>
+            <p className="text-soft-cloud/80 mb-4">
+              Transaction amount:{' '}
+              <span className="font-semibold text-cyber-amber">
+                {(refundModal.charge.amount / 100).toFixed(2)} {refundModal.charge.currency.toUpperCase()}
+              </span>
+            </p>
+            <form onSubmit={handleConfirmRefund} className="space-y-4">
+              <div>
+                <label htmlFor="refund-reason" className="block text-sm font-medium text-soft-cloud/80 mb-1">
+                  Reason for refund *
+                </label>
+                <select
+                  id="refund-reason"
+                  value={refundReason}
+                  onChange={(e) => setRefundReason(e.target.value)}
+                  required
+                  className="w-full px-3 py-2 rounded-lg bg-midnight-ink border border-white/10 text-soft-cloud focus:outline-none focus:ring-2 focus:ring-cyber-amber"
+                >
+                  {REFUND_REASONS.map((r) => (
+                    <option key={r.value} value={r.value}>
+                      {r.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label htmlFor="refund-amount" className="block text-sm font-medium text-soft-cloud/80 mb-1">
+                  Amount (optional, $)
+                </label>
+                <input
+                  id="refund-amount"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  placeholder="Leave blank for full refund"
+                  value={refundAmountCents}
+                  onChange={(e) => setRefundAmountCents(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg bg-midnight-ink border border-white/10 text-soft-cloud placeholder-soft-cloud/50 focus:outline-none focus:ring-2 focus:ring-cyber-amber"
+                />
+              </div>
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setRefundModal(null)}
+                  disabled={refundSubmitting}
+                  className="px-4 py-2 rounded-lg border border-white/20 text-soft-cloud hover:bg-white/5 disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={refundSubmitting}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-cyber-amber text-midnight-ink font-semibold hover:bg-cyber-amber/90 disabled:opacity-60"
+                >
+                  {refundSubmitting ? <Loader2 className="size-4 animate-spin" /> : null}
+                  Process refund
                 </button>
               </div>
             </form>
