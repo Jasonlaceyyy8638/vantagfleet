@@ -13,7 +13,12 @@ export async function createOrganization(name: string, usdot_number: string) {
     .insert({ name, usdot_number: trimmed, status: 'active' })
     .select('id')
     .single();
-  if (error) return { error: error.message };
+  if (error) {
+    if (error.code === '23505' || error.message?.includes('organizations_usdot_number') || error.message?.includes('unique constraint')) {
+      return { error: 'This USDOT number is already registered. Use a different number or sign in to your existing account.' };
+    }
+    return { error: error.message };
+  }
   return { orgId: data.id };
 }
 

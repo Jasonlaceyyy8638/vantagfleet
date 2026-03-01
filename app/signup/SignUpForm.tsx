@@ -1,7 +1,7 @@
 'use client';
 
 import { createClient } from '@/lib/supabase/client';
-import { createOrganization, createProfileAfterSignUp } from '@/app/actions/auth';
+import { createOrganization } from '@/app/actions/auth';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
@@ -45,22 +45,36 @@ export function SignUpForm() {
     setLoading(true);
     setMessage('');
     const supabase = getSupabaseClient();
-    const { error: signUpError } = await supabase.auth.signUp({
+    const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
       email: email.trim(),
       password,
-      options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
+      options: {
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
+        data: { full_name: fullName.trim() || null },
+      },
     });
     if (signUpError) {
       setLoading(false);
       setMessage(signUpError.message);
       return;
     }
-    const result = await createProfileAfterSignUp(orgId, fullName.trim() || null);
-    if (result?.error) {
-      setLoading(false);
-      setMessage(result.error);
-      return;
+    // Session is available on the client now; server action may not see cookies yet.
+    // Create profile from client so we use the same session that just signed up.
+    const user = signUpData.user;
+    if (user) {
+      const { error: profileError } = await supabase.from('profiles').insert({
+        user_id: user.id,
+        org_id: orgId,
+        role: 'Owner',
+        full_name: fullName.trim() || null,
+      });
+      if (profileError) {
+        setLoading(false);
+        setMessage(profileError.message || 'Could not create profile.');
+        return;
+      }
     }
+    router.push('/dashboard');
     router.refresh();
   };
 
