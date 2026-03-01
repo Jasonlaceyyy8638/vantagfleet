@@ -28,7 +28,7 @@ export function AdminSupportClient() {
   const [addError, setAddError] = useState<string | null>(null);
 
   const [refundModal, setRefundModal] = useState<{ charge: ChargeRow; stripeCustomerId: string; orgId: string } | null>(null);
-  const [refundReason, setRefundReason] = useState<string>(REFUND_REASONS[0].value);
+  const [refundReason, setRefundReason] = useState<string>(REFUND_REASONS[0]?.value ?? 'duplicate');
   const [refundAmountCents, setRefundAmountCents] = useState<string>('');
   const [refundSubmitting, setRefundSubmitting] = useState(false);
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
@@ -74,7 +74,7 @@ export function AdminSupportClient() {
 
   const openRefundModal = (charge: ChargeRow, stripeCustomerId: string, orgId: string) => {
     setRefundModal({ charge, stripeCustomerId, orgId });
-    setRefundReason(REFUND_REASONS[0].value);
+    setRefundReason(REFUND_REASONS[0]?.value ?? 'duplicate');
     setRefundAmountCents('');
   };
 

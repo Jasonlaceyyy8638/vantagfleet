@@ -12,7 +12,12 @@ export default async function AdminTeamPage() {
   const role = await getPlatformRole(supabase);
   if (!admin && !isPlatformStaff(role)) redirect('/dashboard');
 
-  const staff = await listVantagStaff();
+  let staff: Awaited<ReturnType<typeof listVantagStaff>> = [];
+  try {
+    staff = await listVantagStaff();
+  } catch {
+    staff = [];
+  }
 
   return <TeamClient initialStaff={staff} />;
 }

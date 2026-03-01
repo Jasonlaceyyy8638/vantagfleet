@@ -11,12 +11,19 @@ export default async function AdminSetupPage() {
   const role = await getPlatformRole(supabase);
   if (!admin && !isPlatformStaff(role)) redirect('/dashboard');
 
-  const adminClient = createAdminClient();
-  const { data: orgs } = await adminClient
-    .from('organizations')
-    .select('id, name, usdot_number, status, stripe_customer_id, created_at')
-    .order('created_at', { ascending: false })
-    .limit(100);
+  type OrgRow = { id: string; name: string; usdot_number: string | null; status: string; stripe_customer_id: string | null; created_at: string };
+  let orgs: OrgRow[] = [];
+  try {
+    const adminClient = createAdminClient();
+    const { data } = await adminClient
+      .from('organizations')
+      .select('id, name, usdot_number, status, stripe_customer_id, created_at')
+      .order('created_at', { ascending: false })
+      .limit(100);
+    orgs = (data ?? []) as OrgRow[];
+  } catch {
+    orgs = [];
+  }
 
   return (
     <div className="space-y-8">
@@ -28,7 +35,7 @@ export default async function AdminSetupPage() {
       </div>
       <div className="space-y-6">
         <div className="flex flex-wrap items-center gap-4">
-          <OrgSetupClient initialOrgs={(orgs ?? []) as { id: string; name: string; usdot_number: string | null; status: string; stripe_customer_id: string | null; created_at: string }[]} />
+          <OrgSetupClient initialOrgs={orgs} />
           <ManualOrgCreation />
         </div>
       </div>
