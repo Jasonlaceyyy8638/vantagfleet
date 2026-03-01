@@ -2,7 +2,7 @@
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "VantagFleet",
   "version": "0.1.0",
-  "identifier": "com.tauri.dev",
+  "identifier": "com.vantagfleet.desktop",
   "build": {
     "frontendDist": "../out",
     "devUrl": "http://localhost:3000",
@@ -26,6 +26,7 @@
   "bundle": {
     "active": true,
     "targets": "all",
+    "createUpdaterArtifacts": true,
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
@@ -33,5 +34,13 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ]
+  },
+  "plugins": {
+    "updater": {
+      "endpoints": [
+        "https://vantagfleet.com/api/update/{{target}}/{{current_version}}"
+      ],
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEVENjM3OEM5MkYxODBCQTAKUldTZ0N4Z3Z5WGhqN2FjZExHRVk3bFBNUGFKU2o1RjRIVGgvSHY1OGxzNHJ4USsyWUJCRWFHUDYK"
+    }
   }
 }

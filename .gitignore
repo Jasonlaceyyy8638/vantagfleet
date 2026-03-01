@@ -33,3 +33,7 @@ yarn-error.log*
 # TypeScript
 *.tsbuildinfo
 next-env.d.ts
+
+# Tauri signing keys (never commit)
+main.key
+main.key.pub

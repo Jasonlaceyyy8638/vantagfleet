@@ -21,6 +21,11 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(callback);
   }
 
+  // Tauri updater: no auth required
+  if (pathname.startsWith('/api/update')) {
+    return NextResponse.next();
+  }
+
   const isPublic = PUBLIC_PATHS.some((p) => pathname.startsWith(p));
 
   // Refresh Supabase session and get current user (and staff status for /admin)

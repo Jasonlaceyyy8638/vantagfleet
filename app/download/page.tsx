@@ -1,6 +1,8 @@
 import Link from 'next/link';
 import { Download, Monitor, Apple, ArrowLeft } from 'lucide-react';
 
+export const dynamic = 'force-static';
+
 export const metadata = {
   title: 'Download VantagFleet Desktop — Windows & Mac',
   description: 'Download VantagFleet desktop app for Windows and macOS. Fleet management and compliance, native.',
