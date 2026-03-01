@@ -29,6 +29,10 @@ export function IntegrationsHubClient({ orgId, initialIntegrations }: Props) {
   const [syncResult, setSyncResult] = useState<string | null>(null);
   const [motiveSyncLoading, setMotiveSyncLoading] = useState(false);
   const [motiveSyncResult, setMotiveSyncResult] = useState<string | null>(null);
+  const [motiveLastSyncedAt, setMotiveLastSyncedAt] = useState<string | null>(
+    () => initialIntegrations.find((i) => i.provider === 'motive')?.last_synced_at ?? null
+  );
+  const [syncDataLoading, setSyncDataLoading] = useState(false);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -71,6 +75,37 @@ export function IntegrationsHubClient({ orgId, initialIntegrations }: Props) {
     }
   };
 
+  const handleSyncData = async () => {
+    setMotiveSyncResult(null);
+    setSyncDataLoading(true);
+    try {
+      const res = await fetch('/api/motive/sync', { method: 'POST' });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.ok) {
+        setMotiveLastSyncedAt(data.last_synced_at ?? new Date().toISOString());
+        setMotiveSyncResult(`Synced ${data.vehicles ?? 0} vehicle(s), ${data.drivers ?? 0} driver(s).`);
+        const next = await getIntegrationsForOrg(orgId);
+        setIntegrations(next);
+      } else {
+        setMotiveSyncResult(data.error ?? 'Sync failed');
+      }
+    } catch {
+      setMotiveSyncResult('Sync request failed');
+    } finally {
+      setSyncDataLoading(false);
+    }
+  };
+
+  function formatLastSynced(iso: string | null): string {
+    if (!iso) return '';
+    const d = new Date(iso);
+    const sec = (Date.now() - d.getTime()) / 1000;
+    if (sec < 60) return 'Just Now';
+    if (sec < 3600) return `${Math.floor(sec / 60)} min ago`;
+    if (sec < 86400) return `${Math.floor(sec / 3600)} hr ago`;
+    return d.toLocaleDateString();
+  }
+
   const openModal = (provider: IntegrationProvider) => {
     setModalProvider(provider);
     setCredential('');
@@ -100,7 +135,7 @@ export function IntegrationsHubClient({ orgId, initialIntegrations }: Props) {
                 {p.id === 'fmcsa' && 'Connect FMCSA for safety and compliance data.'}
               </p>
               <div className="flex flex-col gap-2">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between flex-wrap gap-2">
                   {connected ? (
                     <span className="inline-flex items-center gap-1.5 text-sm text-electric-teal">
                       <Check className="size-4" />
@@ -109,14 +144,34 @@ export function IntegrationsHubClient({ orgId, initialIntegrations }: Props) {
                   ) : (
                     <span className="text-sm text-soft-cloud/50">Not connected</span>
                   )}
-                  <button
-                    type="button"
-                    onClick={() => openModal(p.id)}
-                    className="px-3 py-1.5 rounded-lg text-sm font-medium bg-cyber-amber text-midnight-ink hover:bg-cyber-amber/90 transition-colors"
-                  >
-                    {connected ? 'Update' : 'Connect'}
-                  </button>
+                  <div className="flex items-center gap-2">
+                    {p.id === 'motive' && connected && (
+                      <button
+                        type="button"
+                        onClick={handleSyncData}
+                        disabled={syncDataLoading}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium bg-cyber-amber/20 text-cyber-amber hover:bg-cyber-amber/30 disabled:opacity-60 transition-colors"
+                      >
+                        {syncDataLoading ? (
+                          <Loader2 className="size-3.5 animate-spin" />
+                        ) : null}
+                        {syncDataLoading ? 'Syncing…' : 'Sync Data'}
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => openModal(p.id)}
+                      className="px-3 py-1.5 rounded-lg text-sm font-medium bg-cyber-amber text-midnight-ink hover:bg-cyber-amber/90 transition-colors"
+                    >
+                      {connected ? 'Update' : 'Connect'}
+                    </button>
+                  </div>
                 </div>
+                {p.id === 'motive' && (motiveLastSyncedAt ?? row?.last_synced_at) && (
+                  <p className="text-xs text-soft-cloud/50">
+                    Last Synced: {formatLastSynced(motiveLastSyncedAt ?? row?.last_synced_at ?? null)}
+                  </p>
+                )}
                 {p.id === 'motive' && !connected && (
                   <a
                     href={`/api/auth/motive?org_id=${encodeURIComponent(orgId)}`}

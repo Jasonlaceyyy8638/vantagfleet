@@ -12,6 +12,8 @@ export type IntegrationRow = {
   created_at: string;
   /** Masked for display; never return raw credential. */
   connected: boolean;
+  /** When fleet data was last synced (e.g. Motive). */
+  last_synced_at: string | null;
 };
 
 /** Ensure current user belongs to the org. */
@@ -70,13 +72,13 @@ export async function getIntegrationsForOrg(orgId: string): Promise<IntegrationR
   const supabase = await createClient();
   const { data: rows } = await supabase
     .from('carrier_integrations')
-    .select('id, org_id, provider, created_at')
+    .select('id, org_id, provider, created_at, last_synced_at')
     .eq('org_id', orgId);
 
   const providers: IntegrationProvider[] = ['samsara', 'motive', 'fmcsa'];
   const rowList = rows ?? [];
-  const byProvider = new Map<string, { id: string; org_id: string; provider: string; created_at: string }>(
-    rowList.map((r) => [r.provider, r])
+  const byProvider = new Map<string, { id: string; org_id: string; provider: string; created_at: string; last_synced_at: string | null }>(
+    rowList.map((r) => [r.provider, { ...r, last_synced_at: (r as { last_synced_at?: string | null }).last_synced_at ?? null }])
   );
 
   return providers.map((provider) => {
@@ -87,6 +89,7 @@ export async function getIntegrationsForOrg(orgId: string): Promise<IntegrationR
       provider,
       created_at: row?.created_at ?? '',
       connected: !!row,
+      last_synced_at: row?.last_synced_at ?? null,
     };
   });
 }
