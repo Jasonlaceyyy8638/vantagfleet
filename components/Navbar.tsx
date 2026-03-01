@@ -1,14 +1,26 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Logo } from '@/components/Logo';
+import { createClient } from '@/lib/supabase/client';
+import { LogOut } from 'lucide-react';
 
 type NavbarProps = {
   isAuthenticated?: boolean;
   isAdmin?: boolean;
 };
 
-export function Navbar({ isAuthenticated = false, isAdmin: showAdmin = false }: NavbarProps) {
+export function Navbar({ isAuthenticated = false, isAdmin = false }: NavbarProps) {
+  const router = useRouter();
+
+  const handleSignOut = async () => {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.refresh();
+    window.location.href = '/';
+  };
+
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 sm:px-6 lg:px-8 py-4 bg-midnight-ink/80 backdrop-blur-md border-b border-white/10">
       <Link href="/" className="flex items-center gap-2 shrink-0">
@@ -36,19 +48,19 @@ export function Navbar({ isAuthenticated = false, isAdmin: showAdmin = false }: 
         ) : (
           <>
             <Link
-              href="/dashboard"
+              href={isAdmin ? '/admin' : '/dashboard'}
               className="px-4 py-2.5 rounded-lg text-soft-cloud font-medium hover:bg-white/10 transition-colors"
             >
               Dashboard
             </Link>
-            {showAdmin && (
-              <Link
-                href="/admin"
-                className="px-4 py-2.5 rounded-lg border-2 border-cyber-amber text-cyber-amber font-semibold hover:bg-cyber-amber/10 transition-colors"
-              >
-                Admin Panel
-              </Link>
-            )}
+            <button
+              type="button"
+              onClick={handleSignOut}
+              className="px-4 py-2.5 rounded-lg border border-white/20 text-soft-cloud font-medium hover:bg-white/10 transition-colors inline-flex items-center gap-2"
+            >
+              <LogOut className="size-4" />
+              Sign Out
+            </button>
           </>
         )}
       </div>

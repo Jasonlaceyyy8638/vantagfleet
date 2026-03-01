@@ -1,12 +1,16 @@
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
+import { isAdmin } from '@/lib/admin';
 import { SignUpForm } from './SignUpForm';
 import { Logo } from '@/components/Logo';
 
 export default async function SignUpPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (user) redirect('/dashboard');
+  if (user) {
+    const admin = await isAdmin(supabase);
+    redirect(admin ? '/admin' : '/dashboard');
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-deep-ink">
