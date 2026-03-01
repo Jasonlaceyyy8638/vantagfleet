@@ -38,11 +38,13 @@ export default function DownloadPage() {
             Download for your platform
           </h2>
           <p className="text-soft-cloud/60 text-sm text-center mb-8">
-            Choose your operating system. Installers are hosted in our releases folder.
+            Choose your operating system. Installers are published on GitHub Releases.
           </p>
           <div className="grid sm:grid-cols-2 gap-6">
             <a
-              href="/releases"
+              href="https://github.com/Jasonlaceyyy8638/vantagfleet/releases"
+              target="_blank"
+              rel="noopener noreferrer"
               className="group flex flex-col items-center gap-4 p-6 rounded-xl border border-white/10 bg-midnight-ink hover:border-cyber-amber/50 hover:bg-cyber-amber/5 transition-all duration-200"
             >
               <div className="p-4 rounded-xl bg-soft-cloud/10 group-hover:bg-cyber-amber/20 transition-colors">
@@ -56,7 +58,9 @@ export default function DownloadPage() {
               </span>
             </a>
             <a
-              href="/releases"
+              href="https://github.com/Jasonlaceyyy8638/vantagfleet/releases"
+              target="_blank"
+              rel="noopener noreferrer"
               className="group flex flex-col items-center gap-4 p-6 rounded-xl border border-white/10 bg-midnight-ink hover:border-cyber-amber/50 hover:bg-cyber-amber/5 transition-all duration-200"
             >
               <div className="p-4 rounded-xl bg-soft-cloud/10 group-hover:bg-cyber-amber/20 transition-colors">
@@ -71,7 +75,7 @@ export default function DownloadPage() {
             </a>
           </div>
           <p className="text-center text-soft-cloud/50 text-xs mt-6">
-            All releases are available in the <code className="px-1.5 py-0.5 rounded bg-white/10">/releases</code> folder.
+            Installers are on <strong>GitHub Releases</strong>. <Link href="/releases" className="text-cyber-amber hover:underline">View releases page</Link>.
           </p>
         </section>
 
