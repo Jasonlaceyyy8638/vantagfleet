@@ -38,6 +38,11 @@ export function Navbar({ isAuthenticated: initialAuth = false }: { isAuthenticat
   const [auth, setAuth] = useState(initialAuth);
   const [role, setRole] = useState<NavRole>(null);
   const [ready, setReady] = useState(false);
+  const [isTauri, setIsTauri] = useState(false);
+
+  useEffect(() => {
+    setIsTauri(typeof window !== 'undefined' && !!(window as unknown as { __TAURI__?: unknown }).__TAURI__);
+  }, []);
 
   useEffect(() => {
     const supabase = createClient();
@@ -85,12 +90,14 @@ export function Navbar({ isAuthenticated: initialAuth = false }: { isAuthenticat
             <Link href="/login" className={linkBase}>
               Sign In
             </Link>
-            <Link
-              href="/download"
-              className="bg-amber-500 text-black px-4 py-2 rounded-md font-bold hover:bg-amber-600 transition-colors"
-            >
-              Download App
-            </Link>
+            {!isTauri && (
+              <Link
+                href="/download"
+                className="bg-amber-500 text-black px-4 py-2 rounded-md font-bold hover:bg-amber-600 transition-colors"
+              >
+                Download App
+              </Link>
+            )}
             <Link
               href="/signup"
               className="px-5 py-2.5 rounded-lg bg-cyber-amber text-midnight-ink font-bold hover:bg-cyber-amber/90"
@@ -147,12 +154,14 @@ export function Navbar({ isAuthenticated: initialAuth = false }: { isAuthenticat
                 My Fleet
               </Link>
             )}
-            <Link
-              href="/download"
-              className="bg-amber-500 text-black px-4 py-2 rounded-md font-bold hover:bg-amber-600 transition-colors"
-            >
-              Download App
-            </Link>
+            {!isTauri && (
+              <Link
+                href="/download"
+                className="bg-amber-500 text-black px-4 py-2 rounded-md font-bold hover:bg-amber-600 transition-colors"
+              >
+                Download App
+              </Link>
+            )}
             <button
               type="button"
               onClick={async () => {
