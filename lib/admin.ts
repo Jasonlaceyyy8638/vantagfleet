@@ -46,3 +46,23 @@ export async function canAccessAdmin(supabase: SupabaseClient): Promise<boolean>
   const r = userRow?.role as string | undefined;
   return r === 'ADMIN' || r === 'EMPLOYEE' || r === 'SUPPORT';
 }
+
+/**
+ * Returns true only when the current user's role is exactly 'ADMIN'.
+ * Used to show/hide the Admin link and to protect /admin routes (admin-only).
+ */
+export async function isAdmin(supabase: SupabaseClient): Promise<boolean> {
+  const role = await getPlatformRole(supabase);
+  if (role === 'ADMIN') return true;
+
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return false;
+
+  const { data: userRow } = await supabase
+    .from('users')
+    .select('role')
+    .eq('id', user.id)
+    .single();
+
+  return (userRow?.role as string) === 'ADMIN';
+}

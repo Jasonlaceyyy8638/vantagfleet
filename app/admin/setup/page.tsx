@@ -3,6 +3,7 @@ import { getPlatformRole, isPlatformStaff } from '@/lib/admin';
 import { redirect } from 'next/navigation';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { OrgSetupClient } from './OrgSetupClient';
+import { ManualOrgCreation } from './ManualOrgCreation';
 
 export default async function AdminSetupPage() {
   const supabase = await createClient();
@@ -24,7 +25,12 @@ export default async function AdminSetupPage() {
           Add new customers (creates organization + Stripe customer). Use Customer Support to invite drivers or fix account issues.
         </p>
       </div>
-      <OrgSetupClient initialOrgs={(orgs ?? []) as { id: string; name: string; usdot_number: string | null; status: string; stripe_customer_id: string | null; created_at: string }[]} />
+      <div className="space-y-6">
+        <div className="flex flex-wrap items-center gap-4">
+          <OrgSetupClient initialOrgs={(orgs ?? []) as { id: string; name: string; usdot_number: string | null; status: string; stripe_customer_id: string | null; created_at: string }[]} />
+          <ManualOrgCreation />
+        </div>
+      </div>
     </div>
   );
 }

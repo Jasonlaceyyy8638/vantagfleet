@@ -20,7 +20,7 @@ export async function middleware(request: NextRequest) {
   const isPublic = PUBLIC_PATHS.some((p) => pathname.startsWith(p));
 
   // Refresh Supabase session and get current user (and staff status for /admin)
-  const { response, user, isStaff } = await updateSession(request, pathname);
+  const { response, user, isAdmin } = await updateSession(request, pathname);
 
   // Allow public paths and auth callback without requiring user
   if (isPublic || pathname === '/' || pathname === '/pricing' || pathname.startsWith('/roadside/view')) {
@@ -34,10 +34,10 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(redirect);
   }
 
-  // Admin portal: only ADMIN or EMPLOYEE may access; redirect others to dashboard
+  // Admin portal: only ADMIN may access; redirect others to home
   if (pathname.startsWith('/admin')) {
-    if (isStaff !== true) {
-      return NextResponse.redirect(new URL('/dashboard', request.url));
+    if (isAdmin !== true) {
+      return NextResponse.redirect(new URL('/', request.url));
     }
   }
 

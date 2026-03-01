@@ -3,13 +3,19 @@
 import Stripe from 'stripe';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { getPlatformRole, isPlatformStaff } from '@/lib/admin';
+import { getPlatformRole, isPlatformStaff, isAdmin } from '@/lib/admin';
 import { logAdminAction } from '@/lib/admin-log';
 
 async function requireStaff() {
   const supabase = await createClient();
   const role = await getPlatformRole(supabase);
   if (!isPlatformStaff(role)) throw new Error('Forbidden');
+}
+
+async function requireAdmin() {
+  const supabase = await createClient();
+  const ok = await isAdmin(supabase);
+  if (!ok) throw new Error('Forbidden');
 }
 
 export type CustomerRow = {
@@ -261,4 +267,195 @@ export async function createManualSubscription(
     const message = err instanceof Error ? err.message : 'Failed to create subscription';
     return { error: message };
   }
+}
+
+/** Manual org creation for support: create org (with Stripe customer) and optionally link a customer by email as Owner. */
+export async function createOrganizationForCustomer(
+  name: string,
+  usdot_number: string,
+  fleet_size: number | null,
+  customerEmail?: string | null
+): Promise<{ orgId: string; stripeCustomerId: string } | { error: string }> {
+  const supabaseAuth = await createClient();
+  const role = await getPlatformRole(supabaseAuth);
+  if (!isPlatformStaff(role)) return { error: 'Forbidden' };
+  const { data: { user: staffUser } } = await supabaseAuth.auth.getUser();
+  if (!staffUser) return { error: 'Not authenticated.' };
+
+  const trimmedName = name?.trim();
+  const trimmedUsdot = usdot_number?.trim();
+  if (!trimmedName) return { error: 'Company name is required.' };
+  if (!trimmedUsdot) return { error: 'DOT number is required.' };
+
+  const supabase = createAdminClient();
+  const secretKey = process.env.STRIPE_SECRET_KEY;
+  if (!secretKey) return { error: 'Stripe is not configured.' };
+
+  try {
+    const stripe = new Stripe(secretKey);
+    const customer = await stripe.customers.create({
+      name: trimmedName,
+      metadata: {},
+    });
+
+    const { data: org, error } = await supabase
+      .from('organizations')
+      .insert({
+        name: trimmedName,
+        usdot_number: trimmedUsdot,
+        status: 'active',
+        stripe_customer_id: customer.id,
+        fleet_size: fleet_size ?? null,
+      })
+      .select('id')
+      .single();
+
+    if (error) {
+      await stripe.customers.del(customer.id);
+      if (error.code === '23505' || error.message?.includes('organizations_usdot_number') || error.message?.includes('unique constraint')) {
+        return { error: 'This DOT number is already registered.' };
+      }
+      return { error: error.message };
+    }
+
+    if (customerEmail?.trim()) {
+      const email = customerEmail.trim().toLowerCase();
+      const { data: { users } } = await supabase.auth.admin.listUsers({ perPage: 1000 });
+      const match = (users ?? []).find((u) => u.email?.toLowerCase() === email);
+      if (match) {
+        const { data: existing } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('user_id', match.id)
+          .is('org_id', null)
+          .limit(1)
+          .maybeSingle();
+        if (existing) {
+          await supabase.from('profiles').update({ org_id: org.id, role: 'Owner' }).eq('id', existing.id);
+        } else {
+          await supabase.from('profiles').insert({
+            user_id: match.id,
+            org_id: org.id,
+            role: 'Owner',
+          });
+        }
+      }
+    }
+
+    await logAdminAction(staffUser.id, 'organization_created', org.id, {
+      name: trimmedName,
+      usdot_number: trimmedUsdot,
+      fleet_size: fleet_size ?? null,
+      customer_email: customerEmail?.trim() || null,
+      stripe_customer_id: customer.id,
+    });
+
+    return { orgId: org.id, stripeCustomerId: customer.id };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Failed to create organization';
+    return { error: message };
+  }
+}
+
+export type ProfileRow = {
+  profile_id: string;
+  user_id: string;
+  email: string | null;
+  full_name: string | null;
+  org_id: string | null;
+  org_name: string | null;
+  role: string;
+};
+
+/** List all profiles for admin user management. Admin-only. */
+export async function listProfilesForAdmin(): Promise<ProfileRow[]> {
+  await requireAdmin();
+  const admin = createAdminClient();
+  const { data: profiles, error: pErr } = await admin
+    .from('profiles')
+    .select('id, user_id, org_id, role, full_name')
+    .order('created_at', { ascending: false });
+  if (pErr) throw new Error(pErr.message);
+
+  const userIds = [...new Set((profiles ?? []).map((p) => p.user_id))];
+  const emailByUserId: Record<string, string | null> = {};
+  if (userIds.length > 0) {
+    const { data: { users } } = await admin.auth.admin.listUsers({ perPage: 1000 });
+    for (const u of users ?? []) {
+      emailByUserId[u.id] = u.email ?? null;
+    }
+  }
+
+  const orgIds = [...new Set((profiles ?? []).map((p) => p.org_id).filter((id): id is string => id != null))];
+  const orgNameById: Record<string, string> = {};
+  if (orgIds.length > 0) {
+    const { data: orgs } = await admin.from('organizations').select('id, name').in('id', orgIds);
+    for (const o of orgs ?? []) {
+      orgNameById[o.id] = o.name;
+    }
+  }
+
+  return (profiles ?? []).map((p) => ({
+    profile_id: p.id,
+    user_id: p.user_id,
+    email: emailByUserId[p.user_id] ?? null,
+    full_name: p.full_name ?? null,
+    org_id: p.org_id ?? null,
+    org_name: (p.org_id && orgNameById[p.org_id]) ?? null,
+    role: p.role ?? 'Driver',
+  }));
+}
+
+/** List organizations for admin dropdowns (id, name). Admin-only. */
+export async function listOrganizationsForAdmin(): Promise<{ id: string; name: string }[]> {
+  await requireAdmin();
+  const admin = createAdminClient();
+  const { data, error } = await admin
+    .from('organizations')
+    .select('id, name')
+    .order('name');
+  if (error) throw new Error(error.message);
+  return (data ?? []) as { id: string; name: string }[];
+}
+
+/** Assign a user to an organization (add profile row or update existing null-org profile). Admin-only. */
+export async function assignUserToOrganization(
+  userId: string,
+  orgId: string,
+  role: 'Owner' | 'Safety_Manager' | 'Driver' = 'Driver'
+): Promise<{ ok: true } | { error: string }> {
+  await requireAdmin();
+  const admin = createAdminClient();
+
+  const { data: existing } = await admin
+    .from('profiles')
+    .select('id')
+    .eq('user_id', userId)
+    .eq('org_id', orgId)
+    .maybeSingle();
+  if (existing) return { error: 'User is already assigned to this organization.' };
+
+  const { data: nullOrg } = await admin
+    .from('profiles')
+    .select('id')
+    .eq('user_id', userId)
+    .is('org_id', null)
+    .limit(1)
+    .maybeSingle();
+
+  if (nullOrg) {
+    const { error: upErr } = await admin
+      .from('profiles')
+      .update({ org_id: orgId, role })
+      .eq('id', nullOrg.id);
+    if (upErr) return { error: upErr.message };
+  } else {
+    const { error: inErr } = await admin.from('profiles').insert({
+      user_id: userId,
+      org_id: orgId,
+      role,
+    });
+    if (inErr) return { error: inErr.message };
+  }
+  return { ok: true };
 }
