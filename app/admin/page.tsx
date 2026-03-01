@@ -7,6 +7,7 @@ import {
   getAdminStats,
   getCarriersWithSubscription,
 } from '@/app/actions/admin';
+import { getStripeStats } from '@/app/actions/stripe-stats';
 import { listStaff } from '@/app/actions/admin-team';
 import { AdminPageClient } from './AdminPageClient';
 import { ShieldCheck } from 'lucide-react';
@@ -16,12 +17,13 @@ export default async function AdminPage() {
   const admin = await isAdmin(supabase);
   if (!admin) redirect('/');
 
-  const [profiles, orgs, stats, carriers, staff] = await Promise.all([
+  const [profiles, orgs, stats, carriers, staff, stripeStats] = await Promise.all([
     listProfilesForAdmin(),
     listOrganizationsForAdmin(),
     getAdminStats(),
     getCarriersWithSubscription(),
     listStaff(),
+    getStripeStats(),
   ]);
 
   return (
@@ -42,6 +44,7 @@ export default async function AdminPage() {
         initialProfiles={profiles}
         initialOrgs={orgs}
         initialStats={stats}
+        initialStripeStats={stripeStats}
         initialCarriers={carriers}
         initialStaff={staff}
       />

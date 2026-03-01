@@ -66,3 +66,32 @@ export async function isAdmin(supabase: SupabaseClient): Promise<boolean> {
 
   return (userRow?.role as string) === 'ADMIN';
 }
+
+/** Role used for Navbar: platform_roles + public.users, not profiles (profiles.role is per-org app_role). */
+export type NavbarRole = 'ADMIN' | 'OWNER' | 'EMPLOYEE' | 'CUSTOMER';
+
+/**
+ * Returns the current user's role for Navbar/redirect logic.
+ * ADMIN/OWNER: platform_roles.role === 'ADMIN' or public.users.role === 'ADMIN' (same UI).
+ * EMPLOYEE: platform_roles.role === 'EMPLOYEE' or public.users.role === 'EMPLOYEE'.
+ * CUSTOMER: otherwise.
+ */
+export async function getNavbarRole(supabase: SupabaseClient): Promise<NavbarRole | null> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
+
+  const platformRole = await getPlatformRole(supabase);
+  if (platformRole === 'ADMIN') return 'ADMIN';
+  if (platformRole === 'EMPLOYEE') return 'EMPLOYEE';
+
+  const { data: userRow } = await supabase
+    .from('users')
+    .select('role')
+    .eq('id', user.id)
+    .single();
+
+  const r = (userRow?.role as string) ?? '';
+  if (r === 'ADMIN') return 'ADMIN';
+  if (r === 'EMPLOYEE') return 'EMPLOYEE';
+  return 'CUSTOMER';
+}

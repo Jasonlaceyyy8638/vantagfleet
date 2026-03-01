@@ -28,7 +28,7 @@ export async function updateSession(
 
   let isStaff: boolean | undefined;
   let isAdmin: boolean | undefined;
-  if (pathname?.startsWith('/admin') && user) {
+  if (user) {
     const { data: platform } = await supabase
       .from('platform_roles')
       .select('role')

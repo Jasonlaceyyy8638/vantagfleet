@@ -5,13 +5,15 @@ import { useRouter } from 'next/navigation';
 import { Logo } from '@/components/Logo';
 import { createClient } from '@/lib/supabase/client';
 import { LogOut } from 'lucide-react';
+import type { NavbarRole } from '@/lib/admin';
 
 type NavbarProps = {
   isAuthenticated?: boolean;
-  isAdmin?: boolean;
+  /** From getNavbarRole (platform_roles + users.role). ADMIN/OWNER = same view. */
+  navbarRole?: NavbarRole | null;
 };
 
-export function Navbar({ isAuthenticated = false, isAdmin = false }: NavbarProps) {
+export function Navbar({ isAuthenticated = false, navbarRole = null }: NavbarProps) {
   const router = useRouter();
 
   const handleSignOut = async () => {
@@ -21,6 +23,10 @@ export function Navbar({ isAuthenticated = false, isAdmin = false }: NavbarProps
     window.location.href = '/';
   };
 
+  const isOwnerOrAdmin = navbarRole === 'ADMIN' || navbarRole === 'OWNER';
+  const isEmployee = navbarRole === 'EMPLOYEE';
+  const isCustomer = navbarRole === 'CUSTOMER';
+
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 sm:px-6 lg:px-8 py-4 bg-midnight-ink/80 backdrop-blur-md border-b border-white/10">
       <Link href="/" className="flex items-center gap-2 shrink-0">
@@ -29,7 +35,7 @@ export function Navbar({ isAuthenticated = false, isAdmin = false }: NavbarProps
           Vantag<span className="text-cyber-amber">Fleet</span>
         </span>
       </Link>
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 flex-wrap justify-end">
         {!isAuthenticated ? (
           <>
             <Link
@@ -47,36 +53,63 @@ export function Navbar({ isAuthenticated = false, isAdmin = false }: NavbarProps
           </>
         ) : (
           <>
-            {isAdmin ? (
+            {/* Owner / Admin: Admin Console (primary), My Team, Revenue — never send to carrier onboarding */}
+            {isOwnerOrAdmin && (
               <>
                 <Link
                   href="/admin"
                   className="px-4 py-2.5 rounded-lg bg-cyber-amber/20 text-cyber-amber font-medium hover:bg-cyber-amber/30 transition-colors border border-cyber-amber/50"
                 >
-                  Owner Console
+                  Admin Console
                 </Link>
                 <Link
-                  href="/admin"
+                  href="/admin/team"
+                  className="px-4 py-2.5 rounded-lg text-soft-cloud font-medium hover:bg-white/10 transition-colors"
+                >
+                  My Team
+                </Link>
+                <Link
+                  href="/admin/revenue"
                   className="px-4 py-2.5 rounded-lg text-soft-cloud font-medium hover:bg-white/10 transition-colors"
                 >
                   Revenue
                 </Link>
               </>
-            ) : (
+            )}
+            {/* Employee: Support Dashboard, My Team (view only) */}
+            {isEmployee && (
               <>
                 <Link
-                  href="/dashboard"
+                  href="/admin/support"
                   className="px-4 py-2.5 rounded-lg text-soft-cloud font-medium hover:bg-white/10 transition-colors"
                 >
-                  My Fleet
+                  Support Dashboard
                 </Link>
                 <Link
-                  href="/compliance"
+                  href="/admin/team"
                   className="px-4 py-2.5 rounded-lg text-soft-cloud font-medium hover:bg-white/10 transition-colors"
                 >
-                  Compliance
+                  My Team
                 </Link>
               </>
+            )}
+            {/* Carrier: only My Fleet */}
+            {isCustomer && (
+              <Link
+                href="/dashboard"
+                className="px-4 py-2.5 rounded-lg text-soft-cloud font-medium hover:bg-white/10 transition-colors"
+              >
+                My Fleet
+              </Link>
+            )}
+            {/* Fallback if role not yet loaded: show My Fleet to avoid broken state */}
+            {isAuthenticated && !isOwnerOrAdmin && !isEmployee && !isCustomer && (
+              <Link
+                href="/dashboard"
+                className="px-4 py-2.5 rounded-lg text-soft-cloud font-medium hover:bg-white/10 transition-colors"
+              >
+                My Fleet
+              </Link>
             )}
             <button
               type="button"

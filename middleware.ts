@@ -37,11 +37,16 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(redirect);
   }
 
-  // Owner: only /admin; bypass dashboard and all carrier/DOT onboarding
+  // Owner (specific ID): only /admin; bypass dashboard and all carrier/DOT onboarding
   if (user.id === ADMIN_OWNER_ID) {
     if (pathname.startsWith('/dashboard') || pathname.startsWith('/drivers') || pathname.startsWith('/vehicles') || pathname.startsWith('/loads') || pathname.startsWith('/compliance') || pathname.startsWith('/regulatory') || pathname.startsWith('/settings') || pathname.startsWith('/roadside-mode')) {
       return NextResponse.redirect(new URL('/admin', request.url));
     }
+  }
+
+  // Any Admin: never send to carrier dashboard/onboarding; redirect to /admin
+  if (isAdmin === true && (pathname.startsWith('/dashboard') || pathname.startsWith('/drivers') || pathname.startsWith('/vehicles') || pathname.startsWith('/loads') || pathname.startsWith('/compliance') || pathname.startsWith('/regulatory') || pathname.startsWith('/settings') || pathname.startsWith('/roadside-mode'))) {
+    return NextResponse.redirect(new URL('/admin', request.url));
   }
 
   // Admin portal: only ADMIN may access; redirect others to home

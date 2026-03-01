@@ -11,7 +11,8 @@ import {
   type CarrierRow,
 } from '@/app/actions/admin';
 import { addEmployeeByEmail, listStaff, type StaffRow } from '@/app/actions/admin-team';
-import { Building2, Loader2, UserPlus, Users, DollarSign, Truck, UserCheck, CreditCard } from 'lucide-react';
+import type { StripeStats } from '@/app/actions/stripe-stats';
+import { Building2, Loader2, UserPlus, Users, DollarSign, Truck, UserCheck, CreditCard, TrendingUp } from 'lucide-react';
 
 type OrgOption = { id: string; name: string };
 
@@ -27,12 +28,14 @@ export function AdminPageClient({
   initialProfiles,
   initialOrgs,
   initialStats,
+  initialStripeStats,
   initialCarriers,
   initialStaff,
 }: {
   initialProfiles: ProfileRow[];
   initialOrgs: OrgOption[];
   initialStats: AdminStats;
+  initialStripeStats: StripeStats;
   initialCarriers: CarrierRow[];
   initialStaff: StaffRow[];
 }) {
@@ -143,15 +146,24 @@ export function AdminPageClient({
 
   return (
     <div className="space-y-10">
-      {/* Financial Dashboard */}
-      <section className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="rounded-xl border border-white/10 bg-card p-6 flex items-center gap-4">
+      {/* Stripe stats: Cyber Amber metric cards */}
+      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="rounded-xl border border-cyber-amber/30 bg-card p-6 flex items-center gap-4 shadow-[0_0_24px_-4px_rgba(255,176,0,0.15)]">
           <div className="p-3 rounded-xl bg-cyber-amber/20">
             <DollarSign className="size-8 text-cyber-amber" />
           </div>
           <div>
-            <p className="text-sm text-soft-cloud/60">Total Revenue</p>
-            <p className="text-2xl font-bold text-soft-cloud">${initialStats.totalRevenue.toLocaleString('en-US', { minimumFractionDigits: 2 })}</p>
+            <p className="text-sm text-soft-cloud/60">Total Revenue (30 days)</p>
+            <p className="text-2xl font-bold text-cyber-amber">${initialStripeStats.total_revenue.toLocaleString('en-US', { minimumFractionDigits: 2 })}</p>
+          </div>
+        </div>
+        <div className="rounded-xl border border-cyber-amber/30 bg-card p-6 flex items-center gap-4 shadow-[0_0_24px_-4px_rgba(255,176,0,0.15)]">
+          <div className="p-3 rounded-xl bg-cyber-amber/20">
+            <TrendingUp className="size-8 text-cyber-amber" />
+          </div>
+          <div>
+            <p className="text-sm text-soft-cloud/60">Active Subscriptions</p>
+            <p className="text-2xl font-bold text-cyber-amber">{initialStripeStats.active_subscriptions}</p>
           </div>
         </div>
         <div className="rounded-xl border border-white/10 bg-card p-6 flex items-center gap-4">

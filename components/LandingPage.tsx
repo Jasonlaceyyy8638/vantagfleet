@@ -12,9 +12,11 @@ import { FileCheck, Users, Truck, Shield, ArrowRight } from 'lucide-react';
 const glassCardClass =
   'backdrop-blur-lg border border-white/10 rounded-2xl shadow-[0_0_40px_-12px_rgba(255,176,0,0.15)]';
 
-type LandingPageProps = { isAuthenticated?: boolean; isAdmin?: boolean };
+import type { NavbarRole } from '@/lib/admin';
 
-export function LandingPage({ isAuthenticated = false, isAdmin = false }: LandingPageProps) {
+type LandingPageProps = { isAuthenticated?: boolean; navbarRole?: NavbarRole | null };
+
+export function LandingPage({ isAuthenticated = false, navbarRole = null }: LandingPageProps) {
   const searchParams = useSearchParams();
 
   // Email confirmation: Supabase redirects to /?code=... — send to auth/callback so session is set
@@ -30,8 +32,8 @@ export function LandingPage({ isAuthenticated = false, isAdmin = false }: Landin
 
   return (
     <div className="min-h-screen bg-midnight-ink">
-      {/* Navbar: Sign In / Sign Up when logged out; Dashboard (+ Admin Panel if ADMIN) when logged in */}
-      <Navbar isAuthenticated={isAuthenticated} isAdmin={isAdmin} />
+      {/* Navbar: role-based links (Admin Console / My Team / Revenue vs Support Dashboard / My Team vs My Fleet) */}
+      <Navbar isAuthenticated={isAuthenticated} navbarRole={navbarRole} />
 
       {/* Hero: full-screen with background video */}
       <section className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden">
@@ -81,10 +83,10 @@ export function LandingPage({ isAuthenticated = false, isAdmin = false }: Landin
             className="mt-10 flex flex-wrap gap-4 justify-center"
           >
             <Link
-              href={isAuthenticated ? '/dashboard' : '/signup'}
+              href={isAuthenticated ? (navbarRole === 'ADMIN' || navbarRole === 'EMPLOYEE' ? '/admin' : '/dashboard') : '/signup'}
               className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-cyber-amber text-midnight-ink font-bold text-lg hover:bg-cyber-amber/90 transition-colors shadow-lg shadow-cyber-amber/20"
             >
-              {isAuthenticated ? 'Go to Dashboard' : 'Get started free'}
+              {isAuthenticated ? (navbarRole === 'ADMIN' || navbarRole === 'EMPLOYEE' ? 'Admin Console' : 'Go to Dashboard') : 'Get started free'}
               <ArrowRight className="size-5" />
             </Link>
             {!isAuthenticated && (
@@ -106,7 +108,7 @@ export function LandingPage({ isAuthenticated = false, isAdmin = false }: Landin
       <PricingSection />
 
       {/* Closer CTA: massive, high-contrast, pulsing button */}
-      <CTASection isAuthenticated={isAuthenticated} />
+      <CTASection isAuthenticated={isAuthenticated} navbarRole={navbarRole} />
     </div>
   );
 }
@@ -174,7 +176,7 @@ function FeaturesSection() {
   );
 }
 
-function CTASection({ isAuthenticated }: { isAuthenticated: boolean }) {
+function CTASection({ isAuthenticated, navbarRole }: { isAuthenticated: boolean; navbarRole?: NavbarRole | null }) {
   return (
     <section className="relative py-28 px-4 bg-midnight-ink border-t border-white/10">
       <motion.div
@@ -195,10 +197,10 @@ function CTASection({ isAuthenticated }: { isAuthenticated: boolean }) {
           transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
         >
           <Link
-            href={isAuthenticated ? '/dashboard' : '/signup'}
+            href={isAuthenticated ? (navbarRole === 'ADMIN' || navbarRole === 'EMPLOYEE' ? '/admin' : '/dashboard') : '/signup'}
             className="inline-flex items-center gap-3 px-12 py-5 rounded-2xl bg-cyber-amber text-midnight-ink font-bold text-xl hover:bg-cyber-amber/90 transition-colors shadow-[0_0_60px_-8px_rgba(255,176,0,0.5)]"
           >
-            {isAuthenticated ? 'Go to Dashboard' : 'Get Started'}
+            {isAuthenticated ? (navbarRole === 'ADMIN' || navbarRole === 'EMPLOYEE' ? 'Admin Console' : 'Go to Dashboard') : 'Get Started'}
             <ArrowRight className="size-6" />
           </Link>
         </motion.div>
