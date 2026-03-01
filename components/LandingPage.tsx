@@ -5,15 +5,16 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useEffect } from 'react';
 import { Logo } from '@/components/Logo';
+import { Navbar } from '@/components/Navbar';
 import { PricingSection } from '@/components/PricingSection';
 import { FileCheck, Users, Truck, Shield, ArrowRight } from 'lucide-react';
 
 const glassCardClass =
   'backdrop-blur-lg border border-white/10 rounded-2xl shadow-[0_0_40px_-12px_rgba(255,176,0,0.15)]';
 
-type LandingPageProps = { isAuthenticated?: boolean };
+type LandingPageProps = { isAuthenticated?: boolean; isAdmin?: boolean };
 
-export function LandingPage({ isAuthenticated = false }: LandingPageProps) {
+export function LandingPage({ isAuthenticated = false, isAdmin = false }: LandingPageProps) {
   const searchParams = useSearchParams();
 
   // Email confirmation: Supabase redirects to /?code=... — send to auth/callback so session is set
@@ -29,8 +30,8 @@ export function LandingPage({ isAuthenticated = false }: LandingPageProps) {
 
   return (
     <div className="min-h-screen bg-midnight-ink">
-      {/* Navbar: logo top left, Sign In + Get Started / Go to Dashboard */}
-      <LandingNav isAuthenticated={isAuthenticated} />
+      {/* Navbar: Sign In / Sign Up when logged out; Dashboard (+ Admin Panel if ADMIN) when logged in */}
+      <Navbar isAuthenticated={isAuthenticated} isAdmin={isAdmin} />
 
       {/* Hero: full-screen with background video */}
       <section className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden">
@@ -170,33 +171,6 @@ function FeaturesSection() {
         </div>
       </motion.div>
     </section>
-  );
-}
-
-function LandingNav({ isAuthenticated }: { isAuthenticated: boolean }) {
-  return (
-    <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 sm:px-6 lg:px-8 py-4 bg-midnight-ink/80 backdrop-blur-md border-b border-white/10">
-      <Link href="/" className="flex items-center gap-2 shrink-0">
-        <Logo size={40} className="h-10 w-10" />
-        <span className="font-bold text-soft-cloud text-lg tracking-wide hidden sm:inline">
-          Vantag<span className="text-cyber-amber">Fleet</span>
-        </span>
-      </Link>
-      <div className="flex items-center gap-3">
-        <Link
-          href="/login"
-          className="px-4 py-2.5 rounded-lg text-soft-cloud font-medium hover:bg-white/10 transition-colors"
-        >
-          Sign In
-        </Link>
-        <Link
-          href={isAuthenticated ? '/dashboard' : '/signup'}
-          className="px-5 py-2.5 rounded-lg bg-cyber-amber text-midnight-ink font-bold hover:bg-cyber-amber/90 transition-colors"
-        >
-          {isAuthenticated ? 'Go to Dashboard' : 'Get Started'}
-        </Link>
-      </div>
-    </nav>
   );
 }
 
