@@ -9,10 +9,11 @@ import {
   type ProfileRow,
   type AdminStats,
   type CarrierRow,
+  type CarrierIntegrationsRow,
 } from '@/app/actions/admin';
 import { addEmployeeByEmail, listStaff, type StaffRow } from '@/app/actions/admin-team';
 import type { StripeStats } from '@/app/actions/stripe-stats';
-import { Building2, Loader2, UserPlus, Users, DollarSign, Truck, UserCheck, CreditCard, TrendingUp } from 'lucide-react';
+import { Building2, Loader2, UserPlus, Users, DollarSign, Truck, UserCheck, CreditCard, TrendingUp, Plug } from 'lucide-react';
 
 type OrgOption = { id: string; name: string };
 
@@ -30,6 +31,7 @@ export function AdminPageClient({
   initialStats,
   initialStripeStats,
   initialCarriers,
+  initialCarrierIntegrations = [],
   initialStaff,
   loadError,
 }: {
@@ -38,6 +40,7 @@ export function AdminPageClient({
   initialStats: AdminStats;
   initialStripeStats: StripeStats;
   initialCarriers: CarrierRow[];
+  initialCarrierIntegrations?: CarrierIntegrationsRow[];
   initialStaff: StaffRow[];
   loadError?: string | null;
 }) {
@@ -281,6 +284,57 @@ export function AdminPageClient({
                       }>
                         {formatSubscriptionStatus(c.subscriptionStatus)}
                       </span>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      {/* Carrier Integrations — which carriers have Samsara/Motive/FMCSA connected */}
+      <section className="rounded-xl border border-white/10 bg-card overflow-hidden">
+        <div className="border-b border-white/10 px-6 py-4 flex items-center gap-3">
+          <div className="p-2 rounded-lg bg-cyber-amber/20">
+            <Plug className="size-5 text-cyber-amber" />
+          </div>
+          <div>
+            <h2 className="font-semibold text-soft-cloud">Carrier Integrations</h2>
+            <p className="text-sm text-soft-cloud/60">Which carriers have Samsara, Motive, or FMCSA connected.</p>
+          </div>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-white/10 text-left text-soft-cloud/70">
+                <th className="px-6 py-3 font-medium">Company Name</th>
+                <th className="px-6 py-3 font-medium">DOT Number</th>
+                <th className="px-6 py-3 font-medium">Active Integrations</th>
+              </tr>
+            </thead>
+            <tbody>
+              {initialCarrierIntegrations.length === 0 ? (
+                <tr>
+                  <td colSpan={3} className="px-6 py-8 text-center text-soft-cloud/50">No carrier integrations yet.</td>
+                </tr>
+              ) : (
+                initialCarrierIntegrations.map((row) => (
+                  <tr key={row.id} className="border-b border-white/5 hover:bg-white/5">
+                    <td className="px-6 py-3 text-soft-cloud">{row.name}</td>
+                    <td className="px-6 py-3 text-soft-cloud/80">{row.usdot_number ?? '—'}</td>
+                    <td className="px-6 py-3">
+                      {row.integrations.length === 0 ? (
+                        <span className="text-soft-cloud/50">None</span>
+                      ) : (
+                        <div className="flex flex-wrap gap-1.5">
+                          {row.integrations.map((p) => (
+                            <span key={p} className="inline-flex px-2 py-0.5 rounded bg-cyber-amber/20 text-cyber-amber text-xs font-medium capitalize">
+                              {p}
+                            </span>
+                          ))}
+                        </div>
+                      )}
                     </td>
                   </tr>
                 ))

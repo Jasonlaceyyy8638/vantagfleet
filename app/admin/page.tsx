@@ -6,6 +6,7 @@ import {
   listOrganizationsForAdmin,
   getAdminStats,
   getCarriersWithSubscription,
+  listCarriersWithIntegrations,
 } from '@/app/actions/admin';
 import { getStripeStats } from '@/app/actions/stripe-stats';
 import { listStaff } from '@/app/actions/admin-team';
@@ -24,16 +25,18 @@ export default async function AdminPage() {
   let orgs: Awaited<ReturnType<typeof listOrganizationsForAdmin>> = [];
   let stats = emptyStats;
   let carriers: Awaited<ReturnType<typeof getCarriersWithSubscription>> = [];
+  let carrierIntegrations: Awaited<ReturnType<typeof listCarriersWithIntegrations>> = [];
   let staff: Awaited<ReturnType<typeof listStaff>> = [];
   let stripeStats = emptyStripeStats;
   let loadError: string | null = null;
 
   try {
-    const [p, o, s, c, st, ss] = await Promise.all([
+    const [p, o, s, c, ci, st, ss] = await Promise.all([
       listProfilesForAdmin(),
       listOrganizationsForAdmin(),
       getAdminStats(),
       getCarriersWithSubscription(),
+      listCarriersWithIntegrations(),
       listStaff(),
       getStripeStats(),
     ]);
@@ -41,6 +44,7 @@ export default async function AdminPage() {
     orgs = o;
     stats = s;
     carriers = c;
+    carrierIntegrations = ci;
     staff = st;
     stripeStats = ss;
   } catch (err) {
@@ -67,6 +71,7 @@ export default async function AdminPage() {
         initialStats={stats}
         initialStripeStats={stripeStats}
         initialCarriers={carriers}
+        initialCarrierIntegrations={carrierIntegrations}
         initialStaff={staff}
         loadError={loadError}
       />

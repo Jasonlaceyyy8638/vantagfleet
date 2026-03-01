@@ -514,6 +514,46 @@ export async function getCarriersWithSubscription(): Promise<CarrierRow[]> {
   return rows;
 }
 
+export type CarrierIntegrationsRow = {
+  id: string;
+  name: string;
+  usdot_number: string | null;
+  integrations: string[];
+};
+
+/** Carriers and their active integrations (Samsara, Motive, FMCSA). Admin-only. Returns [] on error (e.g. table not yet migrated). */
+export async function listCarriersWithIntegrations(): Promise<CarrierIntegrationsRow[]> {
+  try {
+    await requireAdmin();
+    const admin = createAdminClient();
+    const { data: orgs, error: orgErr } = await admin
+      .from('organizations')
+      .select('id, name, usdot_number')
+      .order('name');
+    if (orgErr || !orgs?.length) return [];
+
+    const { data: ints } = await admin
+      .from('carrier_integrations')
+      .select('org_id, provider');
+
+    const byOrg = new Map<string, string[]>();
+    for (const i of ints ?? []) {
+      const list = byOrg.get(i.org_id) ?? [];
+      if (!list.includes(i.provider)) list.push(i.provider);
+      byOrg.set(i.org_id, list);
+    }
+
+    return orgs.map((o) => ({
+      id: o.id,
+      name: o.name,
+      usdot_number: o.usdot_number ?? null,
+      integrations: (byOrg.get(o.id) ?? []).sort(),
+    }));
+  } catch {
+    return [];
+  }
+}
+
 /** Assign a user to an organization (add profile row or update existing null-org profile). Admin-only. */
 export async function assignUserToOrganization(
   userId: string,
