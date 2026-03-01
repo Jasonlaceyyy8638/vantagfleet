@@ -12,19 +12,40 @@ import { listStaff } from '@/app/actions/admin-team';
 import { AdminPageClient } from './AdminPageClient';
 import { ShieldCheck } from 'lucide-react';
 
+const emptyStats = { totalRevenue: 0, activeFleets: 0, newSignupsThisWeek: 0 };
+const emptyStripeStats = { total_revenue: 0, active_subscriptions: 0 };
+
 export default async function AdminPage() {
   const supabase = await createClient();
   const admin = await isAdmin(supabase);
   if (!admin) redirect('/');
 
-  const [profiles, orgs, stats, carriers, staff, stripeStats] = await Promise.all([
-    listProfilesForAdmin(),
-    listOrganizationsForAdmin(),
-    getAdminStats(),
-    getCarriersWithSubscription(),
-    listStaff(),
-    getStripeStats(),
-  ]);
+  let profiles: Awaited<ReturnType<typeof listProfilesForAdmin>> = [];
+  let orgs: Awaited<ReturnType<typeof listOrganizationsForAdmin>> = [];
+  let stats = emptyStats;
+  let carriers: Awaited<ReturnType<typeof getCarriersWithSubscription>> = [];
+  let staff: Awaited<ReturnType<typeof listStaff>> = [];
+  let stripeStats = emptyStripeStats;
+  let loadError: string | null = null;
+
+  try {
+    const [p, o, s, c, st, ss] = await Promise.all([
+      listProfilesForAdmin(),
+      listOrganizationsForAdmin(),
+      getAdminStats(),
+      getCarriersWithSubscription(),
+      listStaff(),
+      getStripeStats(),
+    ]);
+    profiles = p;
+    orgs = o;
+    stats = s;
+    carriers = c;
+    staff = st;
+    stripeStats = ss;
+  } catch (err) {
+    loadError = err instanceof Error ? err.message : 'Failed to load admin data';
+  }
 
   return (
     <div className="space-y-8">
@@ -47,6 +68,7 @@ export default async function AdminPage() {
         initialStripeStats={stripeStats}
         initialCarriers={carriers}
         initialStaff={staff}
+        loadError={loadError}
       />
     </div>
   );

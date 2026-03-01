@@ -31,6 +31,7 @@ export function AdminPageClient({
   initialStripeStats,
   initialCarriers,
   initialStaff,
+  loadError,
 }: {
   initialProfiles: ProfileRow[];
   initialOrgs: OrgOption[];
@@ -38,6 +39,7 @@ export function AdminPageClient({
   initialStripeStats: StripeStats;
   initialCarriers: CarrierRow[];
   initialStaff: StaffRow[];
+  loadError?: string | null;
 }) {
   const [profiles, setProfiles] = useState<ProfileRow[]>(initialProfiles);
   const [orgs, setOrgs] = useState<OrgOption[]>(initialOrgs);
@@ -146,6 +148,11 @@ export function AdminPageClient({
 
   return (
     <div className="space-y-10">
+      {loadError && (
+        <div className="rounded-xl border border-amber-500/50 bg-amber-500/10 px-4 py-3 text-amber-200 text-sm">
+          Could not load some data: {loadError}. Check server env (e.g. SUPABASE_SERVICE_ROLE_KEY) and try again.
+        </div>
+      )}
       {/* Stripe stats: Cyber Amber metric cards */}
       <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="rounded-xl border border-cyber-amber/30 bg-card p-6 flex items-center gap-4 shadow-[0_0_24px_-4px_rgba(255,176,0,0.15)]">
