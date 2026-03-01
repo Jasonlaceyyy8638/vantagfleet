@@ -4,7 +4,19 @@ import { updateSession } from '@/lib/supabase/middleware';
 const PUBLIC_PATHS = ['/login', '/signup', '/invite', '/auth/callback', '/roadside/view'];
 
 export async function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl;
+  const url = request.nextUrl;
+  const { pathname } = url;
+
+  // Email confirmation / magic link: Supabase redirects to Site URL with ?code=...
+  // Send them to /auth/callback so the code gets exchanged for a session.
+  const code = url.searchParams.get('code');
+  if (code && pathname !== '/auth/callback') {
+    const callback = new URL('/auth/callback', request.url);
+    callback.searchParams.set('code', code);
+    callback.searchParams.set('redirectTo', '/dashboard');
+    return NextResponse.redirect(callback);
+  }
+
   const isPublic = PUBLIC_PATHS.some((p) => pathname.startsWith(p));
 
   // Refresh Supabase session and get current user (and staff status for /admin)
