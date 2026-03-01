@@ -15,6 +15,7 @@ import {
   Smartphone,
   DollarSign,
   ShieldCheck,
+  Shield,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 
@@ -32,9 +33,11 @@ const nav = [
 export function Sidebar({
   organizations,
   currentOrgId,
+  showAdminLink = false,
 }: {
   organizations: Organization[];
   currentOrgId: string | null;
+  showAdminLink?: boolean;
 }) {
   const pathname = usePathname();
 
@@ -84,6 +87,19 @@ export function Sidebar({
             </Link>
           );
         })}
+        {showAdminLink && (
+          <Link
+            href="/admin"
+            className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors mt-2 pt-2 border-t border-border ${
+              pathname.startsWith('/admin')
+                ? 'bg-cyber-amber/20 text-cyber-amber'
+                : 'text-cyber-amber/90 hover:text-cyber-amber hover:bg-cyber-amber/10'
+            }`}
+          >
+            <Shield className="size-5 shrink-0" />
+            Admin
+          </Link>
+        )}
       </nav>
       <div className="p-3 border-t border-border">
         <button

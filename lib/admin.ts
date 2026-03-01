@@ -25,3 +25,24 @@ export async function getPlatformRole(
 export function isPlatformStaff(role: PlatformRole | null): role is PlatformRole {
   return role === 'ADMIN' || role === 'EMPLOYEE';
 }
+
+/**
+ * Returns true only if the current user is staff (ADMIN or EMPLOYEE).
+ * Checks platform_roles first, then public.users.role so CUSTOMER never sees admin.
+ */
+export async function canAccessAdmin(supabase: SupabaseClient): Promise<boolean> {
+  const role = await getPlatformRole(supabase);
+  if (isPlatformStaff(role)) return true;
+
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return false;
+
+  const { data: userRow } = await supabase
+    .from('users')
+    .select('role')
+    .eq('id', user.id)
+    .single();
+
+  const r = userRow?.role as string | undefined;
+  return r === 'ADMIN' || r === 'EMPLOYEE' || r === 'SUPPORT';
+}

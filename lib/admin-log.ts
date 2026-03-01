@@ -3,7 +3,8 @@ import { createAdminClient } from '@/lib/supabase/admin';
 export type AdminLogAction =
   | 'refund'
   | 'organization_created'
-  | 'organization_updated';
+  | 'organization_updated'
+  | 'manual_subscription';
 
 export async function logAdminAction(
   employeeId: string,

@@ -1,7 +1,10 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
-export async function updateSession(request: NextRequest) {
+export async function updateSession(
+  request: NextRequest,
+  pathname?: string
+): Promise<{ response: NextResponse; user: { id: string } | null; isStaff?: boolean }> {
   const response = NextResponse.next({ request });
 
   const supabase = createServerClient(
@@ -23,5 +26,16 @@ export async function updateSession(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser();
 
-  return { response, user };
+  let isStaff: boolean | undefined;
+  if (pathname?.startsWith('/admin') && user) {
+    const { data } = await supabase
+      .from('platform_roles')
+      .select('role')
+      .eq('user_id', user.id)
+      .single();
+    isStaff =
+      !!data && (data.role === 'ADMIN' || data.role === 'EMPLOYEE');
+  }
+
+  return { response, user: user ?? null, isStaff };
 }

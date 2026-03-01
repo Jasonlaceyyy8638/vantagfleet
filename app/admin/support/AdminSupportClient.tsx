@@ -4,12 +4,17 @@ import { useState, useEffect, useCallback } from 'react';
 import {
   searchCustomers,
   getCustomerCharges,
+  getSubscriptionStatus,
   addNewCustomer,
+  createOrgInviteLink,
+  createManualSubscription,
   type CustomerRow,
   type ChargeRow,
+  type SubscriptionStatus,
 } from '@/app/actions/admin';
 import { createRefund, REFUND_REASONS } from '@/app/actions/stripe-refund';
-import { Search, Plus, DollarSign, Loader2, RefreshCw } from 'lucide-react';
+import { createCustomerPortal } from '@/app/actions/stripe';
+import { Search, Plus, DollarSign, Loader2, RefreshCw, Settings, CreditCard, ExternalLink } from 'lucide-react';
 
 export function AdminSupportClient() {
   const [query, setQuery] = useState('');
@@ -27,6 +32,14 @@ export function AdminSupportClient() {
   const [refundAmountCents, setRefundAmountCents] = useState<string>('');
   const [refundSubmitting, setRefundSubmitting] = useState(false);
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
+  const [manageOrg, setManageOrg] = useState<CustomerRow | null>(null);
+  const [inviteUrl, setInviteUrl] = useState<string | null>(null);
+  const [manageLoading, setManageLoading] = useState(false);
+  const [subStatusByOrg, setSubStatusByOrg] = useState<Record<string, SubscriptionStatus>>({});
+  const [manualSubModal, setManualSubModal] = useState<{ org: CustomerRow } | null>(null);
+  const [manualSubTier, setManualSubTier] = useState<'starter' | 'pro'>('starter');
+  const [manualSubmitting, setManualSubmitting] = useState(false);
 
   const showToast = useCallback((type: 'success' | 'error', message: string) => {
     setToast({ type, message });
@@ -52,6 +65,9 @@ export function AdminSupportClient() {
       if (chargesByCustomer[id]) return;
       getCustomerCharges(id).then((charges) => {
         setChargesByCustomer((prev) => ({ ...prev, [id]: charges }));
+      });
+      getSubscriptionStatus(id).then((status) => {
+        setSubStatusByOrg((prev) => ({ ...prev, [c.id]: status }));
       });
     });
   }, [customers]);
@@ -123,9 +139,9 @@ export function AdminSupportClient() {
           {toast.message}
         </div>
       )}
-      <h1 className="text-2xl font-bold text-soft-cloud">Support — Customer search</h1>
+      <h1 className="text-2xl font-bold text-soft-cloud">Customer Support</h1>
       <p className="text-soft-cloud/70">
-        Search customers, add new ones (DB + Stripe), and issue refunds on recent payments.
+        List fleets with subscription status. Search by DOT number or email. Manage organizations, issue refunds, or manually add a subscription.
       </p>
 
       <div className="flex flex-wrap gap-3">
@@ -135,7 +151,7 @@ export function AdminSupportClient() {
           </span>
           <input
             type="search"
-            placeholder="Search by company name or USDOT..."
+            placeholder="Search by DOT number or Email..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && doSearch()}
@@ -182,7 +198,47 @@ export function AdminSupportClient() {
                       </p>
                     )}
                   </div>
-                  <span className="text-xs text-soft-cloud/50">{org.status}</span>
+                  <div className="flex items-center gap-2">
+                    {org.stripe_customer_id && (
+                      <span
+                        className={`text-xs px-2 py-0.5 rounded ${
+                          subStatusByOrg[org.id] === 'active' || subStatusByOrg[org.id] === 'trialing'
+                            ? 'bg-electric-teal/20 text-electric-teal'
+                            : subStatusByOrg[org.id] === 'past_due'
+                              ? 'bg-cyber-amber/20 text-cyber-amber'
+                              : 'bg-soft-cloud/10 text-soft-cloud/60'
+                        }`}
+                      >
+                        {subStatusByOrg[org.id] === undefined
+                          ? '…'
+                          : subStatusByOrg[org.id] === 'none'
+                            ? 'No subscription'
+                            : `${subStatusByOrg[org.id]} subscription`}
+                      </span>
+                    )}
+                    <span className="text-xs text-soft-cloud/50">{org.status}</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setManageOrg(org);
+                        setInviteUrl(null);
+                      }}
+                      className="inline-flex items-center gap-1 px-2 py-1 rounded bg-cyber-amber/20 text-cyber-amber text-xs font-medium hover:bg-cyber-amber/30"
+                    >
+                      <Settings className="size-3" />
+                      Manage Organization
+                    </button>
+                    {org.stripe_customer_id && (
+                      <button
+                        type="button"
+                        onClick={() => setManualSubModal({ org })}
+                        className="inline-flex items-center gap-1 px-2 py-1 rounded bg-electric-teal/20 text-electric-teal text-xs font-medium hover:bg-electric-teal/30"
+                      >
+                        <CreditCard className="size-3" />
+                        Add subscription
+                      </button>
+                    )}
+                  </div>
                 </div>
                 {org.stripe_customer_id && (
                   <div className="mt-3">
@@ -284,6 +340,135 @@ export function AdminSupportClient() {
                 >
                   {addSubmitting ? <Loader2 className="size-4 animate-spin" /> : null}
                   Create customer
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {manageOrg && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+          onClick={() => setManageOrg(null)}
+        >
+          <div
+            className="w-full max-w-md rounded-xl border border-white/10 bg-card p-6 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="text-lg font-semibold text-soft-cloud mb-2">Manage organization</h2>
+            <p className="text-sm text-soft-cloud/70 mb-4">{manageOrg.name}</p>
+            <div className="space-y-3">
+              <div>
+                <button
+                  type="button"
+                  disabled={manageLoading}
+                  onClick={async () => {
+                    setManageLoading(true);
+                    try {
+                      const result = await createOrgInviteLink(manageOrg.id);
+                      if ('url' in result) setInviteUrl(result.url);
+                      else showToast('error', result.error);
+                    } finally {
+                      setManageLoading(false);
+                    }
+                  }}
+                  className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-cyber-amber/20 text-cyber-amber text-sm font-medium hover:bg-cyber-amber/30 disabled:opacity-60"
+                >
+                  {manageLoading ? <Loader2 className="size-4 animate-spin" /> : null}
+                  Create invite link for drivers
+                </button>
+                {inviteUrl && (
+                  <p className="mt-2 text-xs text-soft-cloud/80 break-all">
+                    <a href={inviteUrl} target="_blank" rel="noreferrer" className="text-cyber-amber hover:underline">
+                      {inviteUrl}
+                    </a>
+                  </p>
+                )}
+              </div>
+              {manageOrg.stripe_customer_id && (
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const res = await createCustomerPortal(manageOrg.stripe_customer_id!);
+                    if ('url' in res) window.open(res.url);
+                    else showToast('error', res.error);
+                  }}
+                  className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-white/20 text-soft-cloud/80 text-sm hover:bg-white/5"
+                >
+                  <ExternalLink className="size-4" />
+                  Open billing portal for customer
+                </button>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={() => setManageOrg(null)}
+              className="mt-4 px-4 py-2 rounded-lg border border-white/20 text-soft-cloud text-sm hover:bg-white/5"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
+
+      {manualSubModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+          onClick={() => !manualSubmitting && setManualSubModal(null)}
+        >
+          <div
+            className="w-full max-w-md rounded-xl border border-white/10 bg-card p-6 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="text-lg font-semibold text-soft-cloud mb-2">Create manual subscription</h2>
+            <p className="text-sm text-soft-cloud/70 mb-4">{manualSubModal.org.name}</p>
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                setManualSubmitting(true);
+                try {
+                  const result = await createManualSubscription(manualSubModal.org.id, manualSubTier);
+                  if ('subscriptionId' in result) {
+                    showToast('success', 'Subscription created. Customer may need to add a payment method in the billing portal.');
+                    setManualSubModal(null);
+                    doSearch();
+                  } else {
+                    showToast('error', result.error);
+                  }
+                } finally {
+                  setManualSubmitting(false);
+                }
+              }}
+              className="space-y-4"
+            >
+              <div>
+                <label className="block text-sm font-medium text-soft-cloud/80 mb-1">Tier</label>
+                <select
+                  value={manualSubTier}
+                  onChange={(e) => setManualSubTier(e.target.value as 'starter' | 'pro')}
+                  className="w-full px-3 py-2 rounded-lg bg-midnight-ink border border-white/10 text-soft-cloud"
+                >
+                  <option value="starter">Starter</option>
+                  <option value="pro">Pro</option>
+                </select>
+              </div>
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setManualSubModal(null)}
+                  disabled={manualSubmitting}
+                  className="px-4 py-2 rounded-lg border border-white/20 text-soft-cloud hover:bg-white/5 disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={manualSubmitting}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-cyber-amber text-midnight-ink font-semibold hover:bg-cyber-amber/90 disabled:opacity-60"
+                >
+                  {manualSubmitting ? <Loader2 className="size-4 animate-spin" /> : null}
+                  Create subscription
                 </button>
               </div>
             </form>

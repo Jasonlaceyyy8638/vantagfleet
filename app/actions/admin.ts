@@ -21,17 +21,54 @@ export type CustomerRow = {
   created_at: string;
 };
 
+export type SubscriptionStatus = 'active' | 'past_due' | 'canceled' | 'trialing' | 'none';
+
+export async function getSubscriptionStatus(
+  stripeCustomerId: string
+): Promise<SubscriptionStatus> {
+  await requireStaff();
+  const secretKey = process.env.STRIPE_SECRET_KEY;
+  if (!secretKey) return 'none';
+  const stripe = new Stripe(secretKey);
+  const { data } = await stripe.subscriptions.list({
+    customer: stripeCustomerId,
+    status: 'all',
+    limit: 1,
+  });
+  const sub = data[0];
+  if (!sub) return 'none';
+  if (sub.status === 'active' || sub.status === 'trialing') return sub.status as SubscriptionStatus;
+  if (sub.status === 'past_due') return 'past_due';
+  if (sub.status === 'canceled' || sub.status === 'unpaid') return 'canceled';
+  return 'none';
+}
+
 export async function searchCustomers(query: string): Promise<CustomerRow[]> {
   await requireStaff();
-  const supabase = createAdminClient();
+  const admin = createAdminClient();
   const q = (query || '').trim();
-  let builder = supabase
+
+  const orgIdsByEmail = new Set<string>();
+  if (q.length > 0 && q.includes('@')) {
+    const { data: { users } } = await admin.auth.admin.listUsers({ perPage: 1000 });
+    const matching = (users ?? []).filter((u) => u.email?.toLowerCase().includes(q.toLowerCase()));
+    for (const u of matching) {
+      const { data: profs } = await admin.from('profiles').select('org_id').eq('user_id', u.id);
+      (profs ?? []).forEach((p) => p.org_id && orgIdsByEmail.add(p.org_id));
+    }
+  }
+
+  let builder = admin
     .from('organizations')
     .select('id, name, usdot_number, stripe_customer_id, status, created_at')
     .order('created_at', { ascending: false });
 
   if (q.length > 0) {
-    builder = builder.or(`name.ilike.%${q}%,usdot_number.ilike.%${q}%`);
+    if (orgIdsByEmail.size > 0) {
+      builder = builder.in('id', Array.from(orgIdsByEmail));
+    } else {
+      builder = builder.or(`name.ilike.%${q}%,usdot_number.ilike.%${q}%`);
+    }
   }
 
   const { data, error } = await builder.limit(50);
@@ -152,4 +189,76 @@ export async function updateOrganization(
 
   await logAdminAction(user.id, 'organization_updated', orgId, updates);
   return { ok: true };
+}
+
+/** Create an invite link for an org (admin helper for "Manage organization"). */
+export async function createOrgInviteLink(orgId: string): Promise<{ url: string } | { error: string }> {
+  await requireStaff();
+  const supabaseAuth = await createClient();
+  const { data: { user } } = await supabaseAuth.auth.getUser();
+  if (!user) return { error: 'Not authenticated.' };
+
+  const admin = createAdminClient();
+  const token = crypto.randomUUID().replace(/-/g, '');
+  const { error } = await admin.from('org_invites').insert({
+    org_id: orgId,
+    token,
+    created_by: user.id,
+  });
+
+  if (error) return { error: error.message };
+
+  const base = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+  return { url: `${base}/invite?token=${token}` };
+}
+
+/** Manually create a Stripe subscription for a customer (e.g. support upgrade). */
+export async function createManualSubscription(
+  orgId: string,
+  tier: 'starter' | 'pro'
+): Promise<{ subscriptionId: string } | { error: string }> {
+  await requireStaff();
+  const secretKey = process.env.STRIPE_SECRET_KEY;
+  const starterPriceId = process.env.STRIPE_STARTER_PRICE_ID;
+  const proPriceId = process.env.STRIPE_PRO_PRICE_ID;
+  if (!secretKey) return { error: 'Stripe is not configured.' };
+
+  const priceId = tier === 'pro' ? proPriceId : starterPriceId;
+  if (!priceId) return { error: `STRIPE_${tier.toUpperCase()}_PRICE_ID is not set.` };
+
+  const admin = createAdminClient();
+  const { data: org, error: orgError } = await admin
+    .from('organizations')
+    .select('stripe_customer_id')
+    .eq('id', orgId)
+    .single();
+
+  if (orgError || !org?.stripe_customer_id) {
+    return { error: 'Organization has no Stripe customer. They need to subscribe from the app first, or add a payment method.' };
+  }
+
+  try {
+    const stripe = new Stripe(secretKey);
+    const subscription = await stripe.subscriptions.create({
+      customer: org.stripe_customer_id,
+      items: [{ price: priceId }],
+      payment_behavior: 'default_incomplete',
+      payment_settings: { save_default_payment_method: 'on_subscription' },
+      expand: ['latest_invoice.payment_intent'],
+    });
+
+    const supabaseAuth = await createClient();
+    const { data: { user } } = await supabaseAuth.auth.getUser();
+    if (user) {
+      await logAdminAction(user.id, 'manual_subscription', orgId, {
+        tier,
+        subscriptionId: subscription.id,
+      });
+    }
+
+    return { subscriptionId: subscription.id };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Failed to create subscription';
+    return { error: message };
+  }
 }

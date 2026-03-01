@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { getPlatformRole, isPlatformStaff } from '@/lib/admin';
 import { redirect } from 'next/navigation';
-import Link from 'next/link';
+import { AdminSidebar } from './AdminSidebar';
 
 export default async function AdminLayout({
   children,
@@ -16,24 +16,14 @@ export default async function AdminLayout({
   }
 
   return (
-    <div className="min-h-screen bg-midnight-ink text-soft-cloud">
-      <header className="border-b border-white/10 px-4 py-3 flex items-center justify-between">
-        <Link href="/admin/support" className="font-semibold text-cyber-amber">
-          VantagFleet Admin
-        </Link>
-        <div className="flex items-center gap-4">
-          <span className="text-xs text-soft-cloud/60 uppercase tracking-wider">
-            {role}
-          </span>
-          <Link
-            href="/dashboard"
-            className="text-sm text-soft-cloud/80 hover:text-soft-cloud"
-          >
-            ← Dashboard
-          </Link>
-        </div>
-      </header>
-      <main className="p-6 md:p-8">{children}</main>
+    <div className="min-h-screen bg-midnight-ink text-soft-cloud flex">
+      <AdminSidebar role={role ?? 'EMPLOYEE'} />
+      <div className="flex-1 flex flex-col min-w-0">
+        <header className="shrink-0 border-b border-white/10 px-6 py-3 flex items-center justify-between bg-midnight-ink/80">
+          <span className="text-sm text-soft-cloud/60">Admin Portal</span>
+        </header>
+        <main className="flex-1 p-6 md:p-8 overflow-auto">{children}</main>
+      </div>
     </div>
   );
 }

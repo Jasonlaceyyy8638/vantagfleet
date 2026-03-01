@@ -2,6 +2,7 @@ import { Sidebar } from '@/components/Sidebar';
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
+import { canAccessAdmin } from '@/lib/admin';
 
 const ORG_COOKIE = 'vantag-current-org-id';
 
@@ -19,22 +20,18 @@ export default async function DashboardLayout({
     .select('org_id')
     .eq('user_id', user.id);
 
-  const orgIds = Array.from(new Set((profiles ?? []).map((p) => p.org_id)));
-  if (orgIds.length === 0) {
-    return (
-      <div className="min-h-screen flex items-center justify-center p-4">
-        <div className="text-center text-cloud-dancer/70">
-          <p>No organization assigned. Contact your admin or create an organization.</p>
-        </div>
-      </div>
-    );
-  }
+  const orgIds = Array.from(
+    new Set((profiles ?? []).map((p) => p.org_id).filter((id): id is string => id != null))
+  );
 
-  const { data: organizations } = await supabase
-    .from('organizations')
-    .select('id, name, usdot_number, status, created_at, updated_at')
-    .in('id', orgIds)
-    .order('name');
+  const { data: organizations } =
+    orgIds.length > 0
+      ? await supabase
+          .from('organizations')
+          .select('id, name, usdot_number, status, created_at, updated_at')
+          .in('id', orgIds)
+          .order('name')
+      : { data: [] };
 
   const cookieStore = await cookies();
   const stored = cookieStore.get(ORG_COOKIE)?.value;
@@ -43,11 +40,14 @@ export default async function DashboardLayout({
       ? stored
       : orgIds[0] ?? null;
 
+  const showAdminLink = await canAccessAdmin(supabase);
+
   return (
     <div className="flex min-h-screen">
       <Sidebar
         organizations={organizations ?? []}
         currentOrgId={currentOrgId}
+        showAdminLink={showAdminLink}
       />
       <main className="flex-1 overflow-auto">
         {children}
