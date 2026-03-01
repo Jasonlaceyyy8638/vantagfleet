@@ -4,7 +4,6 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   Headphones,
-  RotateCcw,
   Building2,
   ShieldCheck,
   LayoutDashboard,
@@ -14,7 +13,6 @@ import {
 const adminNav = [
   { href: '/admin', label: 'Overview', icon: ShieldCheck },
   { href: '/admin/support', label: 'Customer Support', icon: Headphones },
-  { href: '/admin/refunds', label: 'Refunds', icon: RotateCcw },
   { href: '/admin/setup', label: 'Organization Setup', icon: Building2 },
   { href: '/admin/team', label: 'Team', icon: UserCog },
 ];
