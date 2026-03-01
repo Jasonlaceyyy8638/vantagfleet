@@ -11,7 +11,7 @@ export async function middleware(request: NextRequest) {
   const { response, user } = await updateSession(request);
 
   // Allow public paths and auth callback without requiring user
-  if (isPublic || pathname === '/' || pathname.startsWith('/roadside/view')) {
+  if (isPublic || pathname === '/' || pathname === '/pricing' || pathname.startsWith('/roadside/view')) {
     return response;
   }
 
