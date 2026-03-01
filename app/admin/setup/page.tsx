@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
-import { getPlatformRole, isPlatformStaff } from '@/lib/admin';
+import { isAdmin, getPlatformRole, isPlatformStaff } from '@/lib/admin';
 import { redirect } from 'next/navigation';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { OrgSetupClient } from './OrgSetupClient';
@@ -7,11 +7,12 @@ import { ManualOrgCreation } from './ManualOrgCreation';
 
 export default async function AdminSetupPage() {
   const supabase = await createClient();
+  const admin = await isAdmin(supabase);
   const role = await getPlatformRole(supabase);
-  if (!isPlatformStaff(role)) redirect('/dashboard');
+  if (!admin && !isPlatformStaff(role)) redirect('/dashboard');
 
-  const admin = createAdminClient();
-  const { data: orgs } = await admin
+  const adminClient = createAdminClient();
+  const { data: orgs } = await adminClient
     .from('organizations')
     .select('id, name, usdot_number, status, stripe_customer_id, created_at')
     .order('created_at', { ascending: false })

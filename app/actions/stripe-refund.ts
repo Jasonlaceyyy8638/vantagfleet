@@ -2,7 +2,7 @@
 
 import Stripe from 'stripe';
 import { createClient } from '@/lib/supabase/server';
-import { getPlatformRole, isPlatformStaff } from '@/lib/admin';
+import { getPlatformRole, isPlatformStaff, isAdmin } from '@/lib/admin';
 import { logAdminAction } from '@/lib/admin-log';
 
 export const REFUND_REASONS = [
@@ -34,9 +34,13 @@ export async function createRefund(
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: 'Not authenticated.' };
-  const role = await getPlatformRole(supabase);
-  if (!isPlatformStaff(role)) {
-    return { error: 'Forbidden. ADMIN or EMPLOYEE role required.' };
+  const admin = await isAdmin(supabase);
+  if (admin) { /* owner or admin allowed */ }
+  else {
+    const role = await getPlatformRole(supabase);
+    if (!isPlatformStaff(role)) {
+      return { error: 'Forbidden. ADMIN or EMPLOYEE role required.' };
+    }
   }
 
   const secretKey = process.env.STRIPE_SECRET_KEY;

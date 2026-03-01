@@ -6,8 +6,11 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { getPlatformRole, isPlatformStaff, isAdmin } from '@/lib/admin';
 import { logAdminAction } from '@/lib/admin-log';
 
+/** Allow owner (ADMIN_OWNER_ID) and anyone with isAdmin; else require platform_roles staff. */
 async function requireStaff() {
   const supabase = await createClient();
+  const admin = await isAdmin(supabase);
+  if (admin) return;
   const role = await getPlatformRole(supabase);
   if (!isPlatformStaff(role)) throw new Error('Forbidden');
 }
@@ -374,7 +377,7 @@ export async function listProfilesForAdmin(): Promise<ProfileRow[]> {
   const { data: profiles, error: pErr } = await admin
     .from('profiles')
     .select('id, user_id, org_id, role, full_name')
-    .order('created_at', { ascending: false });
+    .order('id', { ascending: false });
   if (pErr) throw new Error(pErr.message);
 
   const userIds = Array.from(new Set((profiles ?? []).map((p) => p.user_id)));
