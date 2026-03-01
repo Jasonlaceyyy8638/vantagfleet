@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { runMotiveSyncCore } from '@/lib/motive-sync-core';
 
 const MOTIVE_TOKEN_URL = 'https://api.gomotive.com/oauth/token';
 
@@ -105,5 +106,13 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(`${baseUrl}/dashboard/integrations?motive=error&message=save_failed`);
   }
 
-  return NextResponse.redirect(`${baseUrl}/dashboard/integrations?motive=success`);
+  // Trigger first fleet sync so vehicles/drivers and map data are ready when user lands on dashboard
+  try {
+    await runMotiveSyncCore(orgId);
+  } catch (e) {
+    console.error('Initial Motive sync after OAuth failed:', e);
+    // Still redirect; map will fetch on first load
+  }
+
+  return NextResponse.redirect(`${baseUrl}/dashboard?motive=connected`);
 }
