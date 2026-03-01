@@ -17,6 +17,7 @@ import {
   Calendar,
 } from 'lucide-react';
 import { InviteButton } from '@/components/InviteButton';
+import { FleetMapDynamic } from '@/components/FleetMapDynamic';
 
 const ORG_COOKIE = 'vantag-current-org-id';
 const ALERT_DAYS = 30;
@@ -237,6 +238,18 @@ export default async function DashboardPage() {
             ))
           )}
         </div>
+      </section>
+
+      <section className="mt-8">
+        <div className="mb-3 flex items-center gap-2">
+          <Truck className="size-5 text-cyber-amber" />
+          <h2 className="font-semibold text-cloud-dancer">Fleet map</h2>
+        </div>
+        <FleetMapDynamic
+          accessToken={process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN ?? ''}
+          height="480px"
+          className="mt-2"
+        />
       </section>
 
       <section className="mt-8">

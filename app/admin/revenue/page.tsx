@@ -7,7 +7,8 @@ import {
   getTotalVehiclesFromConnectedCarriers,
 } from '@/app/actions/admin';
 import Link from 'next/link';
-import { DollarSign, Truck, CreditCard, ArrowLeft, Car } from 'lucide-react';
+import { DollarSign, Truck, CreditCard, ArrowLeft, Car, MapPin } from 'lucide-react';
+import { FleetMapDynamic } from '@/components/FleetMapDynamic';
 
 function formatStatus(s: string): string {
   if (s === 'active') return 'Active';
@@ -113,6 +114,19 @@ export default async function AdminRevenuePage() {
               )}
             </tbody>
           </table>
+        </div>
+      </section>
+
+      <section className="rounded-xl border border-white/10 bg-card overflow-hidden">
+        <div className="border-b border-white/10 px-6 py-4 flex items-center gap-3">
+          <MapPin className="size-5 text-cyber-amber" />
+          <h2 className="font-semibold text-soft-cloud">Live fleet map — all active trucks</h2>
+        </div>
+        <div className="p-4">
+          <FleetMapDynamic
+            accessToken={process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN ?? ''}
+            height="480px"
+          />
         </div>
       </section>
     </div>
