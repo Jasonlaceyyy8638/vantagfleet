@@ -1,7 +1,13 @@
 import { createClient } from '@/lib/supabase/server';
 import { isAdmin } from '@/lib/admin';
 import { redirect } from 'next/navigation';
-import { listProfilesForAdmin, listOrganizationsForAdmin } from '@/app/actions/admin';
+import {
+  listProfilesForAdmin,
+  listOrganizationsForAdmin,
+  getAdminStats,
+  getCarriersWithSubscription,
+} from '@/app/actions/admin';
+import { listStaff } from '@/app/actions/admin-team';
 import { AdminPageClient } from './AdminPageClient';
 import { ShieldCheck } from 'lucide-react';
 
@@ -10,9 +16,12 @@ export default async function AdminPage() {
   const admin = await isAdmin(supabase);
   if (!admin) redirect('/');
 
-  const [profiles, orgs] = await Promise.all([
+  const [profiles, orgs, stats, carriers, staff] = await Promise.all([
     listProfilesForAdmin(),
     listOrganizationsForAdmin(),
+    getAdminStats(),
+    getCarriersWithSubscription(),
+    listStaff(),
   ]);
 
   return (
@@ -22,14 +31,20 @@ export default async function AdminPage() {
           <ShieldCheck className="size-8 text-cyber-amber" />
         </div>
         <div>
-          <h1 className="text-2xl font-bold text-soft-cloud">Admin</h1>
+          <h1 className="text-2xl font-bold text-soft-cloud">VantagFleet HQ</h1>
           <p className="text-soft-cloud/60 mt-0.5">
-            Create organizations and assign users. Midnight Ink · Cyber Amber.
+            Staff only. Revenue, carriers, and team.
           </p>
         </div>
       </div>
 
-      <AdminPageClient initialProfiles={profiles} initialOrgs={orgs} />
+      <AdminPageClient
+        initialProfiles={profiles}
+        initialOrgs={orgs}
+        initialStats={stats}
+        initialCarriers={carriers}
+        initialStaff={staff}
+      />
     </div>
   );
 }

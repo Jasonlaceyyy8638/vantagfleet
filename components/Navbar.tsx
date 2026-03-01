@@ -47,12 +47,37 @@ export function Navbar({ isAuthenticated = false, isAdmin = false }: NavbarProps
           </>
         ) : (
           <>
-            <Link
-              href={isAdmin ? '/admin' : '/dashboard'}
-              className="px-4 py-2.5 rounded-lg text-soft-cloud font-medium hover:bg-white/10 transition-colors"
-            >
-              Dashboard
-            </Link>
+            {isAdmin ? (
+              <>
+                <Link
+                  href="/admin"
+                  className="px-4 py-2.5 rounded-lg bg-cyber-amber/20 text-cyber-amber font-medium hover:bg-cyber-amber/30 transition-colors border border-cyber-amber/50"
+                >
+                  Owner Console
+                </Link>
+                <Link
+                  href="/admin"
+                  className="px-4 py-2.5 rounded-lg text-soft-cloud font-medium hover:bg-white/10 transition-colors"
+                >
+                  Revenue
+                </Link>
+              </>
+            ) : (
+              <>
+                <Link
+                  href="/dashboard"
+                  className="px-4 py-2.5 rounded-lg text-soft-cloud font-medium hover:bg-white/10 transition-colors"
+                >
+                  My Fleet
+                </Link>
+                <Link
+                  href="/compliance"
+                  className="px-4 py-2.5 rounded-lg text-soft-cloud font-medium hover:bg-white/10 transition-colors"
+                >
+                  Compliance
+                </Link>
+              </>
+            )}
             <button
               type="button"
               onClick={handleSignOut}

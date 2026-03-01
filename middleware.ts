@@ -3,6 +3,9 @@ import { updateSession } from '@/lib/supabase/middleware';
 
 const PUBLIC_PATHS = ['/login', '/signup', '/invite', '/auth/callback', '/roadside/view'];
 
+/** VantagFleet owner: always send to /admin; bypass carrier onboarding. */
+const ADMIN_OWNER_ID = 'ae175e55-72b4-4441-9e3c-02ecd8225bf7';
+
 export async function middleware(request: NextRequest) {
   const url = request.nextUrl;
   const { pathname } = url;
@@ -32,6 +35,13 @@ export async function middleware(request: NextRequest) {
     const redirect = new URL('/login', request.url);
     redirect.searchParams.set('redirectTo', pathname);
     return NextResponse.redirect(redirect);
+  }
+
+  // Owner: only /admin; bypass dashboard and all carrier/DOT onboarding
+  if (user.id === ADMIN_OWNER_ID) {
+    if (pathname.startsWith('/dashboard') || pathname.startsWith('/drivers') || pathname.startsWith('/vehicles') || pathname.startsWith('/loads') || pathname.startsWith('/compliance') || pathname.startsWith('/regulatory') || pathname.startsWith('/settings') || pathname.startsWith('/roadside-mode')) {
+      return NextResponse.redirect(new URL('/admin', request.url));
+    }
   }
 
   // Admin portal: only ADMIN may access; redirect others to home

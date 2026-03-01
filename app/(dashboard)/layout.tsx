@@ -7,6 +7,9 @@ import { isAdmin } from '@/lib/admin';
 
 const ORG_COOKIE = 'vantag-current-org-id';
 
+/** VantagFleet admin owner: never show onboarding or DOT prompt; send to /admin. */
+const ADMIN_OWNER_ID = 'ae175e55-72b4-4441-9e3c-02ecd8225bf7';
+
 export default async function DashboardLayout({
   children,
 }: {
@@ -26,6 +29,7 @@ export default async function DashboardLayout({
   );
 
   if (orgIds.length === 0) {
+    if (user.id === ADMIN_OWNER_ID) redirect('/admin');
     return <OrgSetup />;
   }
 

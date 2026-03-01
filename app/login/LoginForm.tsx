@@ -16,13 +16,15 @@ export function LoginForm({ redirectTo }: { redirectTo: string }) {
     setLoading(true);
     setMessage('');
     const supabase = createClient();
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data: { user }, error } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
     if (error) {
       setMessage(error.message);
       return;
     }
-    router.push(redirectTo);
+    const ADMIN_OWNER_ID = 'ae175e55-72b4-4441-9e3c-02ecd8225bf7';
+    const destination = user?.id === ADMIN_OWNER_ID ? '/admin' : redirectTo;
+    router.push(destination);
     router.refresh();
   };
 

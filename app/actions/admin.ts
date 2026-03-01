@@ -418,6 +418,99 @@ export async function listOrganizationsForAdmin(): Promise<{ id: string; name: s
   return (data ?? []) as { id: string; name: string }[];
 }
 
+export type AdminStats = {
+  totalRevenue: number;
+  activeFleets: number;
+  newSignupsThisWeek: number;
+};
+
+/** Financial dashboard stats. Admin-only. */
+export async function getAdminStats(): Promise<AdminStats> {
+  await requireAdmin();
+  const admin = createAdminClient();
+
+  let totalRevenue = 0;
+  const secretKey = process.env.STRIPE_SECRET_KEY;
+  if (secretKey) {
+    try {
+      const stripe = new Stripe(secretKey);
+      const charges = await stripe.charges.list({ limit: 100 });
+      totalRevenue = charges.data
+        .filter((c) => c.status === 'succeeded')
+        .reduce((sum, c) => sum + (c.amount ?? 0), 0) / 100;
+    } catch {
+      // ignore
+    }
+  }
+
+  const { count: activeFleets } = await admin
+    .from('organizations')
+    .select('id', { count: 'exact', head: true });
+
+  const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+  const { count: newSignupsThisWeek } = await admin
+    .from('organizations')
+    .select('id', { count: 'exact', head: true })
+    .gte('created_at', weekAgo);
+
+  return {
+    totalRevenue,
+    activeFleets: activeFleets ?? 0,
+    newSignupsThisWeek: newSignupsThisWeek ?? 0,
+  };
+}
+
+export type CarrierRow = {
+  id: string;
+  name: string;
+  usdot_number: string | null;
+  subscriptionStatus: SubscriptionStatus;
+};
+
+/** All carriers (organizations) with Stripe subscription status. Admin-only. */
+export async function getCarriersWithSubscription(): Promise<CarrierRow[]> {
+  await requireAdmin();
+  const admin = createAdminClient();
+  const { data: orgs, error } = await admin
+    .from('organizations')
+    .select('id, name, usdot_number, stripe_customer_id')
+    .order('name');
+  if (error) throw new Error(error.message);
+  if (!orgs?.length) return [];
+
+  const secretKey = process.env.STRIPE_SECRET_KEY;
+  const stripe = secretKey ? new Stripe(secretKey) : null;
+
+  const rows: CarrierRow[] = [];
+  for (const org of orgs) {
+    let status: SubscriptionStatus = 'none';
+    if (org.stripe_customer_id && stripe) {
+      try {
+        const { data } = await stripe.subscriptions.list({
+          customer: org.stripe_customer_id,
+          status: 'all',
+          limit: 1,
+        });
+        const sub = data[0];
+        if (sub) {
+          if (sub.status === 'active' || sub.status === 'trialing') status = sub.status as SubscriptionStatus;
+          else if (sub.status === 'past_due') status = 'past_due';
+          else if (sub.status === 'canceled' || sub.status === 'unpaid') status = 'canceled';
+        }
+      } catch {
+        // leave none
+      }
+    }
+    rows.push({
+      id: org.id,
+      name: org.name,
+      usdot_number: org.usdot_number ?? null,
+      subscriptionStatus: status,
+    });
+  }
+  return rows;
+}
+
 /** Assign a user to an organization (add profile row or update existing null-org profile). Admin-only. */
 export async function assignUserToOrganization(
   userId: string,

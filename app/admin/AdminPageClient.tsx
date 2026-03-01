@@ -1,20 +1,48 @@
 'use client';
 
 import { useState } from 'react';
-import { addNewCustomer, assignUserToOrganization, listProfilesForAdmin, listOrganizationsForAdmin, type ProfileRow } from '@/app/actions/admin';
-import { Building2, Loader2, UserPlus, Users } from 'lucide-react';
+import {
+  addNewCustomer,
+  assignUserToOrganization,
+  listProfilesForAdmin,
+  listOrganizationsForAdmin,
+  type ProfileRow,
+  type AdminStats,
+  type CarrierRow,
+} from '@/app/actions/admin';
+import { addEmployeeByEmail, listStaff, type StaffRow } from '@/app/actions/admin-team';
+import { Building2, Loader2, UserPlus, Users, DollarSign, Truck, UserCheck, CreditCard } from 'lucide-react';
 
 type OrgOption = { id: string; name: string };
+
+function formatSubscriptionStatus(s: CarrierRow['subscriptionStatus']): string {
+  if (s === 'active') return 'Active';
+  if (s === 'past_due') return 'Past Due';
+  if (s === 'trialing') return 'Trial';
+  if (s === 'canceled') return 'Canceled';
+  return '—';
+}
 
 export function AdminPageClient({
   initialProfiles,
   initialOrgs,
+  initialStats,
+  initialCarriers,
+  initialStaff,
 }: {
   initialProfiles: ProfileRow[];
   initialOrgs: OrgOption[];
+  initialStats: AdminStats;
+  initialCarriers: CarrierRow[];
+  initialStaff: StaffRow[];
 }) {
   const [profiles, setProfiles] = useState<ProfileRow[]>(initialProfiles);
   const [orgs, setOrgs] = useState<OrgOption[]>(initialOrgs);
+  const [staff, setStaff] = useState<StaffRow[]>(initialStaff);
+  const [employeeEmail, setEmployeeEmail] = useState('');
+  const [employeeLoading, setEmployeeLoading] = useState(false);
+  const [employeeError, setEmployeeError] = useState<string | null>(null);
+  const [employeeSuccess, setEmployeeSuccess] = useState(false);
   const [orgName, setOrgName] = useState('');
   const [dotNumber, setDotNumber] = useState('');
   const [orgLoading, setOrgLoading] = useState(false);
@@ -75,6 +103,26 @@ export function AdminPageClient({
     setAssignError(null);
   };
 
+  const handleAddEmployee = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setEmployeeError(null);
+    setEmployeeSuccess(false);
+    setEmployeeLoading(true);
+    try {
+      const result = await addEmployeeByEmail(employeeEmail.trim(), 'EMPLOYEE');
+      if ('error' in result) {
+        setEmployeeError(result.error);
+        return;
+      }
+      setEmployeeSuccess(true);
+      setEmployeeEmail('');
+      const next = await listStaff();
+      setStaff(next);
+    } finally {
+      setEmployeeLoading(false);
+    }
+  };
+
   const byUser = profiles.reduce<Record<string, ProfileRow[]>>((acc, p) => {
     if (!acc[p.user_id]) acc[p.user_id] = [];
     acc[p.user_id].push(p);
@@ -95,6 +143,134 @@ export function AdminPageClient({
 
   return (
     <div className="space-y-10">
+      {/* Financial Dashboard */}
+      <section className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="rounded-xl border border-white/10 bg-card p-6 flex items-center gap-4">
+          <div className="p-3 rounded-xl bg-cyber-amber/20">
+            <DollarSign className="size-8 text-cyber-amber" />
+          </div>
+          <div>
+            <p className="text-sm text-soft-cloud/60">Total Revenue</p>
+            <p className="text-2xl font-bold text-soft-cloud">${initialStats.totalRevenue.toLocaleString('en-US', { minimumFractionDigits: 2 })}</p>
+          </div>
+        </div>
+        <div className="rounded-xl border border-white/10 bg-card p-6 flex items-center gap-4">
+          <div className="p-3 rounded-xl bg-cyber-amber/20">
+            <Truck className="size-8 text-cyber-amber" />
+          </div>
+          <div>
+            <p className="text-sm text-soft-cloud/60">Active Carriers</p>
+            <p className="text-2xl font-bold text-soft-cloud">{initialStats.activeFleets}</p>
+          </div>
+        </div>
+        <div className="rounded-xl border border-white/10 bg-card p-6 flex items-center gap-4">
+          <div className="p-3 rounded-xl bg-cyber-amber/20">
+            <UserCheck className="size-8 text-cyber-amber" />
+          </div>
+          <div>
+            <p className="text-sm text-soft-cloud/60">New Signups This Week</p>
+            <p className="text-2xl font-bold text-soft-cloud">{initialStats.newSignupsThisWeek}</p>
+          </div>
+        </div>
+      </section>
+
+      {/* VantagFleet Staff */}
+      <section className="rounded-xl border border-white/10 bg-card overflow-hidden">
+        <div className="border-b border-white/10 px-6 py-4 flex items-center gap-3">
+          <div className="p-2 rounded-lg bg-cyber-amber/20">
+            <Users className="size-5 text-cyber-amber" />
+          </div>
+          <div>
+            <h2 className="font-semibold text-soft-cloud">VantagFleet Staff</h2>
+            <p className="text-sm text-soft-cloud/60">Add employees by email; they get EMPLOYEE role in platform_roles.</p>
+          </div>
+        </div>
+        <div className="p-6 space-y-4">
+          <form onSubmit={handleAddEmployee} className="flex flex-wrap items-end gap-3">
+            <div className="min-w-[200px]">
+              <label htmlFor="staff-email" className="block text-sm font-medium text-soft-cloud/80 mb-1">Employee email</label>
+              <input
+                id="staff-email"
+                type="email"
+                value={employeeEmail}
+                onChange={(e) => setEmployeeEmail(e.target.value)}
+                placeholder="email@vantagfleet.com"
+                className="w-full px-3 py-2 rounded-lg bg-midnight-ink border border-white/10 text-soft-cloud focus:outline-none focus:ring-2 focus:ring-cyber-amber"
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={employeeLoading}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-cyber-amber text-midnight-ink font-semibold hover:bg-cyber-amber/90 disabled:opacity-60"
+            >
+              {employeeLoading ? <Loader2 className="size-4 animate-spin" /> : null}
+              Add Employee
+            </button>
+          </form>
+          {employeeError && <p className="text-sm text-red-400">{employeeError}</p>}
+          {employeeSuccess && <p className="text-sm text-green-400">Employee added.</p>}
+          <ul className="divide-y divide-white/10">
+            {staff.length === 0 ? (
+              <li className="py-3 text-soft-cloud/50 text-sm">No staff yet.</li>
+            ) : (
+              staff.map((s) => (
+                <li key={s.user_id} className="py-3 flex items-center justify-between">
+                  <span className="text-soft-cloud">{s.email ?? s.user_id}</span>
+                  <span className="text-xs px-2 py-0.5 rounded bg-cyber-amber/20 text-cyber-amber">{s.role}</span>
+                </li>
+              ))
+            )}
+          </ul>
+        </div>
+      </section>
+
+      {/* Subscription Tracker — Carriers */}
+      <section className="rounded-xl border border-white/10 bg-card overflow-hidden">
+        <div className="border-b border-white/10 px-6 py-4 flex items-center gap-3">
+          <div className="p-2 rounded-lg bg-cyber-amber/20">
+            <CreditCard className="size-5 text-cyber-amber" />
+          </div>
+          <div>
+            <h2 className="font-semibold text-soft-cloud">Carriers</h2>
+            <p className="text-sm text-soft-cloud/60">Company name, DOT number, and Stripe subscription status.</p>
+          </div>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-white/10 text-left text-soft-cloud/70">
+                <th className="px-6 py-3 font-medium">Company Name</th>
+                <th className="px-6 py-3 font-medium">DOT Number</th>
+                <th className="px-6 py-3 font-medium">Subscription</th>
+              </tr>
+            </thead>
+            <tbody>
+              {initialCarriers.length === 0 ? (
+                <tr>
+                  <td colSpan={3} className="px-6 py-8 text-center text-soft-cloud/50">No carriers yet.</td>
+                </tr>
+              ) : (
+                initialCarriers.map((c) => (
+                  <tr key={c.id} className="border-b border-white/5 hover:bg-white/5">
+                    <td className="px-6 py-3 text-soft-cloud">{c.name}</td>
+                    <td className="px-6 py-3 text-soft-cloud/80">{c.usdot_number ?? '—'}</td>
+                    <td className="px-6 py-3">
+                      <span className={
+                        c.subscriptionStatus === 'active' ? 'text-green-400' :
+                        c.subscriptionStatus === 'past_due' ? 'text-amber-400' :
+                        c.subscriptionStatus === 'trialing' ? 'text-blue-400' : 'text-soft-cloud/60'
+                      }>
+                        {formatSubscriptionStatus(c.subscriptionStatus)}
+                      </span>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
       <section className="rounded-xl border border-white/10 bg-card overflow-hidden">
         <div className="border-b border-white/10 px-6 py-4 flex items-center gap-3">
           <div className="p-2 rounded-lg bg-cyber-amber/20">
