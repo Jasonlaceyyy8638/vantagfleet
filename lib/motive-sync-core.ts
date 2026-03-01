@@ -72,7 +72,6 @@ export async function runMotiveSyncCore(
   const usersList: { id: number; first_name?: string; last_name?: string; user_name?: string; email?: string }[] =
     Array.isArray(usersJson.users) ? usersJson.users : Array.isArray(usersJson) ? usersJson : [];
 
-  const admin = createAdminClient();
   let vehiclesUpserted = 0;
   for (const v of vehiclesList) {
     const motiveId = String(v.id);
