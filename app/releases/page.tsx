@@ -3,7 +3,7 @@ import { Download, ExternalLink } from 'lucide-react';
 
 export const dynamic = 'force-static';
 
-const GITHUB_RELEASES_URL = 'https://github.com/Jasonlaceyyy8638/vantagfleet/releases';
+const GITHUB_RELEASES_URL = 'https://github.com/jasonlaceyyy8638/vantagfleet/releases';
 
 export const metadata = {
   title: 'Releases — VantagFleet Desktop',

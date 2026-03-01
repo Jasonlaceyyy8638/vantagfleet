@@ -38,27 +38,26 @@ export default function DownloadPage() {
             Download for your platform
           </h2>
           <p className="text-soft-cloud/60 text-sm text-center mb-8">
-            Choose your operating system. Installers are published on GitHub Releases.
+            Windows downloads directly. Mac opens the release page so you can pick Intel or Apple Silicon.
           </p>
           <div className="grid sm:grid-cols-2 gap-6">
             <a
-              href="https://github.com/Jasonlaceyyy8638/vantagfleet/releases"
-              target="_blank"
-              rel="noopener noreferrer"
+              href="https://github.com/jasonlaceyyy8638/vantagfleet/releases/download/v0.1.0/VantagFleet_0.1.0_x64-setup.exe"
+              download
               className="group flex flex-col items-center gap-4 p-6 rounded-xl border border-white/10 bg-midnight-ink hover:border-cyber-amber/50 hover:bg-cyber-amber/5 transition-all duration-200"
             >
               <div className="p-4 rounded-xl bg-soft-cloud/10 group-hover:bg-cyber-amber/20 transition-colors">
                 <Monitor className="size-10 text-soft-cloud group-hover:text-cyber-amber" />
               </div>
               <span className="font-semibold text-soft-cloud">Windows</span>
-              <span className="text-sm text-soft-cloud/60">.msi or .exe</span>
+              <span className="text-sm text-soft-cloud/60">.exe — starts downloading</span>
               <span className="inline-flex items-center gap-2 text-cyber-amber text-sm font-medium">
-                Download for Windows
+                Download
                 <Download className="size-4" />
               </span>
             </a>
             <a
-              href="https://github.com/Jasonlaceyyy8638/vantagfleet/releases"
+              href="https://github.com/jasonlaceyyy8638/vantagfleet/releases/latest"
               target="_blank"
               rel="noopener noreferrer"
               className="group flex flex-col items-center gap-4 p-6 rounded-xl border border-white/10 bg-midnight-ink hover:border-cyber-amber/50 hover:bg-cyber-amber/5 transition-all duration-200"
@@ -66,16 +65,16 @@ export default function DownloadPage() {
               <div className="p-4 rounded-xl bg-soft-cloud/10 group-hover:bg-cyber-amber/20 transition-colors">
                 <Apple className="size-10 text-soft-cloud group-hover:text-cyber-amber" />
               </div>
-              <span className="font-semibold text-soft-cloud">macOS</span>
-              <span className="text-sm text-soft-cloud/60">.dmg or .app</span>
+              <span className="font-semibold text-soft-cloud">Mac</span>
+              <span className="text-sm text-soft-cloud/60">.dmg — pick Intel or Apple Silicon</span>
               <span className="inline-flex items-center gap-2 text-cyber-amber text-sm font-medium">
-                Download for Mac
+                Open releases
                 <Download className="size-4" />
               </span>
             </a>
           </div>
           <p className="text-center text-soft-cloud/50 text-xs mt-6">
-            Installers are on <strong>GitHub Releases</strong>. <Link href="/releases" className="text-cyber-amber hover:underline">View releases page</Link>.
+            You only upload the Windows .exe yourself. To add Mac installers, run <strong>Actions → Release Desktop</strong> once; it builds and attaches them to the release.
           </p>
         </section>
 
