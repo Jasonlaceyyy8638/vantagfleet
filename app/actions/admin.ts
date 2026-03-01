@@ -377,7 +377,7 @@ export async function listProfilesForAdmin(): Promise<ProfileRow[]> {
     .order('created_at', { ascending: false });
   if (pErr) throw new Error(pErr.message);
 
-  const userIds = [...new Set((profiles ?? []).map((p) => p.user_id))];
+  const userIds = Array.from(new Set((profiles ?? []).map((p) => p.user_id)));
   const emailByUserId: Record<string, string | null> = {};
   if (userIds.length > 0) {
     const { data: { users } } = await admin.auth.admin.listUsers({ perPage: 1000 });
@@ -386,7 +386,7 @@ export async function listProfilesForAdmin(): Promise<ProfileRow[]> {
     }
   }
 
-  const orgIds = [...new Set((profiles ?? []).map((p) => p.org_id).filter((id): id is string => id != null))];
+  const orgIds = Array.from(new Set((profiles ?? []).map((p) => p.org_id).filter((id): id is string => id != null)));
   const orgNameById: Record<string, string> = {};
   if (orgIds.length > 0) {
     const { data: orgs } = await admin.from('organizations').select('id, name').in('id', orgIds);

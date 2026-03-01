@@ -51,8 +51,9 @@ export async function setupOrganization(
   if (!name) return { error: 'Company name is required.' };
   if (!usdot) return { error: 'DOT number is required.' };
 
-  const fleetSizeNum = fleetSize?.trim() ? parseInt(fleetSize.trim(), 10) : null;
-  if (fleetSize?.trim() && (Number.isNaN(fleetSizeNum) || fleetSizeNum < 0)) {
+  const trimmedFleet = fleetSize?.trim();
+  const fleetSizeNum = trimmedFleet ? parseInt(trimmedFleet, 10) : null;
+  if (trimmedFleet && (fleetSizeNum == null || Number.isNaN(fleetSizeNum) || fleetSizeNum < 0)) {
     return { error: 'Fleet size must be a positive number.' };
   }
 

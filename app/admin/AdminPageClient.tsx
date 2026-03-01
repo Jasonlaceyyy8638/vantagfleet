@@ -83,7 +83,7 @@ export function AdminPageClient({
 
   const userList = Object.entries(byUser).map(([userId, rows]) => {
     const first = rows[0];
-    const orgNames = [...new Set(rows.map((r) => r.org_name).filter(Boolean))].join(', ') || '—';
+    const orgNames = Array.from(new Set(rows.map((r) => r.org_name).filter(Boolean))).join(', ') || '—';
     return {
       user_id: userId,
       email: first.email ?? '—',
