@@ -2,7 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { getPlatformRole, isPlatformStaff } from '@/lib/admin';
+import { getPlatformRole, isPlatformStaff, isAdmin } from '@/lib/admin';
 
 export type StaffRow = { user_id: string; role: string; email: string | null };
 
@@ -17,8 +17,11 @@ export type VantagStaffRow = {
   created_at?: string;
 };
 
+/** Allow owner (ADMIN_OWNER_ID) and anyone in platform_roles or users.role ADMIN/EMPLOYEE. */
 async function requireStaff() {
   const supabase = await createClient();
+  const admin = await isAdmin(supabase);
+  if (admin) return;
   const role = await getPlatformRole(supabase);
   if (!isPlatformStaff(role)) throw new Error('Forbidden');
 }
