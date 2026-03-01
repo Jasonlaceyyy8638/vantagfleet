@@ -2,6 +2,8 @@
 
 import { motion } from 'framer-motion';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
+import { useEffect } from 'react';
 import { Logo } from '@/components/Logo';
 import { PricingSection } from '@/components/PricingSection';
 import { FileCheck, Users, Truck, Shield, ArrowRight } from 'lucide-react';
@@ -12,6 +14,19 @@ const glassCardClass =
 type LandingPageProps = { isAuthenticated?: boolean };
 
 export function LandingPage({ isAuthenticated = false }: LandingPageProps) {
+  const searchParams = useSearchParams();
+
+  // Email confirmation: Supabase redirects to /?code=... — send to auth/callback so session is set
+  useEffect(() => {
+    const code = searchParams.get('code');
+    if (code) {
+      const url = new URL('/auth/callback', window.location.origin);
+      url.searchParams.set('code', code);
+      url.searchParams.set('redirectTo', '/dashboard');
+      window.location.replace(url.toString());
+    }
+  }, [searchParams]);
+
   return (
     <div className="min-h-screen bg-midnight-ink">
       {/* Navbar: logo top left, Sign In + Get Started / Go to Dashboard */}
