@@ -195,6 +195,19 @@ export default async function DashboardPage() {
         </div>
       </div>
 
+      {/* Fleet Map — prominent live view from Motive sync */}
+      <section className="mb-8">
+        <div className="mb-3 flex items-center gap-2">
+          <Truck className="size-5 text-cyber-amber" />
+          <h2 className="font-semibold text-cloud-dancer">Live fleet map</h2>
+        </div>
+        <FleetMapDynamic
+          accessToken={process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN ?? ''}
+          height="520px"
+          className="mt-2"
+        />
+      </section>
+
       {/* Alerts */}
       <section className="rounded-xl bg-card border border-[#30363d] overflow-hidden">
         <div className="px-5 py-4 border-b border-[#30363d] flex items-center gap-2">
@@ -238,18 +251,6 @@ export default async function DashboardPage() {
             ))
           )}
         </div>
-      </section>
-
-      <section className="mt-8">
-        <div className="mb-3 flex items-center gap-2">
-          <Truck className="size-5 text-cyber-amber" />
-          <h2 className="font-semibold text-cloud-dancer">Fleet map</h2>
-        </div>
-        <FleetMapDynamic
-          accessToken={process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN ?? ''}
-          height="480px"
-          className="mt-2"
-        />
       </section>
 
       <section className="mt-8">

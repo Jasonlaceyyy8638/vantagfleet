@@ -1,11 +1,15 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Map, Marker, Popup } from 'react-map-gl/mapbox';
+import type { Map as MapboxMap } from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 
 const MAPBOX_DARK = 'mapbox://styles/mapbox/dark-v11';
 const POLL_MS = 60 * 1000;
+const TRAFFIC_LAYER_ID = 'vantag-traffic-layer';
+const TRAFFIC_SOURCE_ID = 'vantag-traffic-source';
+const LATE_ALERT_SPEED_MAX_MPH = 25; // Moving but slow = likely in heavy traffic (red zone)
 
 export type FleetMapLocation = {
   id: string;
@@ -15,20 +19,22 @@ export type FleetMapLocation = {
   driverName: string;
   speed: number | null;
   status: 'Moving' | 'Stationary';
+  eta?: string | null;
   orgId?: string;
   orgName?: string;
 };
 
 type FleetMapProps = {
-  /** Mapbox access token (use NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN). */
   accessToken: string;
-  /** Optional initial locations (e.g. from server). */
   initialLocations?: FleetMapLocation[];
-  /** Height of the map container. */
   height?: string;
-  /** Optional class name for the wrapper. */
   className?: string;
 };
+
+function isInHeavyTraffic(loc: FleetMapLocation): boolean {
+  const speed = loc.speed ?? 0;
+  return loc.status === 'Moving' && speed > 5 && speed < LATE_ALERT_SPEED_MAX_MPH;
+}
 
 export function FleetMap({
   accessToken,
@@ -38,8 +44,11 @@ export function FleetMap({
 }: FleetMapProps) {
   const [locations, setLocations] = useState<FleetMapLocation[]>(initialLocations);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [trafficOn, setTrafficOn] = useState(false);
+  const mapRef = useRef<MapboxMap | null>(null);
 
   const fetchLocations = useCallback(async () => {
     setLoading(true);
@@ -68,7 +77,61 @@ export function FleetMap({
     return () => clearInterval(t);
   }, [fetchLocations]);
 
+  const handleMapLoad = useCallback((e: { target: MapboxMap }) => {
+    const map = e.target;
+    mapRef.current = map;
+    if (!map.getSource(TRAFFIC_SOURCE_ID)) {
+      map.addSource(TRAFFIC_SOURCE_ID, {
+        type: 'vector',
+        url: 'mapbox://mapbox.mapbox-traffic-v1',
+      });
+      try {
+        const beforeId = map.getLayer('road-label-primary') ? 'road-label-primary' : undefined;
+        map.addLayer(
+          {
+            id: TRAFFIC_LAYER_ID,
+            type: 'line',
+            source: TRAFFIC_SOURCE_ID,
+            'source-layer': 'traffic',
+            layout: {
+              'line-join': 'round',
+              'line-cap': 'round',
+            },
+            paint: {
+              'line-color': [
+                'match',
+                ['get', 'congestion'],
+                'heavy',
+                '#ef4444',
+                'severe',
+                '#dc2626',
+                'moderate',
+                '#eab308',
+                'low',
+                '#22c55e',
+                'rgba(0,0,0,0.1)',
+              ],
+              'line-width': 2,
+              'line-opacity': 0.8,
+            },
+          },
+          beforeId
+        );
+      } catch {
+        // Layer might already exist or style differs
+      }
+      map.setLayoutProperty(TRAFFIC_LAYER_ID, 'visibility', 'none');
+    }
+  }, []);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !map.getLayer(TRAFFIC_LAYER_ID)) return;
+    map.setLayoutProperty(TRAFFIC_LAYER_ID, 'visibility', trafficOn ? 'visible' : 'none');
+  }, [trafficOn]);
+
   const selected = locations.find((l) => l.id === selectedId);
+  const hovered = locations.find((l) => l.id === hoveredId);
   const hasCoords = locations.some((l) => Number.isFinite(l.lat) && Number.isFinite(l.lng));
   const centerLng = hasCoords
     ? locations.reduce((s, l) => s + l.lng, 0) / locations.length
@@ -106,6 +169,22 @@ export function FleetMap({
           {error}
         </div>
       )}
+
+      {/* Live Traffic toggle */}
+      <div className="absolute top-3 right-3 z-20">
+        <button
+          type="button"
+          onClick={() => setTrafficOn((v) => !v)}
+          className={`px-3 py-2 rounded-lg text-sm font-medium shadow-lg transition-colors ${
+            trafficOn
+              ? 'bg-cyber-amber text-midnight-ink'
+              : 'bg-midnight-ink/90 text-soft-cloud border border-white/20 hover:bg-midnight-ink'
+          }`}
+        >
+          Live Traffic {trafficOn ? 'ON' : 'OFF'}
+        </button>
+      </div>
+
       <Map
         mapboxAccessToken={accessToken}
         initialViewState={{
@@ -115,41 +194,50 @@ export function FleetMap({
         }}
         style={{ width: '100%', height }}
         mapStyle={MAPBOX_DARK}
+        onLoad={handleMapLoad}
       >
-        {locations.map((loc) => (
-          <Marker
-            key={loc.id}
-            longitude={loc.lng}
-            latitude={loc.lat}
-            anchor="bottom"
-            onClick={(e) => {
-              e.originalEvent.stopPropagation();
-              setSelectedId(selectedId === loc.id ? null : loc.id);
-            }}
-          >
-            <div
-              className="cursor-pointer transition-transform hover:scale-110"
-              title={`${loc.vehicleName} — ${loc.driverName}`}
+        {locations.map((loc) => {
+          const lateAlert = trafficOn && isInHeavyTraffic(loc);
+          return (
+            <Marker
+              key={loc.id}
+              longitude={loc.lng}
+              latitude={loc.lat}
+              anchor="bottom"
+              onClick={(e) => {
+                e.originalEvent.stopPropagation();
+                setSelectedId(selectedId === loc.id ? null : loc.id);
+              }}
             >
-              <svg
-                width="32"
-                height="32"
-                viewBox="0 0 24 24"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-                className="drop-shadow-md"
+              <div
+                className="cursor-pointer transition-transform hover:scale-110 relative"
+                title={`${loc.driverName}${loc.eta ? ` · ETA ${loc.eta}` : ''}`}
+                onMouseEnter={() => setHoveredId(loc.id)}
+                onMouseLeave={() => setHoveredId(null)}
               >
-                <path
-                  d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"
-                  fill={loc.status === 'Moving' ? '#F59E0B' : '#6B7280'}
-                  stroke="rgba(0,0,0,0.3)"
-                  strokeWidth="1"
-                />
-                <circle cx="12" cy="9" r="2.5" fill="#0f172a" />
-              </svg>
-            </div>
-          </Marker>
-        ))}
+                {lateAlert && (
+                  <span className="absolute inset-0 rounded-full bg-cyber-amber/60 animate-ping" style={{ animationDuration: '1.5s' }} />
+                )}
+                <svg
+                  width="32"
+                  height="32"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  className={`drop-shadow-md relative ${lateAlert ? 'text-cyber-amber' : ''}`}
+                >
+                  <path
+                    d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"
+                    fill={lateAlert ? '#F59E0B' : loc.status === 'Moving' ? '#F59E0B' : '#6B7280'}
+                    stroke="rgba(0,0,0,0.3)"
+                    strokeWidth="1"
+                  />
+                  <circle cx="12" cy="9" r="2.5" fill="#0f172a" />
+                </svg>
+              </div>
+            </Marker>
+          );
+        })}
         {selected && (
           <Popup
             longitude={selected.lng}
@@ -166,9 +254,29 @@ export function FleetMap({
               <p className="text-sm text-midnight-ink/80">
                 Speed: {selected.speed != null ? `${selected.speed} mph` : '—'}
               </p>
+              {selected.eta && (
+                <p className="text-sm text-midnight-ink/80">ETA: {selected.eta}</p>
+              )}
               {selected.orgName && (
                 <p className="text-xs text-midnight-ink/60 mt-1">Org: {selected.orgName}</p>
               )}
+            </div>
+          </Popup>
+        )}
+        {/* Hover tooltip: Driver name + ETA at truck */}
+        {hovered && !selectedId && (
+          <Popup
+            longitude={hovered.lng}
+            latitude={hovered.lat}
+            anchor="top"
+            closeButton={false}
+            className="fleet-map-popup !pb-2"
+          >
+            <div className="min-w-[160px] text-left pointer-events-none">
+              <p className="font-medium text-midnight-ink">{hovered.driverName}</p>
+              <p className="text-xs text-midnight-ink/80 mt-0.5">
+                ETA: {hovered.eta ?? '—'}
+              </p>
             </div>
           </Popup>
         )}

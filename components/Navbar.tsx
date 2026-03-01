@@ -86,6 +86,12 @@ export function Navbar({ isAuthenticated: initialAuth = false }: { isAuthenticat
               Sign In
             </Link>
             <Link
+              href="/download"
+              className="bg-amber-500 text-black px-4 py-2 rounded-md font-bold hover:bg-amber-600 transition-colors"
+            >
+              Download App
+            </Link>
+            <Link
               href="/signup"
               className="px-5 py-2.5 rounded-lg bg-cyber-amber text-midnight-ink font-bold hover:bg-cyber-amber/90"
             >
@@ -141,6 +147,12 @@ export function Navbar({ isAuthenticated: initialAuth = false }: { isAuthenticat
                 My Fleet
               </Link>
             )}
+            <Link
+              href="/download"
+              className="bg-amber-500 text-black px-4 py-2 rounded-md font-bold hover:bg-amber-600 transition-colors"
+            >
+              Download App
+            </Link>
             <button
               type="button"
               onClick={async () => {

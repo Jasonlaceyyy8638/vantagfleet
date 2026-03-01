@@ -16,6 +16,7 @@ export type FleetMapLocation = {
   driverName: string;
   speed: number | null;
   status: 'Moving' | 'Stationary';
+  eta?: string | null;
   orgId?: string;
   orgName?: string;
 };
@@ -60,6 +61,10 @@ function normalizeMotiveLocations(
       driverName = [first, last].filter(Boolean).join(' ') || (driver as { name?: string }).name as string || '—';
     }
 
+    let eta: string | null = null;
+    const rawEta = (v as { eta?: string }).eta ?? (v as { estimated_arrival?: string }).estimated_arrival ?? (v as { estimated_arrival_time?: string }).estimated_arrival_time;
+    if (typeof rawEta === 'string' && rawEta) eta = rawEta;
+
     out.push({
       id: `${orgId}-${id}`,
       lat,
@@ -68,6 +73,7 @@ function normalizeMotiveLocations(
       driverName,
       speed,
       status,
+      ...(eta != null ? { eta } : {}),
       ...(orgName ? { orgId, orgName } : {}),
     });
   }
