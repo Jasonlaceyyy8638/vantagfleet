@@ -3,6 +3,7 @@
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { Logo } from '@/components/Logo';
+import { PricingSection } from '@/components/PricingSection';
 import { FileCheck, Users, Truck, Shield, ArrowRight } from 'lucide-react';
 
 const glassCardClass =
@@ -84,6 +85,9 @@ export function LandingPage({ isAuthenticated = false }: LandingPageProps) {
 
       {/* Features: scroll-triggered fade-in, glassmorphism cards */}
       <FeaturesSection />
+
+      {/* Pricing: Starter & Pro with Stripe checkout */}
+      <PricingSection />
 
       {/* Closer CTA: massive, high-contrast, pulsing button */}
       <CTASection isAuthenticated={isAuthenticated} />
