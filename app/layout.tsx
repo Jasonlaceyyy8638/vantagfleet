@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import './globals.css';
+import { Footer } from '@/components/Footer';
 
 export const metadata: Metadata = {
   title: 'Vantag Fleet — Compliance',
@@ -13,8 +14,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className="antialiased min-h-screen bg-midnight-ink text-soft-cloud">
-        {children}
+      <body className="antialiased min-h-screen bg-midnight-ink text-soft-cloud flex flex-col">
+        <div className="flex-1">{children}</div>
+        <Footer />
       </body>
     </html>
   );

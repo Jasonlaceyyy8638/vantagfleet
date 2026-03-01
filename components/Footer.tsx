@@ -1,0 +1,45 @@
+import Link from 'next/link';
+import { Mail } from 'lucide-react';
+
+export function Footer() {
+  return (
+    <footer className="border-t border-cyber-amber/60 bg-midnight-ink text-soft-cloud">
+      <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-6">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-sm">
+          <div className="order-2 sm:order-1 text-soft-cloud/70">
+            © 2026 VantagFleet. All rights reserved.
+          </div>
+          <nav className="order-1 sm:order-2 flex items-center gap-6" aria-label="Footer">
+            <Link
+              href="/contact"
+              className="text-soft-cloud/80 hover:text-cyber-amber transition-colors"
+            >
+              Contact Support
+            </Link>
+            <Link
+              href="/privacy"
+              className="text-soft-cloud/80 hover:text-cyber-amber transition-colors"
+            >
+              Privacy Policy
+            </Link>
+            <Link
+              href="/terms"
+              className="text-soft-cloud/80 hover:text-cyber-amber transition-colors"
+            >
+              Terms of Service
+            </Link>
+          </nav>
+          <div className="order-3">
+            <a
+              href="mailto:info@vantagfleet.com"
+              className="inline-flex items-center gap-2 text-soft-cloud/80 hover:text-cyber-amber transition-colors"
+            >
+              <Mail className="size-4" aria-hidden />
+              info@vantagfleet.com
+            </a>
+          </div>
+        </div>
+      </div>
+    </footer>
+  );
+}

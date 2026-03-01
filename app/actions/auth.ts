@@ -7,7 +7,12 @@ import { redirect } from 'next/navigation';
 export async function createOrganization(name: string, usdot_number: string) {
   const trimmed = usdot_number?.trim();
   if (!trimmed) return { error: 'USDOT number is required.' };
-  const supabase = createAdminClient();
+  let supabase;
+  try {
+    supabase = createAdminClient();
+  } catch (e) {
+    return { error: 'Service is temporarily unavailable. Please try again later.' };
+  }
   const { data, error } = await supabase
     .from('organizations')
     .insert({ name, usdot_number: trimmed, status: 'active' })
@@ -57,7 +62,12 @@ export async function setupOrganization(
     return { error: 'Fleet size must be a positive number.' };
   }
 
-  const admin = createAdminClient();
+  let admin;
+  try {
+    admin = createAdminClient();
+  } catch {
+    return { error: 'Service is temporarily unavailable. Please try again later.' };
+  }
   const { data: org, error: insertError } = await admin
     .from('organizations')
     .insert({

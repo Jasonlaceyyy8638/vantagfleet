@@ -8,7 +8,13 @@ import {
   type VantagStaffRow,
   type VantagStaffRole,
 } from '@/app/actions/admin-team';
-import { UserPlus, Loader2, Trash2, X, Users } from 'lucide-react';
+import {
+  listSupportTickets,
+  updateTicketStatus,
+  replyToTicket,
+  type SupportTicketRow,
+} from '@/app/actions/support-tickets';
+import { UserPlus, Loader2, Trash2, X, Users, Inbox, Send } from 'lucide-react';
 
 const ROLES: { value: VantagStaffRole; label: string }[] = [
   { value: 'Support', label: 'Support' },
@@ -17,15 +23,26 @@ const ROLES: { value: VantagStaffRole; label: string }[] = [
   { value: 'Admin', label: 'Admin' },
 ];
 
-type Props = { initialStaff: VantagStaffRow[] };
+const TICKET_STATUSES: { value: 'OPEN' | 'IN_PROGRESS' | 'RESOLVED'; label: string }[] = [
+  { value: 'OPEN', label: 'Open' },
+  { value: 'IN_PROGRESS', label: 'In progress' },
+  { value: 'RESOLVED', label: 'Resolved' },
+];
 
-export function TeamClient({ initialStaff }: Props) {
+type Props = { initialStaff: VantagStaffRow[]; initialTickets: SupportTicketRow[] };
+
+export function TeamClient({ initialStaff, initialTickets }: Props) {
+  const [activeTab, setActiveTab] = useState<'team' | 'inbox'>('team');
   const [staff, setStaff] = useState<VantagStaffRow[]>(initialStaff);
+  const [tickets, setTickets] = useState<SupportTicketRow[]>(initialTickets);
   const [modalOpen, setModalOpen] = useState(false);
   const [email, setEmail] = useState('');
   const [role, setRole] = useState<VantagStaffRole>('Support');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [replyText, setReplyText] = useState<Record<string, string>>({});
+  const [statusUpdating, setStatusUpdating] = useState<string | null>(null);
+  const [replySubmitting, setReplySubmitting] = useState<string | null>(null);
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,15 +73,63 @@ export function TeamClient({ initialStaff }: Props) {
     }
   };
 
+  const handleStatusChange = async (ticketId: string, status: 'OPEN' | 'IN_PROGRESS' | 'RESOLVED') => {
+    setStatusUpdating(ticketId);
+    setMessage(null);
+    const result = await updateTicketStatus(ticketId, status);
+    setStatusUpdating(null);
+    if ('ok' in result) {
+      setTickets(await listSupportTickets());
+      setMessage({ type: 'success', text: 'Status updated.' });
+    } else setMessage({ type: 'error', text: result.error });
+  };
+
+  const handleReply = async (ticketId: string) => {
+    const text = replyText[ticketId]?.trim();
+    if (!text) return;
+    setReplySubmitting(ticketId);
+    setMessage(null);
+    const result = await replyToTicket(ticketId, text);
+    setReplySubmitting(null);
+    if ('ok' in result) {
+      setReplyText((prev) => ({ ...prev, [ticketId]: '' }));
+      setTickets(await listSupportTickets());
+      setMessage({ type: 'success', text: 'Reply sent.' });
+    } else setMessage({ type: 'error', text: result.error });
+  };
+
   return (
     <div className="space-y-8">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-soft-cloud">My Team</h1>
           <p className="text-soft-cloud/70 mt-1">
-            VantagFleet staff from <span className="text-cyber-amber/90 font-medium">vantag_staff</span>. Add employees and assign roles.
+            VantagFleet staff and support inbox.
           </p>
         </div>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setActiveTab('team')}
+            className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${activeTab === 'team' ? 'bg-cyber-amber/20 text-cyber-amber' : 'text-soft-cloud/80 hover:bg-white/10'}`}
+          >
+            <Users className="size-4" />
+            Team
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('inbox')}
+            className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${activeTab === 'inbox' ? 'bg-cyber-amber/20 text-cyber-amber' : 'text-soft-cloud/80 hover:bg-white/10'}`}
+          >
+            <Inbox className="size-4" />
+            Support Inbox
+            {tickets.filter((t) => t.status !== 'RESOLVED').length > 0 && (
+              <span className="px-1.5 py-0.5 rounded text-xs bg-cyber-amber/30 text-cyber-amber">
+                {tickets.filter((t) => t.status !== 'RESOLVED').length}
+              </span>
+            )}
+          </button>
+          {activeTab === 'team' && (
         <button
           type="button"
           onClick={() => { setModalOpen(true); setMessage(null); }}
@@ -73,6 +138,8 @@ export function TeamClient({ initialStaff }: Props) {
           <UserPlus className="size-5" />
           Add Employee
         </button>
+          )}
+        </div>
       </div>
 
       {message && (
@@ -87,6 +154,7 @@ export function TeamClient({ initialStaff }: Props) {
         </div>
       )}
 
+      {activeTab === 'team' && (
       <section className="rounded-xl border border-white/10 bg-card overflow-hidden shadow-lg">
         <div className="flex items-center gap-3 px-5 py-4 border-b border-white/10 bg-midnight-ink/50">
           <div className="p-2 rounded-lg bg-cyber-amber/20">
@@ -135,6 +203,91 @@ export function TeamClient({ initialStaff }: Props) {
           </div>
         )}
       </section>
+      )}
+
+      {activeTab === 'inbox' && (
+      <section className="rounded-xl border border-white/10 bg-card overflow-hidden shadow-lg">
+        <div className="flex items-center gap-3 px-5 py-4 border-b border-white/10 bg-midnight-ink/50">
+          <div className="p-2 rounded-lg bg-cyber-amber/20">
+            <Inbox className="size-5 text-cyber-amber" />
+          </div>
+          <h2 className="text-lg font-semibold text-soft-cloud">Support Inbox</h2>
+        </div>
+        {tickets.length === 0 ? (
+          <div className="p-8 text-center text-soft-cloud/60">
+            <p className="text-sm">No support tickets yet.</p>
+            <p className="text-sm mt-1">Tickets from the contact form will appear here.</p>
+          </div>
+        ) : (
+          <div className="divide-y divide-white/10">
+            {tickets.map((t) => (
+              <div key={t.id} className="p-4 hover:bg-white/5 transition-colors">
+                <div className="flex flex-wrap items-start justify-between gap-2">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-mono text-cyber-amber font-medium">{t.reference}</span>
+                      <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${
+                        t.status === 'RESOLVED' ? 'bg-electric-teal/20 text-electric-teal' :
+                        t.status === 'IN_PROGRESS' ? 'bg-cyber-amber/20 text-cyber-amber' : 'bg-white/20 text-soft-cloud'
+                      }`}>
+                        {t.status.replace('_', ' ')}
+                      </span>
+                    </div>
+                    <p className="font-medium text-soft-cloud mt-1">{t.subject}</p>
+                    <p className="text-sm text-soft-cloud/70">{t.name} &lt;{t.email}&gt;</p>
+                    <p className="text-sm text-soft-cloud/80 mt-2 whitespace-pre-wrap">{t.message}</p>
+                    {t.reply_text && (
+                      <div className="mt-3 pl-3 border-l-2 border-cyber-amber/50 text-sm text-soft-cloud/80">
+                        <p className="font-medium text-cyber-amber/90">Reply:</p>
+                        <p className="whitespace-pre-wrap mt-1">{t.reply_text}</p>
+                        {t.replied_at && (
+                          <p className="text-xs text-soft-cloud/50 mt-1">
+                            Replied {new Date(t.replied_at).toLocaleString()}
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <select
+                      value={t.status}
+                      onChange={(e) => handleStatusChange(t.id, e.target.value as 'OPEN' | 'IN_PROGRESS' | 'RESOLVED')}
+                      disabled={statusUpdating === t.id}
+                      className="px-2 py-1.5 rounded-lg bg-midnight-ink border border-white/10 text-soft-cloud text-sm focus:ring-2 focus:ring-cyber-amber"
+                    >
+                      {TICKET_STATUSES.map((s) => (
+                        <option key={s.value} value={s.value}>{s.label}</option>
+                      ))}
+                    </select>
+                    {statusUpdating === t.id && <Loader2 className="size-4 animate-spin text-cyber-amber" />}
+                  </div>
+                </div>
+                {t.status !== 'RESOLVED' && (
+                  <div className="mt-3 flex gap-2">
+                    <textarea
+                      placeholder="Reply to customer..."
+                      value={replyText[t.id] ?? ''}
+                      onChange={(e) => setReplyText((prev) => ({ ...prev, [t.id]: e.target.value }))}
+                      rows={2}
+                      className="flex-1 px-3 py-2 rounded-lg bg-midnight-ink border border-white/10 text-soft-cloud text-sm placeholder-soft-cloud/50 focus:ring-2 focus:ring-cyber-amber min-h-[60px]"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleReply(t.id)}
+                      disabled={replySubmitting === t.id || !(replyText[t.id]?.trim())}
+                      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-cyber-amber text-midnight-ink font-medium hover:bg-cyber-amber/90 disabled:opacity-50 transition-colors"
+                    >
+                      {replySubmitting === t.id ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
+                      Reply
+                    </button>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+      )}
 
       {modalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-midnight-ink/90 backdrop-blur-sm">

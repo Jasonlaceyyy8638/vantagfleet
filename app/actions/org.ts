@@ -35,7 +35,12 @@ export async function acceptInvite(token: string): Promise<{ error?: string }> {
   const { data: inviteRows } = await supabase.rpc('get_invite_by_token', { invite_token: token });
   const row = Array.isArray(inviteRows) ? inviteRows[0] : inviteRows;
   if (!row?.org_id) return { error: 'Invalid or expired invite' };
-  const admin = createAdminClient();
+  let admin;
+  try {
+    admin = createAdminClient();
+  } catch {
+    return { error: 'Service is temporarily unavailable. Please try again later.' };
+  }
   const { error } = await admin.from('profiles').insert({
     user_id: user.id,
     org_id: row.org_id,

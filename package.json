@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "check:customer": "node scripts/customer-health-check.mjs"
   },
   "dependencies": {
     "@stripe/stripe-js": "^8.8.0",
