@@ -50,13 +50,16 @@ export async function canAccessAdmin(supabase: SupabaseClient): Promise<boolean>
 /**
  * Returns true only when the current user's role is exactly 'ADMIN'.
  * Used to show/hide the Admin link and to protect /admin routes (admin-only).
+ * Owner ID is always treated as ADMIN so layout/page don't redirect them back to /.
  */
 export async function isAdmin(supabase: SupabaseClient): Promise<boolean> {
-  const role = await getPlatformRole(supabase);
-  if (role === 'ADMIN') return true;
-
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return false;
+
+  if (user.id === ADMIN_OWNER_ID) return true;
+
+  const role = await getPlatformRole(supabase);
+  if (role === 'ADMIN') return true;
 
   const { data: userRow } = await supabase
     .from('users')
