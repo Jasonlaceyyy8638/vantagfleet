@@ -70,15 +70,18 @@ export async function isAdmin(supabase: SupabaseClient): Promise<boolean> {
 /** Role used for Navbar: platform_roles + public.users, not profiles (profiles.role is per-org app_role). */
 export type NavbarRole = 'ADMIN' | 'OWNER' | 'EMPLOYEE' | 'CUSTOMER';
 
+/** VantagFleet owner: always treat as ADMIN for Navbar and redirects. */
+const ADMIN_OWNER_ID = 'ae175e55-72b4-4441-9e3c-02ecd8225bf7';
+
 /**
  * Returns the current user's role for Navbar/redirect logic.
- * ADMIN/OWNER: platform_roles.role === 'ADMIN' or public.users.role === 'ADMIN' (same UI).
- * EMPLOYEE: platform_roles.role === 'EMPLOYEE' or public.users.role === 'EMPLOYEE'.
- * CUSTOMER: otherwise.
+ * Owner ID always returns ADMIN. Then platform_roles, then public.users.role.
  */
 export async function getNavbarRole(supabase: SupabaseClient): Promise<NavbarRole | null> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
+
+  if (user.id === ADMIN_OWNER_ID) return 'ADMIN';
 
   const platformRole = await getPlatformRole(supabase);
   if (platformRole === 'ADMIN') return 'ADMIN';

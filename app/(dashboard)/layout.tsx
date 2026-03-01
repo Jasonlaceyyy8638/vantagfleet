@@ -30,6 +30,8 @@ export default async function DashboardLayout({
 
   if (orgIds.length === 0) {
     if (user.id === ADMIN_OWNER_ID) redirect('/admin');
+    const admin = await isAdmin(supabase);
+    if (admin) redirect('/admin');
     return <OrgSetup />;
   }
 

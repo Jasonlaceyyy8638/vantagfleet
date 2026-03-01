@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Logo } from '@/components/Logo';
@@ -9,12 +10,16 @@ import type { NavbarRole } from '@/lib/admin';
 
 type NavbarProps = {
   isAuthenticated?: boolean;
-  /** From getNavbarRole (platform_roles + users.role). ADMIN/OWNER = same view. */
+  /** From getNavbarRole (platform_roles + users.role). Owner ID always ADMIN. */
   navbarRole?: NavbarRole | null;
 };
 
 export function Navbar({ isAuthenticated = false, navbarRole = null }: NavbarProps) {
   const router = useRouter();
+
+  useEffect(() => {
+    if (isAuthenticated) router.refresh();
+  }, [isAuthenticated, router]);
 
   const handleSignOut = async () => {
     const supabase = createClient();
