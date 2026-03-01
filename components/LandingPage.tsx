@@ -33,7 +33,7 @@ export function LandingPage({ isAuthenticated = false, navbarRole = null }: Land
   return (
     <div className="min-h-screen bg-midnight-ink">
       {/* Navbar: role-based links (Admin Console / My Team / Revenue vs Support Dashboard / My Team vs My Fleet) */}
-      <Navbar isAuthenticated={isAuthenticated} navbarRole={navbarRole} />
+      <Navbar isAuthenticated={isAuthenticated} />
 
       {/* Hero: full-screen with background video */}
       <section className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden">

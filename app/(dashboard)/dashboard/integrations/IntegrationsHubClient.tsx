@@ -8,7 +8,8 @@ import {
   type IntegrationRow,
   type IntegrationProvider,
 } from '@/app/actions/integrations';
-import { Plug, Loader2, Check, X, RefreshCw } from 'lucide-react';
+import { syncMotiveFleet } from '@/app/actions/motive-sync';
+import { Plug, Loader2, Check, X, RefreshCw, CloudDownload } from 'lucide-react';
 
 const PROVIDERS: { id: IntegrationProvider; name: string; label: string; placeholder: string }[] = [
   { id: 'samsara', name: 'Samsara', label: 'Samsara', placeholder: 'API Key or Client ID' },
@@ -26,6 +27,8 @@ export function IntegrationsHubClient({ orgId, initialIntegrations }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [syncLoading, setSyncLoading] = useState(false);
   const [syncResult, setSyncResult] = useState<string | null>(null);
+  const [motiveSyncLoading, setMotiveSyncLoading] = useState(false);
+  const [motiveSyncResult, setMotiveSyncResult] = useState<string | null>(null);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -53,6 +56,18 @@ export function IntegrationsHubClient({ orgId, initialIntegrations }: Props) {
       setSyncResult(`Sync complete. ${result.alertsCreated} alert(s) created.`);
     } else {
       setSyncResult(result.error);
+    }
+  };
+
+  const handleMotiveSync = async () => {
+    setMotiveSyncResult(null);
+    setMotiveSyncLoading(true);
+    const result = await syncMotiveFleet(orgId);
+    setMotiveSyncLoading(false);
+    if ('ok' in result) {
+      setMotiveSyncResult(`Motive sync complete: ${result.vehicles} vehicle(s), ${result.drivers} driver(s).`);
+    } else {
+      setMotiveSyncResult(result.error);
     }
   };
 
@@ -84,27 +99,62 @@ export function IntegrationsHubClient({ orgId, initialIntegrations }: Props) {
                 {p.id === 'motive' && 'Connect Motive (formerly KeepTruckin) for ELD and fleet data.'}
                 {p.id === 'fmcsa' && 'Connect FMCSA for safety and compliance data.'}
               </p>
-              <div className="flex items-center justify-between">
-                {connected ? (
-                  <span className="inline-flex items-center gap-1.5 text-sm text-electric-teal">
-                    <Check className="size-4" />
-                    Connected
-                  </span>
-                ) : (
-                  <span className="text-sm text-soft-cloud/50">Not connected</span>
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center justify-between">
+                  {connected ? (
+                    <span className="inline-flex items-center gap-1.5 text-sm text-electric-teal">
+                      <Check className="size-4" />
+                      Connected
+                    </span>
+                  ) : (
+                    <span className="text-sm text-soft-cloud/50">Not connected</span>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => openModal(p.id)}
+                    className="px-3 py-1.5 rounded-lg text-sm font-medium bg-cyber-amber text-midnight-ink hover:bg-cyber-amber/90 transition-colors"
+                  >
+                    {connected ? 'Update' : 'Connect'}
+                  </button>
+                </div>
+                {p.id === 'motive' && !connected && (
+                  <a
+                    href={`/api/auth/motive?org_id=${encodeURIComponent(orgId)}`}
+                    className="text-xs text-cyber-amber/90 hover:text-cyber-amber"
+                  >
+                    Or sign in with Motive OAuth →
+                  </a>
                 )}
-                <button
-                  type="button"
-                  onClick={() => openModal(p.id)}
-                  className="px-3 py-1.5 rounded-lg text-sm font-medium bg-cyber-amber text-midnight-ink hover:bg-cyber-amber/90 transition-colors"
-                >
-                  {connected ? 'Update' : 'Connect'}
-                </button>
               </div>
             </div>
           );
         })}
       </div>
+
+      {/* Motive fleet sync */}
+      <section className="rounded-xl border border-white/10 bg-card p-6">
+        <div className="flex items-center gap-3 mb-2">
+          <CloudDownload className="size-5 text-cyber-amber" />
+          <h2 className="font-semibold text-soft-cloud">Motive fleet sync</h2>
+        </div>
+        <p className="text-sm text-soft-cloud/60 mb-4">
+          Fetch vehicles and users from Motive and upsert them into your fleet. Connect Motive first, then run sync.
+        </p>
+        <button
+          type="button"
+          onClick={handleMotiveSync}
+          disabled={motiveSyncLoading || !integrations.some((i) => i.provider === 'motive' && i.connected)}
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-cyber-amber/20 text-cyber-amber font-medium hover:bg-cyber-amber/30 disabled:opacity-60 transition-colors"
+        >
+          {motiveSyncLoading ? <Loader2 className="size-4 animate-spin" /> : <CloudDownload className="size-4" />}
+          {motiveSyncLoading ? 'Syncing…' : 'Sync from Motive'}
+        </button>
+        {motiveSyncResult && (
+          <p className={`mt-3 text-sm ${motiveSyncResult.startsWith('Motive sync') ? 'text-electric-teal' : 'text-amber-400'}`}>
+            {motiveSyncResult}
+          </p>
+        )}
+      </section>
 
       {/* Compliance sync */}
       <section className="rounded-xl border border-white/10 bg-card p-6">

@@ -1,9 +1,13 @@
 import { createClient } from '@/lib/supabase/server';
 import { isAdmin } from '@/lib/admin';
 import { redirect } from 'next/navigation';
-import { getAdminStats, getCarriersWithSubscription } from '@/app/actions/admin';
+import {
+  getAdminStats,
+  getCarriersWithSubscription,
+  getTotalVehiclesFromConnectedCarriers,
+} from '@/app/actions/admin';
 import Link from 'next/link';
-import { DollarSign, Truck, CreditCard, ArrowLeft } from 'lucide-react';
+import { DollarSign, Truck, CreditCard, ArrowLeft, Car } from 'lucide-react';
 
 function formatStatus(s: string): string {
   if (s === 'active') return 'Active';
@@ -18,9 +22,10 @@ export default async function AdminRevenuePage() {
   const admin = await isAdmin(supabase);
   if (!admin) redirect('/admin');
 
-  const [stats, carriers] = await Promise.all([
+  const [stats, carriers, totalVehicles] = await Promise.all([
     getAdminStats(),
     getCarriersWithSubscription(),
+    getTotalVehiclesFromConnectedCarriers(),
   ]);
 
   return (
@@ -38,7 +43,7 @@ export default async function AdminRevenuePage() {
         </div>
       </div>
 
-      <section className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <section className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="rounded-xl border border-white/10 bg-card p-6 flex items-center gap-4">
           <div className="p-3 rounded-xl bg-cyber-amber/20">
             <DollarSign className="size-8 text-cyber-amber" />
@@ -57,6 +62,15 @@ export default async function AdminRevenuePage() {
           <div>
             <p className="text-sm text-soft-cloud/60">Active Carriers</p>
             <p className="text-2xl font-bold text-soft-cloud">{stats.activeFleets}</p>
+          </div>
+        </div>
+        <div className="rounded-xl border border-white/10 bg-card p-6 flex items-center gap-4">
+          <div className="p-3 rounded-xl bg-cyber-amber/20">
+            <Car className="size-8 text-cyber-amber" />
+          </div>
+          <div>
+            <p className="text-sm text-soft-cloud/60">Total vehicles (Motive-connected carriers)</p>
+            <p className="text-2xl font-bold text-soft-cloud">{totalVehicles.toLocaleString()}</p>
           </div>
         </div>
       </section>

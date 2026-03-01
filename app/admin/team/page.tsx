@@ -3,6 +3,7 @@ import { isAdmin, getPlatformRole, isPlatformStaff } from '@/lib/admin';
 import { redirect } from 'next/navigation';
 import { listVantagStaff } from '@/app/actions/admin-team';
 import { listSupportTickets } from '@/app/actions/support-tickets';
+import { listMotiveDrivers } from '@/app/actions/admin';
 import { TeamClient } from './TeamClient';
 
 export const dynamic = 'force-dynamic';
@@ -15,12 +16,24 @@ export default async function AdminTeamPage() {
 
   let staff: Awaited<ReturnType<typeof listVantagStaff>> = [];
   let tickets: Awaited<ReturnType<typeof listSupportTickets>> = [];
+  let motiveDrivers: Awaited<ReturnType<typeof listMotiveDrivers>> = [];
   try {
-    [staff, tickets] = await Promise.all([listVantagStaff(), listSupportTickets()]);
+    [staff, tickets, motiveDrivers] = await Promise.all([
+      listVantagStaff(),
+      listSupportTickets(),
+      listMotiveDrivers(),
+    ]);
   } catch {
     staff = [];
     tickets = [];
+    motiveDrivers = [];
   }
 
-  return <TeamClient initialStaff={staff} initialTickets={tickets} />;
+  return (
+    <TeamClient
+      initialStaff={staff}
+      initialTickets={tickets}
+      initialMotiveDrivers={motiveDrivers}
+    />
+  );
 }

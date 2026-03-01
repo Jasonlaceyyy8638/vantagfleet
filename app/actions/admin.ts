@@ -554,6 +554,62 @@ export async function listCarriersWithIntegrations(): Promise<CarrierIntegration
   }
 }
 
+/** Total vehicle count across all orgs that have Motive connected. Admin-only. */
+export async function getTotalVehiclesFromConnectedCarriers(): Promise<number> {
+  try {
+    await requireAdmin();
+    const admin = createAdminClient();
+    const { data: orgRows } = await admin
+      .from('carrier_integrations')
+      .select('org_id')
+      .eq('provider', 'motive');
+    const orgIds = Array.from(new Set((orgRows ?? []).map((r) => r.org_id)));
+    if (orgIds.length === 0) return 0;
+    const { count, error } = await admin
+      .from('vehicles')
+      .select('*', { count: 'exact', head: true })
+      .in('org_id', orgIds);
+    if (error) return 0;
+    return count ?? 0;
+  } catch {
+    return 0;
+  }
+}
+
+export type MotiveDriverRow = {
+  id: string;
+  name: string;
+  org_id: string;
+  org_name: string;
+  motive_id: string;
+};
+
+/** Drivers imported from Motive (motive_id set), with org name. Staff (admin or employee) only. */
+export async function listMotiveDrivers(): Promise<MotiveDriverRow[]> {
+  try {
+    await requireStaff();
+    const admin = createAdminClient();
+    const { data: drivers, error: drErr } = await admin
+      .from('drivers')
+      .select('id, name, org_id, motive_id')
+      .not('motive_id', 'is', null)
+      .order('name');
+    if (drErr || !drivers?.length) return [];
+    const orgIds = Array.from(new Set(drivers.map((d) => d.org_id)));
+    const { data: orgs } = await admin.from('organizations').select('id, name').in('id', orgIds);
+    const orgMap = new Map((orgs ?? []).map((o) => [o.id, o.name ?? '—']));
+    return drivers.map((d) => ({
+      id: d.id,
+      name: d.name,
+      org_id: d.org_id,
+      org_name: orgMap.get(d.org_id) ?? '—',
+      motive_id: d.motive_id as string,
+    }));
+  } catch {
+    return [];
+  }
+}
+
 /** Assign a user to an organization (add profile row or update existing null-org profile). Admin-only. */
 export async function assignUserToOrganization(
   userId: string,

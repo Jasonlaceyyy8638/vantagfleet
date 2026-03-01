@@ -14,7 +14,8 @@ import {
   replyToTicket,
   type SupportTicketRow,
 } from '@/app/actions/support-tickets';
-import { UserPlus, Loader2, Trash2, X, Users, Inbox, Send } from 'lucide-react';
+import type { MotiveDriverRow } from '@/app/actions/admin';
+import { UserPlus, Loader2, Trash2, X, Users, Inbox, Send, Truck } from 'lucide-react';
 
 const ROLES: { value: VantagStaffRole; label: string }[] = [
   { value: 'Support', label: 'Support' },
@@ -29,12 +30,17 @@ const TICKET_STATUSES: { value: 'OPEN' | 'IN_PROGRESS' | 'RESOLVED'; label: stri
   { value: 'RESOLVED', label: 'Resolved' },
 ];
 
-type Props = { initialStaff: VantagStaffRow[]; initialTickets: SupportTicketRow[] };
+type Props = {
+  initialStaff: VantagStaffRow[];
+  initialTickets: SupportTicketRow[];
+  initialMotiveDrivers?: MotiveDriverRow[];
+};
 
-export function TeamClient({ initialStaff, initialTickets }: Props) {
+export function TeamClient({ initialStaff, initialTickets, initialMotiveDrivers = [] }: Props) {
   const [activeTab, setActiveTab] = useState<'team' | 'inbox'>('team');
   const [staff, setStaff] = useState<VantagStaffRow[]>(initialStaff);
   const [tickets, setTickets] = useState<SupportTicketRow[]>(initialTickets);
+  const [motiveDrivers] = useState<MotiveDriverRow[]>(initialMotiveDrivers);
   const [modalOpen, setModalOpen] = useState(false);
   const [email, setEmail] = useState('');
   const [role, setRole] = useState<VantagStaffRole>('Support');
@@ -203,6 +209,38 @@ export function TeamClient({ initialStaff, initialTickets }: Props) {
           </div>
         )}
       </section>
+      )}
+
+      {activeTab === 'team' && motiveDrivers.length > 0 && (
+        <section className="rounded-xl border border-white/10 bg-card overflow-hidden shadow-lg">
+          <div className="flex items-center gap-3 px-5 py-4 border-b border-white/10 bg-midnight-ink/50">
+            <div className="p-2 rounded-lg bg-cyber-amber/20">
+              <Truck className="size-5 text-cyber-amber" />
+            </div>
+            <h2 className="text-lg font-semibold text-soft-cloud">Drivers imported from Motive</h2>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-white/10 text-left text-soft-cloud/60 bg-white/5">
+                  <th className="p-4 font-medium">Name</th>
+                  <th className="p-4 font-medium">Organization</th>
+                </tr>
+              </thead>
+              <tbody>
+                {motiveDrivers.map((d) => (
+                  <tr key={d.id} className="border-b border-white/5 hover:bg-white/5">
+                    <td className="p-4 text-soft-cloud">{d.name}</td>
+                    <td className="p-4 text-soft-cloud/80">{d.org_name}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="px-5 py-3 text-xs text-soft-cloud/50 border-t border-white/5">
+            Synced from Motive; no need to add these drivers manually.
+          </p>
+        </section>
       )}
 
       {activeTab === 'inbox' && (
