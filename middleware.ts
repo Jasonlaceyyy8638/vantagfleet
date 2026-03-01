@@ -16,6 +16,7 @@ export async function middleware(request: NextRequest) {
   if (code && pathname !== '/auth/callback') {
     const callback = new URL('/auth/callback', request.url);
     callback.searchParams.set('code', code);
+    // Default redirectTo; owner/admin will be sent to /admin by middleware after session exists
     callback.searchParams.set('redirectTo', '/dashboard');
     return NextResponse.redirect(callback);
   }
@@ -37,16 +38,21 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(redirect);
   }
 
-  // Owner (specific ID): only /admin; bypass dashboard and all carrier/DOT onboarding
+  // Owner exception: bypass ALL organization/DOT checks; send straight to /admin for any carrier route
   if (user.id === ADMIN_OWNER_ID) {
+    const carrierRoutes = ['/dashboard', '/drivers', '/vehicles', '/loads', '/compliance', '/regulatory', '/settings', '/roadside-mode'];
+    if (carrierRoutes.some((r) => pathname.startsWith(r))) {
+      return NextResponse.redirect(new URL('/admin', request.url));
+    }
+    // Allow /admin and all /admin/* for owner (isAdmin is set in updateSession)
+    return response;
+  }
+
+  // Any Admin (role from platform_roles or users): allow /admin; never require org_id or onboarding
+  if (isAdmin === true) {
     if (pathname.startsWith('/dashboard') || pathname.startsWith('/drivers') || pathname.startsWith('/vehicles') || pathname.startsWith('/loads') || pathname.startsWith('/compliance') || pathname.startsWith('/regulatory') || pathname.startsWith('/settings') || pathname.startsWith('/roadside-mode')) {
       return NextResponse.redirect(new URL('/admin', request.url));
     }
-  }
-
-  // Any Admin: never send to carrier dashboard/onboarding; redirect to /admin
-  if (isAdmin === true && (pathname.startsWith('/dashboard') || pathname.startsWith('/drivers') || pathname.startsWith('/vehicles') || pathname.startsWith('/loads') || pathname.startsWith('/compliance') || pathname.startsWith('/regulatory') || pathname.startsWith('/settings') || pathname.startsWith('/roadside-mode'))) {
-    return NextResponse.redirect(new URL('/admin', request.url));
   }
 
   // Admin portal: only ADMIN may access; redirect others to home

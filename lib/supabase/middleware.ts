@@ -1,6 +1,9 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
+/** VantagFleet owner: always treat as ADMIN; bypass all org/DOT checks. */
+const ADMIN_OWNER_ID = 'ae175e55-72b4-4441-9e3c-02ecd8225bf7';
+
 export async function updateSession(
   request: NextRequest,
   pathname?: string
@@ -29,22 +32,29 @@ export async function updateSession(
   let isStaff: boolean | undefined;
   let isAdmin: boolean | undefined;
   if (user) {
-    const { data: platform } = await supabase
-      .from('platform_roles')
-      .select('role')
-      .eq('user_id', user.id)
-      .single();
-    const platformRole = platform?.role;
-    isStaff = !!platformRole && (platformRole === 'ADMIN' || platformRole === 'EMPLOYEE');
-    if (platformRole === 'ADMIN') {
+    // Owner exception: bypass all org/DOT checks; allow full /admin access
+    if (user.id === ADMIN_OWNER_ID) {
+      isStaff = true;
       isAdmin = true;
     } else {
-      const { data: userRow } = await supabase
-        .from('users')
+      // Role from platform_roles, then public.users (not profiles — profiles.role is per-org app_role)
+      const { data: platform } = await supabase
+        .from('platform_roles')
         .select('role')
-        .eq('id', user.id)
+        .eq('user_id', user.id)
         .single();
-      isAdmin = (userRow?.role as string) === 'ADMIN';
+      const platformRole = platform?.role;
+      isStaff = !!platformRole && (platformRole === 'ADMIN' || platformRole === 'EMPLOYEE');
+      if (platformRole === 'ADMIN') {
+        isAdmin = true;
+      } else {
+        const { data: userRow } = await supabase
+          .from('users')
+          .select('role')
+          .eq('id', user.id)
+          .single();
+        isAdmin = (userRow?.role as string) === 'ADMIN';
+      }
     }
   }
 

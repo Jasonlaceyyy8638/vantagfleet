@@ -19,6 +19,11 @@ export default async function DashboardLayout({
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
 
+  // Admins never need organization_id; send them to /admin (no onboarding/DOT check)
+  if (user.id === ADMIN_OWNER_ID) redirect('/admin');
+  const userIsAdmin = await isAdmin(supabase);
+  if (userIsAdmin) redirect('/admin');
+
   const { data: profiles } = await supabase
     .from('profiles')
     .select('org_id')
@@ -29,9 +34,6 @@ export default async function DashboardLayout({
   );
 
   if (orgIds.length === 0) {
-    if (user.id === ADMIN_OWNER_ID) redirect('/admin');
-    const admin = await isAdmin(supabase);
-    if (admin) redirect('/admin');
     return <OrgSetup />;
   }
 

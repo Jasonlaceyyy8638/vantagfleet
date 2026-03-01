@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
+import Link from 'next/link'; // All nav buttons use next/link (no router.push) to avoid redirect/crash issues
 import { useRouter, usePathname } from 'next/navigation';
 import { Logo } from '@/components/Logo';
 import { createClient } from '@/lib/supabase/client';
