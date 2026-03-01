@@ -1,25 +1,71 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { Logo } from '@/components/Logo';
 import { createClient } from '@/lib/supabase/client';
 import { LogOut } from 'lucide-react';
+import { ADMIN_OWNER_ID } from '@/lib/admin';
 import type { NavbarRole } from '@/lib/admin';
 
 type NavbarProps = {
   isAuthenticated?: boolean;
-  /** From getNavbarRole (platform_roles + users.role). Owner ID always ADMIN. */
   navbarRole?: NavbarRole | null;
 };
 
-export function Navbar({ isAuthenticated = false, navbarRole = null }: NavbarProps) {
+/** Resolve role client-side from platform_roles then public.users (owner ID always ADMIN). */
+async function resolveNavbarRole(userId: string, supabase: ReturnType<typeof createClient>): Promise<NavbarRole> {
+  if (userId === ADMIN_OWNER_ID) return 'ADMIN';
+
+  const { data: platform } = await supabase
+    .from('platform_roles')
+    .select('role')
+    .eq('user_id', userId)
+    .single();
+
+  const platformRole = platform?.role as string | undefined;
+  if (platformRole === 'ADMIN') return 'ADMIN';
+  if (platformRole === 'EMPLOYEE') return 'EMPLOYEE';
+
+  const { data: userRow } = await supabase
+    .from('users')
+    .select('role')
+    .eq('id', userId)
+    .single();
+
+  const r = (userRow?.role as string) ?? '';
+  if (r === 'ADMIN') return 'ADMIN';
+  if (r === 'EMPLOYEE') return 'EMPLOYEE';
+  return 'CUSTOMER';
+}
+
+const activeNavClass = 'px-4 py-2.5 rounded-lg font-medium transition-all shadow-[0_0_16px_-2px_rgba(255,176,0,0.4)] ring-1 ring-cyber-amber/60 bg-cyber-amber/20 text-cyber-amber';
+const inactiveNavClass = 'px-4 py-2.5 rounded-lg font-medium transition-all text-soft-cloud hover:bg-white/10';
+
+export function Navbar({ isAuthenticated: initialAuth = false, navbarRole: _initialRole }: NavbarProps) {
   const router = useRouter();
+  const pathname = usePathname();
+  const [isAuthenticated, setIsAuthenticated] = useState(initialAuth);
+  const [role, setRole] = useState<NavbarRole | null>(null);
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    if (isAuthenticated) router.refresh();
-  }, [isAuthenticated, router]);
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data: { user }, error }) => {
+      if (error || !user) {
+        setIsAuthenticated(false);
+        setRole(null);
+        setReady(true);
+        return;
+      }
+      setIsAuthenticated(true);
+      resolveNavbarRole(user.id, supabase).then((r) => {
+        setRole(r);
+        setReady(true);
+      });
+    });
+  }, []);
 
   const handleSignOut = async () => {
     const supabase = createClient();
@@ -28,9 +74,15 @@ export function Navbar({ isAuthenticated = false, navbarRole = null }: NavbarPro
     window.location.href = '/';
   };
 
-  const isOwnerOrAdmin = navbarRole === 'ADMIN' || navbarRole === 'OWNER';
-  const isEmployee = navbarRole === 'EMPLOYEE';
-  const isCustomer = navbarRole === 'CUSTOMER';
+  const isAdmin = role === 'ADMIN' || role === 'OWNER';
+  const isEmployee = role === 'EMPLOYEE';
+  const isCustomer = role === 'CUSTOMER';
+
+  const isOwnerConsoleActive = pathname === '/admin';
+  const isTeamActive = pathname.startsWith('/admin/team');
+  const isRevenueActive = pathname.startsWith('/admin/revenue');
+  const isSupportActive = pathname.startsWith('/admin/support');
+  const isDashboardActive = pathname.startsWith('/dashboard');
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 sm:px-6 lg:px-8 py-4 bg-midnight-ink/80 backdrop-blur-md border-b border-white/10">
@@ -41,7 +93,9 @@ export function Navbar({ isAuthenticated = false, navbarRole = null }: NavbarPro
         </span>
       </Link>
       <div className="flex items-center gap-3 flex-wrap justify-end">
-        {!isAuthenticated ? (
+        {!ready ? (
+          <div className="h-10 w-24 rounded-lg bg-white/5 animate-pulse" aria-hidden />
+        ) : !isAuthenticated ? (
           <>
             <Link
               href="/login"
@@ -58,60 +112,56 @@ export function Navbar({ isAuthenticated = false, navbarRole = null }: NavbarPro
           </>
         ) : (
           <>
-            {/* Owner / Admin: Admin Console (primary), My Team, Revenue — never send to carrier onboarding */}
-            {isOwnerOrAdmin && (
+            {isAdmin && (
               <>
                 <Link
                   href="/admin"
-                  className="px-4 py-2.5 rounded-lg bg-cyber-amber/20 text-cyber-amber font-medium hover:bg-cyber-amber/30 transition-colors border border-cyber-amber/50"
+                  className={isOwnerConsoleActive ? activeNavClass : inactiveNavClass}
                 >
-                  Admin Console
+                  Owner Console
                 </Link>
                 <Link
                   href="/admin/team"
-                  className="px-4 py-2.5 rounded-lg text-soft-cloud font-medium hover:bg-white/10 transition-colors"
+                  className={isTeamActive ? activeNavClass : inactiveNavClass}
                 >
                   My Team
                 </Link>
                 <Link
                   href="/admin/revenue"
-                  className="px-4 py-2.5 rounded-lg text-soft-cloud font-medium hover:bg-white/10 transition-colors"
+                  className={isRevenueActive ? activeNavClass : inactiveNavClass}
                 >
                   Revenue
                 </Link>
               </>
             )}
-            {/* Employee: Support Dashboard, My Team (view only) */}
             {isEmployee && (
               <>
                 <Link
                   href="/admin/support"
-                  className="px-4 py-2.5 rounded-lg text-soft-cloud font-medium hover:bg-white/10 transition-colors"
+                  className={isSupportActive ? activeNavClass : inactiveNavClass}
                 >
                   Support Dashboard
                 </Link>
                 <Link
                   href="/admin/team"
-                  className="px-4 py-2.5 rounded-lg text-soft-cloud font-medium hover:bg-white/10 transition-colors"
+                  className={isTeamActive ? activeNavClass : inactiveNavClass}
                 >
                   My Team
                 </Link>
               </>
             )}
-            {/* Carrier: only My Fleet */}
             {isCustomer && (
               <Link
                 href="/dashboard"
-                className="px-4 py-2.5 rounded-lg text-soft-cloud font-medium hover:bg-white/10 transition-colors"
+                className={isDashboardActive ? activeNavClass : inactiveNavClass}
               >
                 My Fleet
               </Link>
             )}
-            {/* Fallback if role not yet loaded: show My Fleet to avoid broken state */}
-            {isAuthenticated && !isOwnerOrAdmin && !isEmployee && !isCustomer && (
+            {isAuthenticated && !isAdmin && !isEmployee && !isCustomer && (
               <Link
                 href="/dashboard"
-                className="px-4 py-2.5 rounded-lg text-soft-cloud font-medium hover:bg-white/10 transition-colors"
+                className={isDashboardActive ? activeNavClass : inactiveNavClass}
               >
                 My Fleet
               </Link>

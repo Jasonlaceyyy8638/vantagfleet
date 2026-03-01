@@ -71,7 +71,7 @@ export async function isAdmin(supabase: SupabaseClient): Promise<boolean> {
 export type NavbarRole = 'ADMIN' | 'OWNER' | 'EMPLOYEE' | 'CUSTOMER';
 
 /** VantagFleet owner: always treat as ADMIN for Navbar and redirects. */
-const ADMIN_OWNER_ID = 'ae175e55-72b4-4441-9e3c-02ecd8225bf7';
+export const ADMIN_OWNER_ID = 'ae175e55-72b4-4441-9e3c-02ecd8225bf7';
 
 /**
  * Returns the current user's role for Navbar/redirect logic.
