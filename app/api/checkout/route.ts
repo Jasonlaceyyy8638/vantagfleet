@@ -53,11 +53,6 @@ export async function POST(request: NextRequest) {
           url: logoUrl,
         },
       },
-      payment_method_options: {
-        card: {
-          statement_descriptor_suffix: 'VANTAGFLEET COMPLIANCE',
-        },
-      },
       invoice_creation: {
         enabled: true,
       },
