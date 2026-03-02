@@ -61,9 +61,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get current subscription to extend from existing period/trial end
-    const subscription = await stripe.subscriptions.retrieve(active.id);
-    const currentEnd = subscription.trial_end ?? subscription.current_period_end;
+    // Extend from current period or trial end (use subscription from list)
+    const sub = active as Stripe.Subscription & { current_period_end?: number };
+    const currentEnd = sub.trial_end ?? sub.current_period_end;
+    if (typeof currentEnd !== 'number') {
+      return NextResponse.json(
+        { error: 'Subscription has no period end. Cannot grant credit.' },
+        { status: 400 }
+      );
+    }
     const newEnd = currentEnd + days * 24 * 60 * 60;
 
     await stripe.subscriptions.update(active.id, {
