@@ -79,3 +79,40 @@ body {
     linear-gradient(90deg, rgba(255, 176, 0, 0.06) 1px, transparent 1px);
   background-size: 24px 24px;
 }
+
+/* Hero login card: amber button shine on hover */
+@keyframes hero-btn-shine {
+  0% { transform: translateX(-100%) skewX(-12deg); }
+  100% { transform: translateX(200%) skewX(-12deg); }
+}
+
+.hero-amber-btn {
+  position: relative;
+  overflow: hidden;
+}
+
+.hero-amber-btn::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 60%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.25),
+    transparent
+  );
+  transform: translateX(-100%) skewX(-12deg);
+  transition: none;
+}
+
+.hero-amber-btn:hover::after {
+  animation: hero-btn-shine 0.6s ease-out forwards;
+}
+
+/* Hero login card: HUD corner brackets — very thin amber line */
+.hud-corner {
+  border-width: 0.5px;
+}

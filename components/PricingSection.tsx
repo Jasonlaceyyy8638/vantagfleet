@@ -55,8 +55,11 @@ export function PricingSection() {
         <h2 className="text-3xl sm:text-4xl font-bold text-soft-cloud text-center mb-2">
           Plans that scale with your fleet
         </h2>
-        <p className="text-soft-cloud/70 text-center max-w-2xl mx-auto mb-16">
+        <p className="text-soft-cloud/70 text-center max-w-2xl mx-auto mb-4">
           Choose the tier that fits. Start today, upgrade anytime.
+        </p>
+        <p className="text-soft-cloud/60 text-center text-sm max-w-xl mx-auto mb-16">
+          Your card will not be charged until the end of your 30-day trial.
         </p>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

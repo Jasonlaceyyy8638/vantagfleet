@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   addNewCustomer,
   assignUserToOrganization,
@@ -10,7 +11,7 @@ import {
 import type { ProfileRow, AdminStats, CarrierRow, CarrierIntegrationsRow } from '@/lib/admin-types';
 import { addEmployeeByEmail, listStaff, type StaffRow } from '@/app/actions/admin-team';
 import type { StripeStats } from '@/app/actions/stripe-stats';
-import { Building2, Loader2, UserPlus, Users, DollarSign, Truck, UserCheck, CreditCard, TrendingUp, Plug } from 'lucide-react';
+import { Building2, Loader2, UserPlus, Users, DollarSign, Truck, UserCheck, CreditCard, TrendingUp, Plug, Gift, ChevronDown } from 'lucide-react';
 
 type OrgOption = { id: string; name: string };
 
@@ -59,6 +60,22 @@ export function AdminPageClient({
   const [assignRole, setAssignRole] = useState<'Owner' | 'Safety_Manager' | 'Driver'>('Driver');
   const [assignLoading, setAssignLoading] = useState(false);
   const [assignError, setAssignError] = useState<string | null>(null);
+
+  const [grantCreditOrgId, setGrantCreditOrgId] = useState<string | null>(null);
+  const [grantCreditLoading, setGrantCreditLoading] = useState<string | null>(null);
+  const grantCreditDropdownRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!grantCreditOrgId) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (grantCreditDropdownRef.current && !grantCreditDropdownRef.current.contains(e.target as Node)) {
+        setGrantCreditOrgId(null);
+      }
+    };
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, [grantCreditOrgId]);
 
   const handleCreateOrg = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -284,32 +301,84 @@ export function AdminPageClient({
                       </span>
                     </td>
                     <td className="px-6 py-3">
-                      <button
-                        type="button"
-                        onClick={async () => {
-                          const w = typeof window !== 'undefined' ? (window as unknown as { __TAURI__?: unknown; __TAURI_INTERNAL__?: unknown }) : null;
-                          if (w && (w.__TAURI__ || w.__TAURI_INTERNAL__)) {
-                            const pin = window.prompt('Enter super-admin PIN to view as this carrier:');
-                            if (pin == null) return;
-                            try {
-                              const { invoke } = await import('@tauri-apps/api/core');
-                              const ok = await invoke<boolean>('verify_super_admin_pin', { pin });
-                              if (!ok) {
-                                alert('Invalid PIN. Admin mode is protected.');
+                      <div className="flex flex-wrap items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            const w = typeof window !== 'undefined' ? (window as unknown as { __TAURI__?: unknown; __TAURI_INTERNAL__?: unknown }) : null;
+                            if (w && (w.__TAURI__ || w.__TAURI_INTERNAL__)) {
+                              const pin = window.prompt('Enter super-admin PIN to view as this carrier:');
+                              if (pin == null) return;
+                              try {
+                                const { invoke } = await import('@tauri-apps/api/core');
+                                const ok = await invoke<boolean>('verify_super_admin_pin', { pin });
+                                if (!ok) {
+                                  alert('Invalid PIN. Admin mode is protected.');
+                                  return;
+                                }
+                              } catch {
+                                alert('Could not verify PIN.');
                                 return;
                               }
-                            } catch {
-                              alert('Could not verify PIN.');
-                              return;
                             }
-                          }
-                          document.cookie = `impersonated_org_id=${encodeURIComponent(c.id)}; path=/; max-age=3600`;
-                          window.location.href = '/dashboard';
-                        }}
-                        className="text-xs font-medium text-cyber-amber hover:text-cyber-amber/90 hover:underline"
-                      >
-                        View Dashboard as {c.name}
-                      </button>
+                            document.cookie = `impersonated_org_id=${encodeURIComponent(c.id)}; path=/; max-age=3600`;
+                            window.location.href = '/dashboard';
+                          }}
+                          className="text-xs font-medium text-cyber-amber hover:text-cyber-amber/90 hover:underline"
+                        >
+                          View Dashboard as {c.name}
+                        </button>
+                        <div className="relative" ref={grantCreditOrgId === c.id ? grantCreditDropdownRef : undefined}>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setGrantCreditOrgId((prev) => (prev === c.id ? null : c.id));
+                            }}
+                            disabled={!!grantCreditLoading}
+                            className="inline-flex items-center gap-1 rounded-lg border border-white/20 bg-white/5 px-2.5 py-1.5 text-xs font-medium text-soft-cloud hover:bg-white/10 disabled:opacity-50"
+                          >
+                            <Gift className="size-3.5" />
+                            Grant Free Credit
+                            <ChevronDown className={`size-3.5 transition-transform ${grantCreditOrgId === c.id ? 'rotate-180' : ''}`} />
+                          </button>
+                          {grantCreditOrgId === c.id && (
+                            <div className="absolute left-0 top-full z-20 mt-1 max-h-48 w-36 overflow-y-auto rounded-lg border border-white/10 bg-card py-1 shadow-xl">
+                              {Array.from({ length: 30 }, (_, i) => i + 1).map((d) => (
+                                <button
+                                  key={d}
+                                  type="button"
+                                  onClick={async (e) => {
+                                    e.stopPropagation();
+                                    setGrantCreditLoading(c.id);
+                                    try {
+                                      const res = await fetch('/api/admin/grant-credit', {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({ orgId: c.id, days: d }),
+                                      });
+                                      const data = await res.json();
+                                      if (!res.ok) {
+                                        alert(data?.error ?? 'Failed to grant credit');
+                                        return;
+                                      }
+                                      setGrantCreditOrgId(null);
+                                      router.refresh();
+                                      alert(data?.message ?? `${d} day${d === 1 ? '' : 's'} free credit granted.`);
+                                    } finally {
+                                      setGrantCreditLoading(null);
+                                    }
+                                  }}
+                                  disabled={!!grantCreditLoading}
+                                  className="w-full px-3 py-1.5 text-left text-sm text-soft-cloud hover:bg-white/10 disabled:opacity-50"
+                                >
+                                  {d} Day{d === 1 ? '' : 's'}
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
                     </td>
                   </tr>
                 ))

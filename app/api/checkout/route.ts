@@ -33,10 +33,12 @@ export async function POST(request: NextRequest) {
       line_items: [{ price: priceId, quantity: 1 }],
       success_url: `${baseUrl}/dashboard?payment=success`,
       cancel_url: `${baseUrl}/pricing`,
+      payment_method_collection: 'always',
       metadata: {
         business_name: 'VantagFleet',
       },
       subscription_data: {
+        trial_period_days: 30,
         metadata: {
           business_name: 'VantagFleet',
         },

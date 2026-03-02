@@ -8,6 +8,9 @@ export default function PricingPage() {
         <div className="max-w-4xl mx-auto text-center mb-10">
           <h1 className="text-3xl font-bold text-soft-cloud">Plans for VantagFleet</h1>
           <p className="text-soft-cloud/70 mt-2">Choose the tier that fits your fleet.</p>
+          <p className="text-soft-cloud/60 text-sm mt-2">
+            Your card will not be charged until the end of your 30-day trial.
+          </p>
         </div>
         <Pricing />
         <p className="text-center text-soft-cloud/50 text-sm mt-8">

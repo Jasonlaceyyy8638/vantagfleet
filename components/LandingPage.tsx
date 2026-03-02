@@ -6,6 +6,7 @@ import { useSearchParams } from 'next/navigation';
 import { useEffect, useRef } from 'react';
 import { Navbar } from '@/components/Navbar';
 import { PricingSection } from '@/components/PricingSection';
+import { HeroLoginCard } from '@/components/HeroLoginCard';
 import { FileCheck, Users, Truck, Shield, ArrowRight, Plug, Quote, MapPin } from 'lucide-react';
 import type { NavbarRole } from '@/lib/admin';
 
@@ -101,38 +102,43 @@ export function LandingPage({ isAuthenticated = false, navbarRole = null }: Land
             VantagFleet is the first compliance dashboard that understands the road. No more audit
             anxiety. Just clean logs and a moving fleet.
           </motion.p>
-          <motion.div
-            initial={{ opacity: 0, y: 24 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.4 }}
-            className="mt-10 flex flex-wrap gap-4 justify-center"
-          >
-            <Link
-              href={
-                isAuthenticated
-                  ? navbarRole === 'ADMIN' || navbarRole === 'EMPLOYEE'
-                    ? '/admin'
-                    : '/dashboard'
-                  : '/signup'
-              }
-              className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-cyber-amber text-midnight-ink font-bold text-lg hover:bg-cyber-amber/90 transition-colors shadow-lg shadow-cyber-amber/20"
-            >
-              {isAuthenticated
-                ? navbarRole === 'ADMIN' || navbarRole === 'EMPLOYEE'
-                  ? 'Admin Console'
-                  : 'Go to Dashboard'
-                : 'Get started free'}
-              <ArrowRight className="size-5" />
-            </Link>
-            {!isAuthenticated && (
-              <Link
-                href="/login"
-                className="glass-btn inline-flex items-center gap-2 px-8 py-4 rounded-xl text-soft-cloud font-semibold text-lg transition-colors"
+          {!isAuthenticated ? (
+            <>
+              <div className="mt-10 w-full flex justify-center">
+                <HeroLoginCard redirectTo="/dashboard" />
+              </div>
+              <motion.p
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.5, delay: 0.3 }}
+                className="mt-6 text-sm text-soft-cloud/70"
               >
-                Sign in
+                Don&apos;t have an account?{' '}
+                <Link href="/signup" className="text-[#FFBF00] hover:underline font-medium">
+                  Get started free
+                </Link>
+              </motion.p>
+            </>
+          ) : (
+            <motion.div
+              initial={{ opacity: 0, y: 24 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.4 }}
+              className="mt-10 flex flex-wrap gap-4 justify-center"
+            >
+              <Link
+                href={
+                  navbarRole === 'ADMIN' || navbarRole === 'EMPLOYEE' ? '/admin' : '/dashboard'
+                }
+                className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-cyber-amber text-midnight-ink font-bold text-lg hover:bg-cyber-amber/90 transition-colors shadow-lg shadow-cyber-amber/20"
+              >
+                {navbarRole === 'ADMIN' || navbarRole === 'EMPLOYEE'
+                  ? 'Admin Console'
+                  : 'Go to Dashboard'}
+                <ArrowRight className="size-5" />
               </Link>
-            )}
-          </motion.div>
+            </motion.div>
+          )}
         </div>
       </section>
 
