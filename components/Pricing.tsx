@@ -35,7 +35,10 @@ export function Pricing() {
       const res = await fetch('/api/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tier: tierId }),
+        body: JSON.stringify({
+          tier: tierId,
+          billing: tierId === 'starter' ? billing : undefined,
+        }),
       });
       const data = await res.json();
       if (data.url) window.location.href = data.url;
@@ -54,14 +57,14 @@ export function Pricing() {
           <h3 className="text-xl font-bold text-soft-cloud">Solo Guard</h3>
           <div className="mt-4 flex items-baseline gap-1 flex-wrap">
             <span className="text-3xl font-bold text-cyber-amber">
-              {billing === 'annual' ? '$99' : '$15'}
+              {billing === 'annual' ? '$250' : '$29'}
             </span>
             <span className="text-soft-cloud/70 text-lg">
               {billing === 'annual' ? '/ year' : '/ mo'}
             </span>
           </div>
           <p className="mt-1 text-xs text-soft-cloud/60">
-            {billing === 'annual' ? 'Billed annually · or $15/mo' : 'or $99/year'}
+            {billing === 'annual' ? 'Billed annually · or $29/mo' : 'or $250/year'}
           </p>
           <div className="flex gap-2 mt-3">
             <button
@@ -73,7 +76,7 @@ export function Pricing() {
                   : 'bg-white/5 text-soft-cloud/70 border border-white/10'
               }`}
             >
-              $99/year
+              Annual
             </button>
             <button
               type="button"
@@ -84,7 +87,7 @@ export function Pricing() {
                   : 'bg-white/5 text-soft-cloud/70 border border-white/10'
               }`}
             >
-              $15/mo
+              Monthly
             </button>
           </div>
           <ul className="mt-6 space-y-3 flex-1 text-sm text-soft-cloud/90">
@@ -124,7 +127,10 @@ export function Pricing() {
             <span className="text-soft-cloud/60">/ month</span>
           </div>
           <p className="mt-2 text-xs text-soft-cloud/70">
-            30 days free, then $199/mo. Cancel anytime before {cancelBeforeDate}.
+            30-day free trial. You will be notified via email 3 days before your trial ends.
+          </p>
+          <p className="mt-1 text-xs text-soft-cloud/60">
+            Then $199/mo. Cancel anytime before {cancelBeforeDate}.
           </p>
           <ul className="mt-6 space-y-3 flex-1 text-sm text-soft-cloud/90">
             {PRO_POINTS.map((point, i) => (

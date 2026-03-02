@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { createClient } from '@/lib/supabase/server';
 import { cookies } from 'next/headers';
 import {
@@ -23,6 +24,7 @@ import { InviteButton } from '@/components/InviteButton';
 import { FleetMapDynamic } from '@/components/FleetMapDynamic';
 import { HealthCard } from '@/components/HealthCard';
 import { CompliancePowerUps } from './CompliancePowerUps';
+import { DashboardWelcomeBanner } from './DashboardWelcomeBanner';
 import { getDashboardOrgId } from '@/lib/admin';
 import { getEffectiveOrgFeatures } from '@/app/actions/admin';
 
@@ -164,6 +166,9 @@ export default async function DashboardPage() {
 
   return (
     <div className="p-6 md:p-8 max-w-6xl">
+      <Suspense fallback={null}>
+        <DashboardWelcomeBanner />
+      </Suspense>
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-8">
         <div>
           <h1 className="text-2xl font-bold text-cloud-dancer mb-2">Dashboard</h1>

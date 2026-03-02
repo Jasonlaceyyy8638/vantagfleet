@@ -9,18 +9,29 @@ export async function POST(request: NextRequest) {
 
   const stripe = new Stripe(secretKey);
   const PRICE_IDS: Record<string, string> = {
-    starter: process.env.STRIPE_STARTER_PRICE_ID || '',
+    starter_annual: process.env.STRIPE_STARTER_ANNUAL_PRICE_ID || process.env.STRIPE_STARTER_PRICE_ID || '',
+    starter_monthly: process.env.STRIPE_STARTER_MONTHLY_PRICE_ID || '',
     pro: process.env.STRIPE_PRO_PRICE_ID || '',
   };
 
   try {
     const body = await request.json();
     const tier = body?.tier as string;
-    const priceId = (tier && PRICE_IDS[tier]) || (tier?.startsWith('price_') ? tier : null);
+    const billing = body?.billing as string | undefined;
+    const key =
+      tier === 'starter'
+        ? (billing === 'monthly' ? 'starter_monthly' : 'starter_annual')
+        : tier === 'pro'
+          ? 'pro'
+          : null;
+    const priceId = (key && PRICE_IDS[key]) || (tier?.startsWith('price_') ? tier : null);
 
     if (!priceId) {
       return NextResponse.json(
-        { error: 'Invalid tier. Use "starter" or "pro". Set STRIPE_STARTER_PRICE_ID and STRIPE_PRO_PRICE_ID in env.' },
+        {
+          error:
+            'Invalid tier or billing. Use tier "starter" (with billing "annual" or "monthly") or "pro". Set STRIPE_STARTER_ANNUAL_PRICE_ID, STRIPE_STARTER_MONTHLY_PRICE_ID, and STRIPE_PRO_PRICE_ID in env.',
+        },
         { status: 400 }
       );
     }
@@ -28,22 +39,26 @@ export async function POST(request: NextRequest) {
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin;
     const logoUrl = `${baseUrl}/logo.svg`;
 
+    const isPro = key === 'pro';
+    const subscriptionData: Stripe.Checkout.SessionCreateParams['subscription_data'] = {
+      metadata: {
+        business_name: 'VantagFleet',
+      },
+    };
+    if (isPro) {
+      subscriptionData.trial_period_days = 30;
+    }
+
     const session = await stripe.checkout.sessions.create({
       mode: 'subscription',
       line_items: [{ price: priceId, quantity: 1 }],
-      // is_trial=true so the dashboard can track trial signups in Supabase if desired
-      success_url: `${baseUrl}/dashboard?payment=success&is_trial=true`,
+      success_url: `${baseUrl}/dashboard?status=success`,
       cancel_url: `${baseUrl}/pricing`,
       payment_method_collection: 'always',
       metadata: {
         business_name: 'VantagFleet',
       },
-      subscription_data: {
-        trial_period_days: 30,
-        metadata: {
-          business_name: 'VantagFleet',
-        },
-      },
+      subscription_data: subscriptionData,
       branding_settings: {
         display_name: 'VantagFleet',
         button_color: '#00F5D4',
