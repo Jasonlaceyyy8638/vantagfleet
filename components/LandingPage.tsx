@@ -6,7 +6,7 @@ import { useSearchParams } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Navbar } from '@/components/Navbar';
-import { PricingSection } from '@/components/PricingSection';
+import { Pricing } from '@/components/Pricing';
 import { HeroLoginCard } from '@/components/HeroLoginCard';
 import { FileCheck, Users, Truck, Shield, ArrowRight, Plug, Quote, MapPin, X, Scale, FileText, Fuel, ShieldCheck, CalendarClock, Gauge } from 'lucide-react';
 import type { NavbarRole } from '@/lib/admin';
@@ -945,7 +945,13 @@ export function LandingPage({ isAuthenticated = false, navbarRole = null }: Land
         </div>
       </section>
 
-      <PricingSection />
+      <section className="py-16 px-4 border-t border-white/5">
+        <div className="max-w-5xl mx-auto">
+          <h2 className="text-2xl font-bold text-soft-cloud text-center mb-2">Plans</h2>
+          <p className="text-soft-cloud/60 text-center mb-10">Choose the tier that fits your fleet.</p>
+          <Pricing />
+        </div>
+      </section>
 
       {/* Driver App — Coming Soon */}
       <section className="relative py-24 px-4 bg-midnight-ink border-t border-white/5">
