@@ -1,20 +1,24 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   searchCustomers,
+  searchCarriersByDot,
   getCustomerCharges,
   getSubscriptionStatus,
   addNewCustomer,
   createOrgInviteLink,
   createManualSubscription,
+  cancelCarrierPlan,
+  downgradeCarrierPlan,
+  deleteCarrierFromSystem,
   type CustomerRow,
   type ChargeRow,
   type SubscriptionStatus,
 } from '@/app/actions/admin';
 import { createRefund, REFUND_REASONS } from '@/app/actions/stripe-refund';
 import { createCustomerPortal } from '@/app/actions/stripe';
-import { Search, Plus, DollarSign, Loader2, RefreshCw, Settings, CreditCard, ExternalLink } from 'lucide-react';
+import { Search, Plus, DollarSign, Loader2, RefreshCw, Settings, CreditCard, ExternalLink, Trash2, ArrowDown, XCircle } from 'lucide-react';
 
 export function AdminSupportClient() {
   const [query, setQuery] = useState('');
@@ -41,6 +45,19 @@ export function AdminSupportClient() {
   const [manualSubTier, setManualSubTier] = useState<'starter' | 'pro'>('starter');
   const [manualSubmitting, setManualSubmitting] = useState(false);
 
+  const [suggestions, setSuggestions] = useState<CustomerRow[]>([]);
+  const [suggestionsLoading, setSuggestionsLoading] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const searchWrapperRef = useRef<HTMLDivElement>(null);
+
+  const [cancelPlanOrg, setCancelPlanOrg] = useState<CustomerRow | null>(null);
+  const [cancelPlanSubmitting, setCancelPlanSubmitting] = useState(false);
+  const [downgradeModal, setDowngradeModal] = useState<{ org: CustomerRow } | null>(null);
+  const [downgradeTier, setDowngradeTier] = useState<'starter' | 'pro'>('starter');
+  const [downgradeSubmitting, setDowngradeSubmitting] = useState(false);
+  const [deleteCarrierOrg, setDeleteCarrierOrg] = useState<CustomerRow | null>(null);
+  const [deleteSubmitting, setDeleteSubmitting] = useState(false);
+
   const showToast = useCallback((type: 'success' | 'error', message: string) => {
     setToast({ type, message });
     setTimeout(() => setToast(null), 5000);
@@ -48,6 +65,7 @@ export function AdminSupportClient() {
 
   const doSearch = useCallback(async () => {
     setLoading(true);
+    setShowSuggestions(false);
     try {
       const list = await searchCustomers(query);
       setCustomers(list);
@@ -56,6 +74,35 @@ export function AdminSupportClient() {
       setLoading(false);
     }
   }, [query]);
+
+  useEffect(() => {
+    if (!query.trim()) {
+      setSuggestions([]);
+      setShowSuggestions(false);
+      return;
+    }
+    const t = setTimeout(() => {
+      setSuggestionsLoading(true);
+      searchCarriersByDot(query.trim())
+        .then((list) => {
+          setSuggestions(list.slice(0, 8));
+          setShowSuggestions(list.length > 0);
+        })
+        .catch(() => setSuggestions([]))
+        .finally(() => setSuggestionsLoading(false));
+    }, 280);
+    return () => clearTimeout(t);
+  }, [query]);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (searchWrapperRef.current && !searchWrapperRef.current.contains(e.target as Node)) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   useEffect(() => {
     if (customers.length === 0) return;
@@ -145,18 +192,61 @@ export function AdminSupportClient() {
       </p>
 
       <div className="flex flex-wrap gap-3">
-        <div className="flex-1 min-w-[200px] flex rounded-xl border border-white/10 bg-card overflow-hidden">
+        <div ref={searchWrapperRef} className="flex-1 min-w-[200px] relative flex rounded-xl border border-white/10 bg-card overflow-visible">
           <span className="flex items-center pl-3 text-soft-cloud/50">
             <Search className="size-4" />
           </span>
           <input
             type="search"
-            placeholder="Search by DOT number or Email..."
+            placeholder="Search by DOT number or email..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && doSearch()}
+            onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                doSearch();
+                setShowSuggestions(false);
+              }
+            }}
             className="flex-1 bg-transparent px-3 py-2.5 text-soft-cloud placeholder-soft-cloud/50 focus:outline-none"
           />
+          {showSuggestions && suggestions.length > 0 && (
+            <ul className="absolute top-full left-0 right-0 z-50 mt-1 rounded-lg border border-white/10 bg-card shadow-xl py-1 max-h-64 overflow-auto">
+              {suggestionsLoading ? (
+                <li className="px-4 py-3 text-soft-cloud/60 text-sm flex items-center gap-2">
+                  <Loader2 className="size-4 animate-spin" /> Searching...
+                </li>
+              ) : (
+                suggestions.map((c) => (
+                  <li key={c.id}>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        const q = c.usdot_number ?? c.name ?? '';
+                        setQuery(q);
+                        setShowSuggestions(false);
+                        setSuggestions([]);
+                        setLoading(true);
+                        try {
+                          const list = await searchCustomers(q);
+                          setCustomers(list);
+                          setChargesByCustomer({});
+                        } finally {
+                          setLoading(false);
+                        }
+                      }}
+                      className="w-full text-left px-4 py-2.5 text-sm text-soft-cloud hover:bg-cyber-amber/20 hover:text-cyber-amber transition-colors"
+                    >
+                      <span className="font-medium">{c.name}</span>
+                      {c.usdot_number && (
+                        <span className="ml-2 text-soft-cloud/60">DOT {c.usdot_number}</span>
+                      )}
+                    </button>
+                  </li>
+                ))
+              )}
+            </ul>
+          )}
           <button
             type="button"
             onClick={doSearch}
@@ -400,6 +490,37 @@ export function AdminSupportClient() {
                   Open billing portal for customer
                 </button>
               )}
+              <div className="border-t border-white/10 pt-3 mt-3 space-y-2">
+                <p className="text-xs font-medium text-soft-cloud/60 uppercase tracking-wider">Plan &amp; account</p>
+                {manageOrg.stripe_customer_id && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => setCancelPlanOrg(manageOrg)}
+                      className="w-full inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-500/20 text-amber-400 text-sm hover:bg-amber-500/30"
+                    >
+                      <XCircle className="size-4" />
+                      Cancel plan (at period end)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDowngradeModal({ org: manageOrg })}
+                      className="w-full inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-cyber-amber/20 text-cyber-amber text-sm hover:bg-cyber-amber/30"
+                    >
+                      <ArrowDown className="size-4" />
+                      Downgrade or change plan
+                    </button>
+                  </>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setDeleteCarrierOrg(manageOrg)}
+                  className="w-full inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-red-500/20 text-red-400 text-sm hover:bg-red-500/30"
+                >
+                  <Trash2 className="size-4" />
+                  Delete carrier from system
+                </button>
+              </div>
             </div>
             <button
               type="button"
@@ -408,6 +529,173 @@ export function AdminSupportClient() {
             >
               Close
             </button>
+          </div>
+        </div>
+      )}
+
+      {cancelPlanOrg && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+          onClick={() => !cancelPlanSubmitting && setCancelPlanOrg(null)}
+        >
+          <div
+            className="w-full max-w-md rounded-xl border border-white/10 bg-card p-6 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="text-lg font-semibold text-soft-cloud mb-2">Cancel plan</h2>
+            <p className="text-sm text-soft-cloud/70 mb-4">
+              Cancel <strong>{cancelPlanOrg.name}</strong>&apos;s subscription at the end of the current billing period. They will not be charged again.
+            </p>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setCancelPlanOrg(null)}
+                disabled={cancelPlanSubmitting}
+                className="px-4 py-2 rounded-lg border border-white/20 text-soft-cloud hover:bg-white/5 disabled:opacity-50"
+              >
+                Back
+              </button>
+              <button
+                type="button"
+                disabled={cancelPlanSubmitting}
+                onClick={async () => {
+                  setCancelPlanSubmitting(true);
+                  try {
+                    const result = await cancelCarrierPlan(cancelPlanOrg.id);
+                    if ('ok' in result) {
+                      showToast('success', 'Plan set to cancel at period end.');
+                      setCancelPlanOrg(null);
+                      setManageOrg(null);
+                      doSearch();
+                    } else {
+                      showToast('error', result.error);
+                    }
+                  } finally {
+                    setCancelPlanSubmitting(false);
+                  }
+                }}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-amber-500 text-midnight-ink font-semibold hover:bg-amber-600 disabled:opacity-60"
+              >
+                {cancelPlanSubmitting ? <Loader2 className="size-4 animate-spin" /> : null}
+                Confirm cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {downgradeModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+          onClick={() => !downgradeSubmitting && setDowngradeModal(null)}
+        >
+          <div
+            className="w-full max-w-md rounded-xl border border-white/10 bg-card p-6 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="text-lg font-semibold text-soft-cloud mb-2">Change plan</h2>
+            <p className="text-sm text-soft-cloud/70 mb-4">{downgradeModal.org.name}</p>
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                setDowngradeSubmitting(true);
+                try {
+                  const result = await downgradeCarrierPlan(downgradeModal.org.id, downgradeTier);
+                  if ('ok' in result) {
+                    showToast('success', `Plan changed to ${downgradeTier}.`);
+                    setDowngradeModal(null);
+                    setManageOrg(null);
+                    doSearch();
+                  } else {
+                    showToast('error', result.error);
+                  }
+                } finally {
+                  setDowngradeSubmitting(false);
+                }
+              }}
+              className="space-y-4"
+            >
+              <div>
+                <label className="block text-sm font-medium text-soft-cloud/80 mb-1">New tier</label>
+                <select
+                  value={downgradeTier}
+                  onChange={(e) => setDowngradeTier(e.target.value as 'starter' | 'pro')}
+                  className="w-full px-3 py-2 rounded-lg bg-midnight-ink border border-white/10 text-soft-cloud"
+                >
+                  <option value="starter">Starter</option>
+                  <option value="pro">Pro</option>
+                </select>
+              </div>
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setDowngradeModal(null)}
+                  disabled={downgradeSubmitting}
+                  className="px-4 py-2 rounded-lg border border-white/20 text-soft-cloud hover:bg-white/5 disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={downgradeSubmitting}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-cyber-amber text-midnight-ink font-semibold hover:bg-cyber-amber/90 disabled:opacity-60"
+                >
+                  {downgradeSubmitting ? <Loader2 className="size-4 animate-spin" /> : null}
+                  Update plan
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {deleteCarrierOrg && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+          onClick={() => !deleteSubmitting && setDeleteCarrierOrg(null)}
+        >
+          <div
+            className="w-full max-w-md rounded-xl border border-white/10 bg-card p-6 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="text-lg font-semibold text-red-400 mb-2">Delete carrier</h2>
+            <p className="text-sm text-soft-cloud/70 mb-4">
+              Permanently delete <strong>{deleteCarrierOrg.name}</strong> and all their data (organization, profiles, drivers, vehicles). Their Stripe subscription will be canceled. Users who only belonged to this org will be removed from the system. This cannot be undone.
+            </p>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setDeleteCarrierOrg(null)}
+                disabled={deleteSubmitting}
+                className="px-4 py-2 rounded-lg border border-white/20 text-soft-cloud hover:bg-white/5 disabled:opacity-50"
+              >
+                Back
+              </button>
+              <button
+                type="button"
+                disabled={deleteSubmitting}
+                onClick={async () => {
+                  setDeleteSubmitting(true);
+                  try {
+                    const result = await deleteCarrierFromSystem(deleteCarrierOrg.id);
+                    if ('ok' in result) {
+                      showToast('success', 'Carrier deleted.');
+                      setDeleteCarrierOrg(null);
+                      setManageOrg(null);
+                      doSearch();
+                    } else {
+                      showToast('error', result.error);
+                    }
+                  } finally {
+                    setDeleteSubmitting(false);
+                  }
+                }}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-red-600 text-white font-semibold hover:bg-red-700 disabled:opacity-60"
+              >
+                {deleteSubmitting ? <Loader2 className="size-4 animate-spin" /> : null}
+                Delete permanently
+              </button>
+            </div>
           </div>
         </div>
       )}

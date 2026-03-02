@@ -610,6 +610,154 @@ export async function listMotiveDrivers(): Promise<MotiveDriverRow[]> {
   }
 }
 
+/** Cancel a carrier's Stripe subscription (at period end). Admin/staff only. */
+export async function cancelCarrierPlan(orgId: string): Promise<{ ok: true } | { error: string }> {
+  await requireStaff();
+  const secretKey = process.env.STRIPE_SECRET_KEY;
+  if (!secretKey) return { error: 'Stripe is not configured.' };
+
+  const admin = createAdminClient();
+  const { data: org, error: orgErr } = await admin
+    .from('organizations')
+    .select('id, name, stripe_customer_id')
+    .eq('id', orgId)
+    .single();
+  if (orgErr || !org?.stripe_customer_id) {
+    return { error: 'Organization has no Stripe customer or not found.' };
+  }
+
+  try {
+    const stripe = new Stripe(secretKey);
+    const { data: subs } = await stripe.subscriptions.list({
+      customer: org.stripe_customer_id,
+      status: 'all',
+      limit: 5,
+    });
+    const active = subs?.find((s) => s.status === 'active' || s.status === 'trialing');
+    if (!active) return { error: 'No active subscription to cancel.' };
+
+    await stripe.subscriptions.update(active.id, { cancel_at_period_end: true });
+
+    const supabaseAuth = await createClient();
+    const { data: { user } } = await supabaseAuth.auth.getUser();
+    if (user) await logAdminAction(user.id, 'cancel_subscription', orgId, { subscriptionId: active.id });
+    return { ok: true };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Failed to cancel subscription';
+    return { error: message };
+  }
+}
+
+/** Downgrade a carrier's plan (change subscription to starter or pro). Admin/staff only. */
+export async function downgradeCarrierPlan(
+  orgId: string,
+  newTier: 'starter' | 'pro'
+): Promise<{ ok: true } | { error: string }> {
+  await requireStaff();
+  const secretKey = process.env.STRIPE_SECRET_KEY;
+  const starterPriceId = process.env.STRIPE_STARTER_PRICE_ID;
+  const proPriceId = process.env.STRIPE_PRO_PRICE_ID;
+  if (!secretKey) return { error: 'Stripe is not configured.' };
+  const priceId = newTier === 'pro' ? proPriceId : starterPriceId;
+  if (!priceId) return { error: `STRIPE_${newTier.toUpperCase()}_PRICE_ID is not set.` };
+
+  const admin = createAdminClient();
+  const { data: org, error: orgErr } = await admin
+    .from('organizations')
+    .select('id, stripe_customer_id')
+    .eq('id', orgId)
+    .single();
+  if (orgErr || !org?.stripe_customer_id) {
+    return { error: 'Organization has no Stripe customer or not found.' };
+  }
+
+  try {
+    const stripe = new Stripe(secretKey);
+    const { data: subs } = await stripe.subscriptions.list({
+      customer: org.stripe_customer_id,
+      status: 'active',
+      limit: 1,
+    });
+    const sub = subs?.[0];
+    if (!sub) return { error: 'No active subscription to change.' };
+
+    const itemId = sub.items.data[0]?.id;
+    if (!itemId) return { error: 'Subscription has no item.' };
+
+    await stripe.subscriptionItems.update(itemId, { price: priceId });
+
+    const supabaseAuth = await createClient();
+    const { data: { user } } = await supabaseAuth.auth.getUser();
+    if (user) await logAdminAction(user.id, 'downgrade_plan', orgId, { newTier });
+    return { ok: true };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Failed to change plan';
+    return { error: message };
+  }
+}
+
+/** Permanently delete a carrier (org + related data + their auth users). Admin only. */
+export async function deleteCarrierFromSystem(orgId: string): Promise<{ ok: true } | { error: string }> {
+  await requireAdmin();
+  const admin = createAdminClient();
+  const supabaseAuth = await createClient();
+  const { data: { user } } = await supabaseAuth.auth.getUser();
+  if (!user) return { error: 'Not authenticated.' };
+
+  const { data: org, error: orgErr } = await admin
+    .from('organizations')
+    .select('id, name, stripe_customer_id')
+    .eq('id', orgId)
+    .single();
+  if (orgErr || !org) return { error: 'Organization not found.' };
+
+  const { data: profiles } = await admin
+    .from('profiles')
+    .select('user_id')
+    .eq('org_id', orgId);
+  const userIds = Array.from(new Set((profiles ?? []).map((p) => p.user_id)));
+
+  try {
+    const secretKey = process.env.STRIPE_SECRET_KEY;
+    if (secretKey && org.stripe_customer_id) {
+      const stripe = new Stripe(secretKey);
+      const { data: subs } = await stripe.subscriptions.list({ customer: org.stripe_customer_id, status: 'all' });
+      for (const s of subs ?? []) {
+        if (s.status === 'active' || s.status === 'trialing') {
+          await stripe.subscriptions.cancel(s.id);
+        }
+      }
+    }
+
+    await admin.from('organizations').delete().eq('id', orgId);
+
+    for (const uid of userIds) {
+      const { data: remaining } = await admin.from('profiles').select('id').eq('user_id', uid).limit(1);
+      if (!remaining?.length) {
+        try {
+          await admin.auth.admin.deleteUser(uid);
+        } catch {
+          // ignore if already deleted
+        }
+      }
+    }
+
+    await logAdminAction(user.id, 'carrier_deleted', orgId, { name: org.name });
+    return { ok: true };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Failed to delete carrier';
+    return { error: message };
+  }
+}
+
+/** Autocomplete: search carriers by partial DOT number or name. Returns short list for dropdown. */
+export async function searchCarriersByDot(partial: string): Promise<CustomerRow[]> {
+  await requireStaff();
+  const q = (partial || '').trim();
+  if (q.length < 1) return [];
+  return searchCustomers(q);
+}
+
 /** Assign a user to an organization (add profile row or update existing null-org profile). Admin-only. */
 export async function assignUserToOrganization(
   userId: string,

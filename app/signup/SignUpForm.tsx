@@ -59,15 +59,17 @@ export function SignUpForm() {
       return;
     }
     // Session is available on the client now; server action may not see cookies yet.
-    // Create profile from client so we use the same session that just signed up.
+    // A profile row is created by a DB trigger on auth.users; we only update it here.
     const user = signUpData.user;
     if (user) {
-      const { error: profileError } = await supabase.from('profiles').insert({
-        user_id: user.id,
-        org_id: orgId,
-        role: 'Owner',
-        full_name: fullName.trim() || null,
-      });
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({
+          org_id: orgId,
+          role: 'Owner',
+          full_name: fullName.trim() || null,
+        })
+        .or(`id.eq.${user.id},user_id.eq.${user.id}`);
       if (profileError) {
         setLoading(false);
         setMessage(profileError.message || 'Could not create profile.');

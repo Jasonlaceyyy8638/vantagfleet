@@ -31,12 +31,14 @@ export async function createProfileAfterSignUp(orgId: string, fullName: string |
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: 'Not authenticated' };
-  const { error } = await supabase.from('profiles').insert({
-    user_id: user.id,
-    org_id: orgId,
-    role: 'Owner',
-    full_name: fullName || null,
-  });
+  const { error } = await supabase
+    .from('profiles')
+    .update({
+      org_id: orgId,
+      role: 'Owner',
+      full_name: fullName || null,
+    })
+    .or(`id.eq.${user.id},user_id.eq.${user.id}`);
   if (error) return { error: error.message };
   redirect('/dashboard');
 }
