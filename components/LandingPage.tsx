@@ -31,7 +31,7 @@ export function LandingPage({ isAuthenticated = false, navbarRole = null }: Land
     <div className="min-h-screen bg-midnight-ink">
       <Navbar isAuthenticated={isAuthenticated} />
 
-      {/* Hero: full-screen cinematic background — /videos/hero-truck.mp4 */}
+      {/* Hero: full-screen cinematic background — use NEXT_PUBLIC_HERO_VIDEO_URL (e.g. CDN) to avoid binary in repo */}
       <section className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden">
         <div className="absolute inset-0 z-0">
           <video
@@ -42,7 +42,13 @@ export function LandingPage({ isAuthenticated = false, navbarRole = null }: Land
             poster="/images/hero-fallback.jpg"
             className="absolute inset-0 w-full h-full object-cover z-0"
           >
-            <source src="/videos/hero-truck.mp4" type="video/mp4" />
+            <source
+              src={
+                process.env.NEXT_PUBLIC_HERO_VIDEO_URL ||
+                'https://assets.mixkit.co/videos/preview/mixkit-highway-traffic-at-night-with-long-exposure-4010-large.mp4'
+              }
+              type="video/mp4"
+            />
           </video>
           <div className="absolute inset-0 bg-black/60" aria-hidden />
         </div>
