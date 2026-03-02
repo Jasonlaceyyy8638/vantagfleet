@@ -7,6 +7,7 @@ export function isMailConfigured(): boolean {
   return !!SENDGRID_API_KEY?.trim();
 }
 
+/** From can be 'email' or 'Name <email>'. */
 export async function sendEmail(options: {
   to: string;
   from?: string;

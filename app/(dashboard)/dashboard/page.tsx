@@ -17,6 +17,7 @@ import {
   Calendar,
   Sparkles,
   MapPin,
+  FileStack,
 } from 'lucide-react';
 import { InviteButton } from '@/components/InviteButton';
 import { FleetMapDynamic } from '@/components/FleetMapDynamic';
@@ -39,11 +40,14 @@ export default async function DashboardPage() {
     );
   }
 
+  const driverIds = (await supabase.from('drivers').select('id').eq('org_id', orgId)).data?.map((d) => d.id) ?? [];
+
   const [
     { data: drivers },
     { data: vehicles },
     { data: complianceDocs },
     { data: orgRow },
+    { data: driverDocs },
   ] = await Promise.all([
     supabase.from('drivers').select('id, name, med_card_expiry').eq('org_id', orgId),
     supabase.from('vehicles').select('id, unit_number, annual_inspection_due').eq('org_id', orgId),
@@ -52,6 +56,9 @@ export default async function DashboardPage() {
       .select('id, doc_type, expiry_date, driver_id')
       .eq('org_id', orgId),
     supabase.from('organizations').select('tier, features').eq('id', orgId).single(),
+    driverIds.length > 0
+      ? supabase.from('driver_documents').select('document_type').in('driver_id', driverIds)
+      : { data: [] },
   ]);
 
   const tier = (orgRow as { tier?: string | null } | null)?.tier ?? null;
@@ -64,6 +71,12 @@ export default async function DashboardPage() {
   const driverList = drivers ?? [];
   const vehicleList = vehicles ?? [];
   const docList = complianceDocs ?? [];
+  const driverDocList = driverDocs ?? [];
+
+  const REQUIRED_DOC_TYPES = ['COI', 'IFTA', 'REGISTRATION'] as const;
+  const hasDocType = (type: string) =>
+    driverDocList.some((d: { document_type: string }) => d.document_type === type);
+  const missingDocTypes = REQUIRED_DOC_TYPES.filter((t) => !hasDocType(t));
 
   const alerts: AlertItem[] = [];
 
@@ -219,6 +232,49 @@ export default async function DashboardPage() {
 
       {/* Compliance Power-Ups — MCS-150 & BOC-3 waitlist */}
       <CompliancePowerUps />
+
+      {/* Required documents — New Hire / carrier docs */}
+      <section className="mb-8 rounded-xl bg-card border border-[#30363d] overflow-hidden">
+        <div className="px-5 py-4 border-b border-[#30363d] flex items-center justify-between gap-4 flex-wrap">
+          <div className="flex items-center gap-2">
+            <FileStack className="size-5 text-cyber-amber" />
+            <h2 className="font-semibold text-cloud-dancer">Required documents</h2>
+          </div>
+          <Link
+            href="/documents"
+            className="text-sm text-cyber-amber hover:underline"
+          >
+            Upload documents
+          </Link>
+        </div>
+        <div className="px-5 py-4 flex flex-wrap gap-3">
+          {REQUIRED_DOC_TYPES.map((type) => {
+            const missing = missingDocTypes.includes(type);
+            return (
+              <span
+                key={type}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium ${
+                  missing
+                    ? 'bg-red-500/15 text-red-400 border border-red-500/40'
+                    : 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/30'
+                }`}
+              >
+                {missing ? (
+                  <>
+                    <span className="size-1.5 rounded-full bg-red-400" />
+                    {type}: Missing
+                  </>
+                ) : (
+                  <>
+                    <FileCheck className="size-4" />
+                    {type}
+                  </>
+                )}
+              </span>
+            );
+          })}
+        </div>
+      </section>
 
       {/* Premium placeholders (Diamond tier or admin-enabled) */}
       {(showPredictiveAuditAi || showAdvancedRouteHistory) && (

@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/check-qualifications",
+      "schedule": "0 8 * * *"
+    }
+  ]
+}

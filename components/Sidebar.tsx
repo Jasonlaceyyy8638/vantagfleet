@@ -21,6 +21,7 @@ import {
   ChevronUp,
   BarChart3,
   Headphones,
+  FileStack,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 
@@ -30,6 +31,7 @@ const nav = [
   { href: '/vehicles', label: 'Vehicles', icon: Truck },
   { href: '/loads', label: 'Loads', icon: DollarSign },
   { href: '/compliance', label: 'Compliance', icon: FileCheck },
+  { href: '/documents', label: 'New Hire Documents', icon: FileStack },
   { href: '/regulatory', label: 'Regulatory', icon: ShieldCheck },
   { href: '/dashboard/integrations', label: 'Integrations', icon: Plug },
   { href: '/roadside-mode', label: 'Roadside', icon: Smartphone },
