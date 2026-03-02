@@ -14,10 +14,9 @@ const glassCardClass =
 
 type LandingPageProps = { isAuthenticated?: boolean; navbarRole?: NavbarRole | null };
 
-// Trucking/road-related hero video only — no generic samples (e.g. removed GoT promo)
+// Trucking/road hero: Mixkit highway; fallback gradient shows when video is blocked or fails
 const HERO_VIDEO_SOURCES = [
   'https://assets.mixkit.co/videos/preview/mixkit-highway-traffic-at-night-with-long-exposure-4010-large.mp4',
-  'https://assets.mixkit.co/videos/preview/mixkit-truck-on-highway-4073-large.mp4',
 ];
 
 export function LandingPage({ isAuthenticated = false, navbarRole = null }: LandingPageProps) {
@@ -57,9 +56,14 @@ export function LandingPage({ isAuthenticated = false, navbarRole = null }: Land
     <div className="min-h-screen bg-midnight-ink">
       <Navbar isAuthenticated={isAuthenticated} />
 
-      {/* Hero: full-screen cinematic background — video rendered only on client to avoid SSR/hydration issues */}
+      {/* Hero: video when it loads; gradient fallback so it's never plain black */}
       <section className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden bg-midnight-ink">
         <div className="absolute inset-0 z-0">
+          {/* Fallback: road/trucking vibe gradient when video is blocked or fails */}
+          <div
+            className="absolute inset-0 bg-gradient-to-b from-midnight-ink via-midnight-ink to-cyber-amber/20"
+            aria-hidden
+          />
           {mounted && (
             <video
               ref={heroVideoRef}
@@ -69,7 +73,7 @@ export function LandingPage({ isAuthenticated = false, navbarRole = null }: Land
               playsInline
               preload="auto"
               style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
-              className="min-h-full min-w-full"
+              className="min-h-full min-w-full z-[1]"
             >
               {HERO_VIDEO_SOURCES.map((src) => (
                 <source key={src} src={src} type="video/mp4" />
@@ -77,7 +81,7 @@ export function LandingPage({ isAuthenticated = false, navbarRole = null }: Land
               <source src="/videos/hero-truck.mp4" type="video/mp4" />
             </video>
           )}
-          <div className="absolute inset-0 bg-black/50" aria-hidden />
+          <div className="absolute inset-0 bg-black/50 z-[2]" aria-hidden />
         </div>
 
         <div className="relative z-10 flex flex-col items-center justify-center px-4 text-center max-w-4xl mx-auto">
