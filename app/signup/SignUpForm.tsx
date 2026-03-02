@@ -163,15 +163,28 @@ export function SignUpForm() {
               className="flex-1 px-3 py-2 rounded-lg bg-deep-ink border border-[#30363d] text-cloud-dancer placeholder-cloud-dancer/50 focus:outline-none focus:ring-2 focus:ring-transformative-teal"
               placeholder="e.g. 1234567"
             />
-            <button
-              type="button"
-              onClick={handleVerifyDot}
-              disabled={verifyLoading || !usdot.trim()}
-              className="shrink-0 px-4 py-2 rounded-lg border border-[#30363d] text-cloud-dancer hover:bg-deep-ink disabled:opacity-50 flex items-center gap-1.5"
-            >
-              {verifyLoading ? <Loader2 className="size-4 animate-spin" /> : null}
-              Verify
-            </button>
+            <div className="relative shrink-0">
+              {verifyLoading && (
+                <>
+                  <span className="verify-radar-ring" aria-hidden />
+                  <span className="verify-radar-ring" aria-hidden />
+                  <span className="verify-radar-ring" aria-hidden />
+                </>
+              )}
+              <button
+                type="button"
+                onClick={handleVerifyDot}
+                disabled={verifyLoading || !usdot.trim()}
+                className={`relative z-10 px-4 py-2 rounded-lg border flex items-center gap-1.5 transition-colors ${
+                  verifyLoading
+                    ? 'border-[#FFBF00]/70 bg-[#FFBF00]/10 text-[#FFBF00]'
+                    : 'border-[#30363d] text-cloud-dancer hover:bg-deep-ink'
+                } disabled:opacity-50`}
+              >
+                {verifyLoading ? <Loader2 className="size-4 animate-spin" /> : null}
+                Verify
+              </button>
+            </div>
           </div>
           {dotVerified && (
             <p className="mt-2 flex items-center gap-1.5 text-sm text-green-500">

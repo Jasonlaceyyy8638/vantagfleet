@@ -1,57 +1,44 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 
-export async function GET(request: NextRequest) {
-  const searchParams = request.nextUrl.searchParams;
-  const dotNumber = (searchParams.get('dotNumber') ?? searchParams.get('dot'))?.trim();
-  const webKey = process.env.FMCSA_WEB_KEY?.trim() ?? process.env.FMCSA_WEBKEY?.trim();
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const dotNumber = searchParams.get('dotNumber');
 
-  if (!dotNumber) {
-    return NextResponse.json(
-      { error: 'DOT number is required. Use ?dot=1234567 or ?dotNumber=1234567' },
-      { status: 400 }
-    );
-  }
+  // Use the key directly for this test to rule out .env issues
+  const webKey = '3f7deecba66a779b9d8d484b8ff95efdd3d9f40';
 
-  if (!webKey) {
-    return NextResponse.json(
-      { error: 'DOT verification is not configured (FMCSA_WEB_KEY missing).' },
-      { status: 503 }
-    );
-  }
+  if (!dotNumber) return NextResponse.json({ error: 'No DOT' }, { status: 400 });
 
   try {
+    console.log(`[DEBUG] Fetching DOT: ${dotNumber}`);
+
     const response = await fetch(
-      `https://mobile.fmcsa.dot.gov/qc/services/carriers/${encodeURIComponent(dotNumber)}?webKey=${encodeURIComponent(webKey)}`,
-      { method: 'GET', headers: { Accept: 'application/json' } }
+      `https://mobile.fmcsa.dot.gov/qc/services/carriers/${dotNumber}?webKey=${webKey}`,
+      {
+        method: 'GET',
+        headers: {
+          Accept: 'application/json',
+          'User-Agent': 'VantagFleet-App', // Some gov APIs require a User-Agent
+        },
+      }
     );
 
-    const data = (await response.json()) as { content?: { carrier?: Record<string, unknown> } } | null;
+    const text = await response.text(); // Get raw text first to see if it's even JSON
+    console.log('[DEBUG] Raw Response:', text);
 
+    const data = JSON.parse(text);
     const carrier = data?.content?.carrier;
 
     if (!carrier) {
-      console.log('FMCSA Response:', data);
-      return NextResponse.json(
-        { error: 'Carrier not found in FMCSA database' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'Not found in FMCSA' }, { status: 404 });
     }
 
-    const legalName = (carrier.legalName as string) ?? null;
-    const allowedToOperate = carrier.allowedToOperate as string | undefined;
-
     return NextResponse.json({
-      ok: true,
-      legalName,
-      status: allowedToOperate === 'Y' ? 'Active' : 'Inactive',
-      dotNumber: carrier.dotNumber ?? dotNumber,
-      safetyRating: (carrier.safetyRating as string) ?? 'Not Rated',
+      legalName: carrier.legalName,
+      status: carrier.allowedToOperate === 'Y' ? 'Active' : 'Inactive',
     });
   } catch (error) {
-    console.error('DOT Verification Error:', error);
-    return NextResponse.json(
-      { error: 'Failed to connect to FMCSA' },
-      { status: 500 }
-    );
+    console.error('[DEBUG] Fetch Failed:', error);
+    return NextResponse.json({ error: 'Connection failed' }, { status: 500 });
   }
 }
