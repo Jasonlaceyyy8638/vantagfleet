@@ -40,6 +40,8 @@ export type AdminStats = {
 
 export type WishlistCounts = { geotab: number; samsara: number };
 
+export type CompliancePowerupWaitlistCounts = { mcs150: number; boc3: number };
+
 export type UserRequestRow = {
   id: string;
   type: string;
@@ -62,6 +64,10 @@ export type CarrierRow = {
   usdot_number: string | null;
   subscriptionStatus: SubscriptionStatus;
   safetyRating: SafetyRating;
+  /** DOT census (MCS-150) active per FMCSA allowedToOperate. */
+  dotCensusActive?: boolean;
+  /** True when carrier has verified current insurance (BMC-91). */
+  authorityVerified?: boolean;
 };
 
 export type CarrierIntegrationsRow = {

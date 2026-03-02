@@ -11,7 +11,7 @@ import {
 import type { ProfileRow, AdminStats, CarrierRow, CarrierIntegrationsRow } from '@/lib/admin-types';
 import { addEmployeeByEmail, listStaff, type StaffRow } from '@/app/actions/admin-team';
 import type { StripeStats } from '@/app/actions/stripe-stats';
-import { Building2, Loader2, UserPlus, Users, DollarSign, Truck, UserCheck, CreditCard, TrendingUp, Plug, Gift, ChevronDown } from 'lucide-react';
+import { Building2, Loader2, UserPlus, Users, DollarSign, Truck, UserCheck, CreditCard, TrendingUp, Plug, Gift, ChevronDown, FileText, Scale } from 'lucide-react';
 
 type OrgOption = { id: string; name: string };
 
@@ -31,6 +31,7 @@ export function AdminPageClient({
   initialCarriers,
   initialCarrierIntegrations = [],
   initialStaff,
+  powerupWaitlistCounts = { mcs150: 0, boc3: 0 },
   loadError,
 }: {
   initialProfiles: ProfileRow[];
@@ -40,6 +41,7 @@ export function AdminPageClient({
   initialCarriers: CarrierRow[];
   initialCarrierIntegrations?: CarrierIntegrationsRow[];
   initialStaff: StaffRow[];
+  powerupWaitlistCounts?: { mcs150: number; boc3: number };
   loadError?: string | null;
 }) {
   const [profiles, setProfiles] = useState<ProfileRow[]>(initialProfiles);
@@ -234,6 +236,21 @@ export function AdminPageClient({
             <p className="text-2xl font-bold text-soft-cloud">{initialStats.newSignupsThisWeek}</p>
           </div>
         </div>
+        <div className="rounded-xl border border-amber-500/20 bg-white/5 backdrop-blur-sm p-6">
+          <p className="text-sm text-soft-cloud/60 mb-2">Compliance Power-Up Waitlist</p>
+          <div className="flex flex-wrap gap-4">
+            <div className="flex items-center gap-2">
+              <FileText className="size-5 text-amber-400" />
+              <span className="text-soft-cloud">MCS-150:</span>
+              <span className="font-bold text-amber-400">{powerupWaitlistCounts.mcs150}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Scale className="size-5 text-amber-400" />
+              <span className="text-soft-cloud">BOC-3:</span>
+              <span className="font-bold text-amber-400">{powerupWaitlistCounts.boc3}</span>
+            </div>
+          </div>
+        </div>
       </section>
 
       {/* VantagFleet Staff */}
@@ -305,20 +322,24 @@ export function AdminPageClient({
                 <th className="px-6 py-3 font-medium">DOT Number</th>
                 <th className="px-6 py-3 font-medium">Subscription</th>
                 <th className="px-6 py-3 font-medium">Safety Status</th>
+                <th className="px-6 py-3 font-medium">Authority</th>
                 <th className="px-6 py-3 font-medium">Actions</th>
               </tr>
             </thead>
             <tbody>
               {initialCarriers.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-8 text-center text-soft-cloud/50">No carriers yet.</td>
+                  <td colSpan={6} className="px-6 py-8 text-center text-soft-cloud/50">No carriers yet.</td>
                 </tr>
               ) : (
-                initialCarriers.map((c) => (
+                initialCarriers.map((c) => {
+                  const complianceAtRisk = c.dotCensusActive && !c.authorityVerified;
+                  return (
                   <tr
                     key={c.id}
                     className={`border-b border-white/5 hover:bg-white/5 ${
-                      c.safetyRating === 'Unsatisfactory' ? 'bg-red-500/15 border-l-4 border-l-red-500' : ''
+                      c.safetyRating === 'Unsatisfactory' ? 'bg-red-500/15 border-l-4 border-l-red-500' :
+                      complianceAtRisk ? 'bg-amber-500/10 border-l-4 border-l-amber-500' : ''
                     }`}
                   >
                     <td className="px-6 py-3 text-soft-cloud">{c.name}</td>
@@ -346,6 +367,17 @@ export function AdminPageClient({
                       >
                         {c.safetyRating ?? '—'}
                       </span>
+                    </td>
+                    <td className="px-6 py-3">
+                      {complianceAtRisk ? (
+                        <span className="font-medium text-amber-400" title="DOT census active but insurance (BMC-91) not verified — reach out to carrier">
+                          Compliance At Risk
+                        </span>
+                      ) : c.authorityVerified ? (
+                        <span className="text-green-400">Verified</span>
+                      ) : (
+                        <span className="text-soft-cloud/50">—</span>
+                      )}
                     </td>
                     <td className="px-6 py-3">
                       <div className="flex flex-wrap items-center gap-2">
@@ -442,7 +474,8 @@ export function AdminPageClient({
                       </div>
                     </td>
                   </tr>
-                ))
+                  );
+                })
               )}
             </tbody>
           </table>

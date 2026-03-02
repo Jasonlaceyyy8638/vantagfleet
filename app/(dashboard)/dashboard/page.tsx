@@ -21,6 +21,7 @@ import {
 import { InviteButton } from '@/components/InviteButton';
 import { FleetMapDynamic } from '@/components/FleetMapDynamic';
 import { HealthCard } from '@/components/HealthCard';
+import { CompliancePowerUps } from './CompliancePowerUps';
 import { getDashboardOrgId } from '@/lib/admin';
 import { getEffectiveOrgFeatures } from '@/app/actions/admin';
 
@@ -215,6 +216,9 @@ export default async function DashboardPage() {
           className="mt-2"
         />
       </section>
+
+      {/* Compliance Power-Ups — MCS-150 & BOC-3 waitlist */}
+      <CompliancePowerUps />
 
       {/* Premium placeholders (Diamond tier or admin-enabled) */}
       {(showPredictiveAuditAi || showAdvancedRouteHistory) && (

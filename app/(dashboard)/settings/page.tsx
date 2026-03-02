@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server';
 import { cookies } from 'next/headers';
 import { ManageSubscriptionButton } from './ManageSubscriptionButton';
 import { CopyUserId } from './CopyUserId';
+import { CarrierProfile } from './CarrierProfile';
 import { getDashboardOrgId } from '@/lib/admin';
 
 export default async function SettingsPage() {
@@ -11,13 +12,19 @@ export default async function SettingsPage() {
   const orgId = await getDashboardOrgId(supabase, cookieStore);
 
   let stripeCustomerId: string | null = null;
+  let orgName = '';
+  let usdotNumber: string | null = null;
+  let authorityVerified = false;
   if (orgId) {
     const { data: org } = await supabase
       .from('organizations')
-      .select('stripe_customer_id')
+      .select('name, usdot_number, stripe_customer_id, authority_verified')
       .eq('id', orgId)
       .single();
     stripeCustomerId = org?.stripe_customer_id ?? null;
+    orgName = org?.name ?? '';
+    usdotNumber = org?.usdot_number ?? null;
+    authorityVerified = !!org?.authority_verified;
   }
 
   return (
@@ -26,6 +33,14 @@ export default async function SettingsPage() {
       <p className="text-soft-cloud/70 mb-8">
         Organization and billing. Manage your subscription, payment method, or cancel anytime.
       </p>
+
+      {orgId && (
+        <CarrierProfile
+          orgName={orgName}
+          usdotNumber={usdotNumber}
+          authorityVerified={authorityVerified}
+        />
+      )}
 
       {user && (
         <div className="rounded-xl border border-white/10 bg-card p-6 mb-6">

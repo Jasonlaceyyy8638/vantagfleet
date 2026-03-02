@@ -8,7 +8,7 @@ import { createPortal } from 'react-dom';
 import { Navbar } from '@/components/Navbar';
 import { PricingSection } from '@/components/PricingSection';
 import { HeroLoginCard } from '@/components/HeroLoginCard';
-import { FileCheck, Users, Truck, Shield, ArrowRight, Plug, Quote, MapPin, X } from 'lucide-react';
+import { FileCheck, Users, Truck, Shield, ArrowRight, Plug, Quote, MapPin, X, Scale, FileText, Fuel } from 'lucide-react';
 import type { NavbarRole } from '@/lib/admin';
 
 const glassCardClass =
@@ -43,6 +43,20 @@ export function LandingPage({ isAuthenticated = false, navbarRole = null }: Land
   const [founderVideoSourceIndex, setFounderVideoSourceIndex] = useState(0);
   const [founderVideoFailed, setFounderVideoFailed] = useState(false);
   const [founderVideoError, setFounderVideoError] = useState<string | null>(null);
+
+  const [earlyAccessModal, setEarlyAccessModal] = useState<'boc3' | 'mcs150' | 'ifta' | null>(null);
+  const [earlyAccessEmail, setEarlyAccessEmail] = useState('');
+  const [earlyAccessDot, setEarlyAccessDot] = useState('');
+  const [earlyAccessSubmitting, setEarlyAccessSubmitting] = useState(false);
+  const [earlyAccessSuccess, setEarlyAccessSuccess] = useState(false);
+  const [earlyAccessError, setEarlyAccessError] = useState<string | null>(null);
+
+  const [roadmapModalOpen, setRoadmapModalOpen] = useState(false);
+  const [roadmapEmail, setRoadmapEmail] = useState('');
+  const [roadmapDot, setRoadmapDot] = useState('');
+  const [roadmapSubmitting, setRoadmapSubmitting] = useState(false);
+  const [roadmapSuccess, setRoadmapSuccess] = useState(false);
+  const [roadmapError, setRoadmapError] = useState<string | null>(null);
 
   useEffect(() => {
     const code = searchParams.get('code');
@@ -86,6 +100,100 @@ export function LandingPage({ isAuthenticated = false, navbarRole = null }: Land
       if (v) v.pause();
     };
   }, [storyModalOpen]);
+
+  const closeEarlyAccessModal = () => {
+    setEarlyAccessModal(null);
+    setEarlyAccessEmail('');
+    setEarlyAccessDot('');
+    setEarlyAccessError(null);
+    setEarlyAccessSuccess(false);
+  };
+
+  const handleEarlyAccessSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!earlyAccessModal) return;
+    setEarlyAccessError(null);
+    setEarlyAccessSubmitting(true);
+    try {
+      const res = await fetch('/api/early-access', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: earlyAccessEmail.trim(),
+          dotNumber: earlyAccessDot.trim() || undefined,
+          feature: earlyAccessModal,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setEarlyAccessError(data?.error ?? 'Something went wrong.');
+        return;
+      }
+      setEarlyAccessSuccess(true);
+      setEarlyAccessEmail('');
+      setEarlyAccessDot('');
+      setTimeout(closeEarlyAccessModal, 1500);
+    } catch {
+      setEarlyAccessError('Network error. Try again.');
+    } finally {
+      setEarlyAccessSubmitting(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!earlyAccessModal) return;
+    const onEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') closeEarlyAccessModal();
+    };
+    document.addEventListener('keydown', onEscape);
+    return () => document.removeEventListener('keydown', onEscape);
+  }, [earlyAccessModal]);
+
+  const closeRoadmapModal = () => {
+    setRoadmapModalOpen(false);
+    setRoadmapEmail('');
+    setRoadmapDot('');
+    setRoadmapError(null);
+    setRoadmapSuccess(false);
+  };
+
+  useEffect(() => {
+    if (!roadmapModalOpen) return;
+    const onEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') closeRoadmapModal();
+    };
+    document.addEventListener('keydown', onEscape);
+    return () => document.removeEventListener('keydown', onEscape);
+  }, [roadmapModalOpen]);
+
+  const handleRoadmapSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setRoadmapError(null);
+    setRoadmapSubmitting(true);
+    try {
+      const res = await fetch('/api/roadmap-leads', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: roadmapEmail.trim(),
+          dotNumber: roadmapDot.trim() || undefined,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setRoadmapError(data?.error ?? 'Something went wrong.');
+        return;
+      }
+      setRoadmapSuccess(true);
+      setRoadmapEmail('');
+      setRoadmapDot('');
+      setTimeout(closeRoadmapModal, 2000);
+    } catch {
+      setRoadmapError('Network error. Try again.');
+    } finally {
+      setRoadmapSubmitting(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-midnight-ink">
@@ -361,6 +469,150 @@ export function LandingPage({ isAuthenticated = false, navbarRole = null }: Land
         </div>
       </section>
 
+      {/* Future of Compliance — blueprint feature preview cards */}
+      <section className="relative py-24 px-4 bg-midnight-ink/80 border-t border-white/5">
+        <div className="max-w-5xl mx-auto">
+          <motion.h2
+            initial={{ opacity: 0, y: 16 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.2 }}
+            className="text-3xl sm:text-4xl font-bold text-soft-cloud text-center mb-2"
+          >
+            Future of <span className="text-cyber-amber">Compliance</span>
+          </motion.h2>
+          <motion.p
+            initial={{ opacity: 0, y: 12 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.2 }}
+            className="text-soft-cloud/60 text-center mb-12"
+          >
+            Coming soon: one place for the filings that keep you legal.
+          </motion.p>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.15 }}
+            transition={{ duration: 0.5 }}
+            className="grid grid-cols-1 md:grid-cols-3 gap-6"
+          >
+            {[
+              {
+                id: 'boc3' as const,
+                title: 'BOC-3 Process Agents',
+                why: 'Designate process agents in every state you operate—no more missed service of process.',
+                Icon: Scale,
+              },
+              {
+                id: 'mcs150' as const,
+                title: 'MCS-150 Biennial Update',
+                why: 'Avoid $1k+ fines with automated biennial updates and reminders.',
+                Icon: FileText,
+              },
+              {
+                id: 'ifta' as const,
+                title: 'IFTA Fuel Tax',
+                why: 'File and track IFTA fuel tax in one place. Stay audit-ready.',
+                Icon: Fuel,
+              },
+            ].map(({ id, title, why, Icon }) => (
+              <div
+                key={id}
+                className="group relative rounded-xl border-2 border-dashed border-amber-500/40 bg-white/[0.04] backdrop-blur-sm p-6 transition-all duration-300 hover:border-amber-500/70 hover:shadow-[0_0_40px_-8px_rgba(245,158,11,0.35)] hover:bg-white/[0.06]"
+                title={why}
+              >
+                <div className="absolute top-3 right-3 h-2 w-2 rounded-full bg-amber-500/60 group-hover:bg-amber-400" aria-hidden />
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="p-2 rounded-lg border border-amber-500/30 bg-amber-500/10">
+                    <Icon className="size-5 text-amber-400" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-soft-cloud">{title}</h3>
+                </div>
+                <p className="text-sm text-soft-cloud/60 mb-3 line-clamp-2">
+                  Under construction. Get notified when this power-up launches.
+                </p>
+                <p className="mb-4 min-h-[2.5rem] opacity-0 group-hover:opacity-100 transition-opacity duration-200 text-xs text-amber-300/95 rounded-lg px-3 py-2 border border-amber-500/20 bg-amber-500/5">
+                  <span className="font-medium text-amber-400/90">Why it matters:</span> {why}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setEarlyAccessModal(id)}
+                  className="w-full py-2.5 rounded-lg border border-amber-500/50 bg-amber-500/10 text-amber-400 text-sm font-medium hover:bg-amber-500/20 hover:border-amber-500/60 transition-colors"
+                >
+                  Get Early Access
+                </button>
+              </div>
+            ))}
+          </motion.div>
+        </div>
+      </section>
+
+      {/* The Future of VantagFleet — three glassmorphism cards + Compliance Alpha waitlist */}
+      <section className="relative py-24 px-4 bg-midnight-ink border-t border-white/5">
+        <div className="max-w-5xl mx-auto">
+          <motion.h2
+            initial={{ opacity: 0, y: 16 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.2 }}
+            className="text-3xl sm:text-4xl font-bold text-soft-cloud text-center mb-2"
+          >
+            The Future of <span className="text-cyber-amber">VantagFleet</span>
+          </motion.h2>
+          <motion.p
+            initial={{ opacity: 0, y: 12 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.2 }}
+            className="text-soft-cloud/60 text-center mb-12"
+          >
+            Compliance tools that work as hard as you do.
+          </motion.p>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.15 }}
+            transition={{ duration: 0.5 }}
+            className="grid grid-cols-1 md:grid-cols-3 gap-6"
+          >
+            {[
+              {
+                title: 'BOC-3 Authority Link',
+                subtext: 'Instant 50-state process agent coverage. Stay legal, stay moving.',
+                Icon: Scale,
+              },
+              {
+                title: 'Automated MCS-150',
+                subtext: 'Never miss a biennial update. We pre-fill your census data from your ELD activity.',
+                Icon: FileText,
+              },
+              {
+                title: 'Quarterly IFTA Prep',
+                subtext: 'Stop the spreadsheets. Automated fuel tax reporting based on GPS mileage.',
+                Icon: Fuel,
+              },
+            ].map(({ title, subtext, Icon }) => (
+              <div
+                key={title}
+                className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl shadow-[0_0_40px_-12px_rgba(255,176,0,0.12)] p-6 flex flex-col"
+              >
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="p-2 rounded-lg bg-amber-500/20 border border-amber-500/30">
+                    <Icon className="size-5 text-amber-400" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-soft-cloud">{title}</h3>
+                </div>
+                <p className="text-sm text-soft-cloud/70 mb-6 flex-1">{subtext}</p>
+                <button
+                  type="button"
+                  onClick={() => setRoadmapModalOpen(true)}
+                  className="w-full py-2.5 rounded-xl border border-amber-500/40 bg-amber-500/10 text-amber-400 text-sm font-medium hover:bg-amber-500/20 hover:border-amber-500/50 transition-colors"
+                >
+                  Early Access
+                </button>
+              </div>
+            ))}
+          </motion.div>
+        </div>
+      </section>
+
       {/* Trust Bar — Motive, Motus, Samsara (Soon), Geotab (Soon) */}
       <section className="relative py-16 px-4 border-y border-white/10 bg-white/[0.02]">
         <motion.p
@@ -569,6 +821,199 @@ export function LandingPage({ isAuthenticated = false, navbarRole = null }: Land
                 >
                   Built for the road. — <span className="text-soft-cloud font-medium not-italic">Jason Lacey</span>, Founder
                 </motion.p>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Get Early Access — lead capture modal */}
+      <AnimatePresence>
+        {earlyAccessModal && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-md"
+              onClick={closeEarlyAccessModal}
+              aria-hidden
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.96 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.96 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+              className="fixed left-1/2 top-1/2 z-[101] w-full max-w-md -translate-x-1/2 -translate-y-1/2 px-4"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="early-access-title"
+            >
+              <div className="rounded-2xl border-2 border-amber-500/30 bg-midnight-ink/95 shadow-2xl shadow-amber-500/10 p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 id="early-access-title" className="text-lg font-semibold text-soft-cloud">
+                    Get Early Access — {earlyAccessModal === 'boc3' ? 'BOC-3' : earlyAccessModal === 'mcs150' ? 'MCS-150' : 'IFTA'}
+                  </h3>
+                  <button
+                    type="button"
+                    onClick={closeEarlyAccessModal}
+                    className="rounded-full p-2 text-soft-cloud/70 hover:text-amber-400 hover:bg-white/10 transition-colors"
+                    aria-label="Close"
+                  >
+                    <X className="size-5" />
+                  </button>
+                </div>
+                {earlyAccessSuccess ? (
+                  <p className="text-soft-cloud py-4 text-center">You&apos;re on the list. We&apos;ll be in touch.</p>
+                ) : (
+                  <form onSubmit={handleEarlyAccessSubmit} className="space-y-4">
+                    <div>
+                      <label htmlFor="early-access-email" className="block text-sm font-medium text-soft-cloud/80 mb-1">
+                        Email *
+                      </label>
+                      <input
+                        id="early-access-email"
+                        type="email"
+                        required
+                        value={earlyAccessEmail}
+                        onChange={(e) => setEarlyAccessEmail(e.target.value)}
+                        placeholder="you@company.com"
+                        className="w-full px-4 py-2.5 rounded-lg bg-white/5 border border-white/20 text-soft-cloud placeholder-soft-cloud/40 focus:outline-none focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/40"
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="early-access-dot" className="block text-sm font-medium text-soft-cloud/80 mb-1">
+                        DOT Number (optional)
+                      </label>
+                      <input
+                        id="early-access-dot"
+                        type="text"
+                        value={earlyAccessDot}
+                        onChange={(e) => setEarlyAccessDot(e.target.value)}
+                        placeholder="e.g. 1234567"
+                        className="w-full px-4 py-2.5 rounded-lg bg-white/5 border border-white/20 text-soft-cloud placeholder-soft-cloud/40 focus:outline-none focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/40"
+                      />
+                    </div>
+                    {earlyAccessError && (
+                      <p className="text-sm text-red-400">{earlyAccessError}</p>
+                    )}
+                    <div className="flex gap-3 pt-2">
+                      <button
+                        type="button"
+                        onClick={closeEarlyAccessModal}
+                        className="flex-1 py-2.5 rounded-lg border border-white/20 text-soft-cloud/80 hover:bg-white/5"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={earlyAccessSubmitting}
+                        className="flex-1 py-2.5 rounded-lg bg-amber-500 text-midnight-ink font-medium hover:bg-amber-400 disabled:opacity-60"
+                      >
+                        {earlyAccessSubmitting ? 'Submitting…' : 'Submit'}
+                      </button>
+                    </div>
+                  </form>
+                )}
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Join the Compliance Alpha — roadmap_leads modal */}
+      <AnimatePresence>
+        {roadmapModalOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-md"
+              onClick={closeRoadmapModal}
+              aria-hidden
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.96 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.96 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+              className="fixed left-1/2 top-1/2 z-[101] w-full max-w-md -translate-x-1/2 -translate-y-1/2 px-4"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="roadmap-modal-title"
+            >
+              <div className="rounded-2xl border border-white/10 bg-black/40 backdrop-blur-2xl shadow-[0_0_50px_-12px_rgba(255,191,0,0.2)] p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 id="roadmap-modal-title" className="text-lg font-semibold text-soft-cloud">
+                    Join the Compliance Alpha
+                  </h3>
+                  <button
+                    type="button"
+                    onClick={closeRoadmapModal}
+                    className="rounded-full p-2 text-soft-cloud/70 hover:text-amber-400 hover:bg-white/10 transition-colors"
+                    aria-label="Close"
+                  >
+                    <X className="size-5" />
+                  </button>
+                </div>
+                <p className="text-sm text-soft-cloud/70 mb-5">
+                  We will notify you the moment these tools go live.
+                </p>
+                {roadmapSuccess ? (
+                  <p className="text-soft-cloud py-4 text-center">You&apos;re on the list. We&apos;ll be in touch.</p>
+                ) : (
+                  <form onSubmit={handleRoadmapSubmit} className="space-y-4">
+                    <div>
+                      <label htmlFor="roadmap-email" className="block text-sm font-medium text-soft-cloud/80 mb-1">
+                        Email Address *
+                      </label>
+                      <input
+                        id="roadmap-email"
+                        type="email"
+                        required
+                        value={roadmapEmail}
+                        onChange={(e) => setRoadmapEmail(e.target.value)}
+                        placeholder="you@company.com"
+                        className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/20 text-soft-cloud placeholder-soft-cloud/40 focus:outline-none focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/40"
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="roadmap-dot" className="block text-sm font-medium text-soft-cloud/80 mb-1">
+                        DOT Number
+                      </label>
+                      <input
+                        id="roadmap-dot"
+                        type="text"
+                        value={roadmapDot}
+                        onChange={(e) => setRoadmapDot(e.target.value)}
+                        placeholder="e.g. 1234567"
+                        className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/20 text-soft-cloud placeholder-soft-cloud/40 focus:outline-none focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/40"
+                      />
+                    </div>
+                    {roadmapError && (
+                      <p className="text-sm text-red-400">{roadmapError}</p>
+                    )}
+                    <div className="flex gap-3 pt-2">
+                      <button
+                        type="button"
+                        onClick={closeRoadmapModal}
+                        className="flex-1 py-2.5 rounded-xl border border-white/20 text-soft-cloud/80 hover:bg-white/5"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={roadmapSubmitting}
+                        className="flex-1 py-2.5 rounded-xl bg-amber-500 text-midnight-ink font-medium hover:bg-amber-400 disabled:opacity-60"
+                      >
+                        {roadmapSubmitting ? 'Submitting…' : 'Submit'}
+                      </button>
+                    </div>
+                  </form>
+                )}
               </div>
             </motion.div>
           </>

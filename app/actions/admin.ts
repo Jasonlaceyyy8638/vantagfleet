@@ -453,6 +453,17 @@ export async function getWishlistCounts(): Promise<WishlistCounts> {
   };
 }
 
+/** Compliance Power-Up waitlist counts (MCS-150, BOC-3) for admin demand view. */
+export async function getCompliancePowerupWaitlistCounts(): Promise<{ mcs150: number; boc3: number }> {
+  await requireStaff();
+  const admin = createAdminClient();
+  const [{ count: mcs150 }, { count: boc3 }] = await Promise.all([
+    admin.from('compliance_powerup_waitlist').select('*', { count: 'exact', head: true }).eq('powerup_type', 'mcs150'),
+    admin.from('compliance_powerup_waitlist').select('*', { count: 'exact', head: true }).eq('powerup_type', 'boc3'),
+  ]);
+  return { mcs150: mcs150 ?? 0, boc3: boc3 ?? 0 };
+}
+
 export async function getProductRoadmapRequests(): Promise<UserRequestRow[]> {
   await requireStaff();
   const admin = createAdminClient();
@@ -511,8 +522,13 @@ export async function updateOrgFeatures(
 
 const FMCSA_CARRIER_URL = 'https://mobile.fmcsa.dot.gov/qc/services/carriers';
 
-/** Fetch FMCSA safety rating for a DOT number. Returns null on error or if not found. */
-async function fetchFmcsaSafetyRating(dot: string): Promise<SafetyRating> {
+type FmcsaCarrierInfo = { safetyRating: SafetyRating; allowedToOperate: boolean };
+
+/**
+ * Fetch FMCSA carrier info (safety rating + census allowedToOperate) for a DOT number.
+ * allowedToOperate = census/MCS-150 current; it does NOT indicate BMC-91/BOC-3 or operating authority.
+ */
+async function fetchFmcsaCarrierInfo(dot: string): Promise<FmcsaCarrierInfo | null> {
   const webKey = process.env.FMCSA_WEBKEY?.trim();
   if (!webKey) return null;
   try {
@@ -525,30 +541,34 @@ async function fetchFmcsaSafetyRating(dot: string): Promise<SafetyRating> {
           safetyRating?: string;
           rating?: string;
           SafetyRating?: string;
+          allowedToOperate?: string;
         };
       };
     };
-    const raw =
-      data?.content?.carrier?.safetyRating ??
-      data?.content?.carrier?.rating ??
-      data?.content?.carrier?.SafetyRating;
-    if (!raw || typeof raw !== 'string') return null;
-    const normalized = raw.trim();
-    if (normalized === 'Satisfactory' || normalized === 'Conditional' || normalized === 'Unsatisfactory' || normalized === 'None')
-      return normalized as SafetyRating;
-    return null;
+    const carrier = data?.content?.carrier;
+    if (!carrier) return null;
+    const rawRating =
+      carrier.safetyRating ?? carrier.rating ?? (carrier as { SafetyRating?: string }).SafetyRating;
+    let safetyRating: SafetyRating = null;
+    if (rawRating && typeof rawRating === 'string') {
+      const normalized = rawRating.trim();
+      if (normalized === 'Satisfactory' || normalized === 'Conditional' || normalized === 'Unsatisfactory' || normalized === 'None')
+        safetyRating = normalized as SafetyRating;
+    }
+    const allowedToOperate = (carrier.allowedToOperate ?? '').toString().toUpperCase() === 'Y';
+    return { safetyRating, allowedToOperate };
   } catch {
     return null;
   }
 }
 
-/** All carriers (organizations) with Stripe subscription status and FMCSA safety rating. Admin-only. */
+/** All carriers (organizations) with Stripe subscription status, FMCSA safety/census, and authority verified. Admin-only. */
 export async function getCarriersWithSubscription(): Promise<CarrierRow[]> {
   await requireAdmin();
   const admin = createAdminClient();
   const { data: orgs, error } = await admin
     .from('organizations')
-    .select('id, name, usdot_number, stripe_customer_id')
+    .select('id, name, usdot_number, stripe_customer_id, authority_verified')
     .order('name');
   if (error) throw new Error(error.message);
   if (!orgs?.length) return [];
@@ -556,16 +576,19 @@ export async function getCarriersWithSubscription(): Promise<CarrierRow[]> {
   const secretKey = process.env.STRIPE_SECRET_KEY;
   const stripe = secretKey ? new Stripe(secretKey) : null;
 
-  const safetyPromises = orgs.map((org) =>
+  const fmcsaPromises = orgs.map((org) =>
     org.usdot_number?.trim()
-      ? fetchFmcsaSafetyRating(org.usdot_number.trim())
-      : Promise.resolve(null as SafetyRating)
+      ? fetchFmcsaCarrierInfo(org.usdot_number.trim())
+      : Promise.resolve(null as FmcsaCarrierInfo | null)
   );
-  const safetyRatings = await Promise.all(safetyPromises);
+  const fmcsaResults = await Promise.all(fmcsaPromises);
 
   const rows: CarrierRow[] = [];
   for (let i = 0; i < orgs.length; i++) {
     const org = orgs[i];
+    const authorityVerified = !!org.authority_verified;
+    const fmcsa = fmcsaResults[i];
+    const dotCensusActive = fmcsa?.allowedToOperate ?? false;
     let status: SubscriptionStatus = 'none';
     if (org.stripe_customer_id && stripe) {
       try {
@@ -589,7 +612,9 @@ export async function getCarriersWithSubscription(): Promise<CarrierRow[]> {
       name: org.name,
       usdot_number: org.usdot_number ?? null,
       subscriptionStatus: status,
-      safetyRating: safetyRatings[i] ?? null,
+      safetyRating: fmcsa?.safetyRating ?? null,
+      dotCensusActive,
+      authorityVerified,
     });
   }
   return rows;

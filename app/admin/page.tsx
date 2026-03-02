@@ -7,6 +7,7 @@ import {
   getAdminStats,
   getCarriersWithSubscription,
   listCarriersWithIntegrations,
+  getCompliancePowerupWaitlistCounts,
 } from '@/app/actions/admin';
 import { getStripeStats } from '@/app/actions/stripe-stats';
 import { listStaff } from '@/app/actions/admin-team';
@@ -28,10 +29,11 @@ export default async function AdminPage() {
   let carrierIntegrations: Awaited<ReturnType<typeof listCarriersWithIntegrations>> = [];
   let staff: Awaited<ReturnType<typeof listStaff>> = [];
   let stripeStats = emptyStripeStats;
+  let powerupWaitlist = { mcs150: 0, boc3: 0 };
   let loadError: string | null = null;
 
   try {
-    const [p, o, s, c, ci, st, ss] = await Promise.all([
+    const [p, o, s, c, ci, st, ss, pw] = await Promise.all([
       listProfilesForAdmin(),
       listOrganizationsForAdmin(),
       getAdminStats(),
@@ -39,6 +41,7 @@ export default async function AdminPage() {
       listCarriersWithIntegrations(),
       listStaff(),
       getStripeStats(),
+      getCompliancePowerupWaitlistCounts(),
     ]);
     profiles = p;
     orgs = o;
@@ -47,6 +50,7 @@ export default async function AdminPage() {
     carrierIntegrations = ci;
     staff = st;
     stripeStats = ss;
+    powerupWaitlist = pw;
   } catch (err) {
     loadError = err instanceof Error ? err.message : 'Failed to load admin data';
   }
@@ -73,6 +77,7 @@ export default async function AdminPage() {
         initialCarriers={carriers}
         initialCarrierIntegrations={carrierIntegrations}
         initialStaff={staff}
+        powerupWaitlistCounts={powerupWaitlist}
         loadError={loadError}
       />
     </div>

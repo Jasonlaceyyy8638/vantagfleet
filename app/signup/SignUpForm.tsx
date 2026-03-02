@@ -5,10 +5,35 @@ import { createOrganization } from '@/app/actions/auth';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { CheckCircle2, X } from 'lucide-react';
+import { CheckCircle2, X, Shield } from 'lucide-react';
 
 function getSupabaseClient() {
   return createClient();
+}
+
+/** FMCSA: last digit = month (1=Jan … 9=Sep, 0=Oct). Second-to-last odd = odd year, even = even year. */
+function getMcs150DueFromDot(dot: string): { month: string; year: number } | null {
+  const digits = dot.replace(/\D/g, '');
+  if (digits.length < 2) return null;
+  const last = digits.slice(-1);
+  const tens = digits.slice(-2, -1);
+  const months: Record<string, string> = {
+    '1': 'January', '2': 'February', '3': 'March', '4': 'April', '5': 'May',
+    '6': 'June', '7': 'July', '8': 'August', '9': 'September', '0': 'October',
+  };
+  const month = months[last];
+  if (!month) return null;
+  const tensNum = parseInt(tens, 10);
+  const isOddYear = tensNum % 2 === 1;
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  let year = isOddYear
+    ? (currentYear % 2 === 1 ? currentYear : currentYear + 1)
+    : (currentYear % 2 === 0 ? currentYear : currentYear + 1);
+  const monthIndex = last === '0' ? 9 : parseInt(last, 10) - 1; // 0=Oct(9), 1=Jan(0), ..., 9=Sep(8)
+  const dueDate = new Date(year, monthIndex, 1);
+  if (dueDate < now) year += 2;
+  return { month, year };
 }
 
 type Step = 'company' | 'account';
@@ -238,14 +263,38 @@ export function SignUpForm() {
             </div>
           </div>
           {dotVerified && (
-            <p className="mt-2 flex items-center gap-1.5 text-sm text-green-500">
-              <CheckCircle2 className="size-4 shrink-0" />
-              <span className="inline-flex items-center rounded-md bg-green-500/15 px-2 py-0.5 font-medium text-green-400">
-                FMCSA Verified
-              </span>
-            </p>
+            <div className="mt-2 space-y-1">
+              <p className="flex items-center gap-1.5 text-sm text-green-500">
+                <CheckCircle2 className="size-4 shrink-0" />
+                <span className="inline-flex items-center rounded-md bg-green-500/15 px-2 py-0.5 font-medium text-green-400">
+                  DOT on file (MCS-150)
+                </span>
+              </p>
+              <p className="text-xs text-cloud-dancer/60">
+                Keep insurance (BMC-91) and process agents (BOC-3) current to operate legally.
+              </p>
+            </div>
           )}
           {verifyError && <p className="mt-1 text-sm text-red-400">{verifyError}</p>}
+          {/* Compliance Health — MCS-150 due date from DOT (adds expert authority) */}
+          {usdot.replace(/\D/g, '').length >= 2 && (() => {
+            const due = getMcs150DueFromDot(usdot);
+            if (!due) return null;
+            return (
+              <div className="mt-3 rounded-lg border border-amber-500/20 bg-amber-500/5 p-3 flex items-start gap-2">
+                <Shield className="size-4 text-amber-500 shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-xs font-medium text-cloud-dancer/80 uppercase tracking-wider">Compliance Health</p>
+                  <p className="text-sm text-cloud-dancer font-medium mt-0.5">
+                    Next filing due: {due.month} {due.year}
+                  </p>
+                  <p className="text-xs text-cloud-dancer/50 mt-1">
+                    MCS-150 biennial update · Based on your DOT number.
+                  </p>
+                </div>
+              </div>
+            );
+          })()}
         </div>
         <div>
           <label htmlFor="companyName" className="block text-sm font-medium text-cloud-dancer mb-1">
