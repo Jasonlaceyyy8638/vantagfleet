@@ -24,10 +24,13 @@ export async function GET(request: NextRequest) {
     const res = await fetch(url, { headers: { Accept: 'application/json' } });
 
     if (res.status === 404) {
-      return NextResponse.json({ error: 'DOT Number not found.' }, { status: 404 });
+      return NextResponse.json(
+        { error: 'DOT number not found or not registered with FMCSA.' },
+        { status: 404 }
+      );
     }
 
-    const data = (await res.json()) as {
+    let data: {
       content?: {
         carrier?: {
           allowedToOperate?: string;
@@ -36,10 +39,21 @@ export async function GET(request: NextRequest) {
         };
       };
     };
+    try {
+      data = (await res.json()) as typeof data;
+    } catch {
+      return NextResponse.json(
+        { error: 'DOT number not found or not registered with FMCSA.' },
+        { status: 502 }
+      );
+    }
 
     const carrier = data?.content?.carrier;
     if (!carrier) {
-      return NextResponse.json({ error: 'DOT Number not found.' }, { status: 404 });
+      return NextResponse.json(
+        { error: 'DOT number not found or not registered with FMCSA.' },
+        { status: 404 }
+      );
     }
 
     const allowed =

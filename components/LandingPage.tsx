@@ -225,15 +225,14 @@ export function LandingPage({ isAuthenticated = false, navbarRole = null }: Land
             transition={{ duration: 0.7 }}
             className="relative rounded-2xl border-2 border-cyber-amber/60 bg-black/40 p-2 sm:p-3 shadow-[0_0_60px_-12px_rgba(255,176,0,0.2)]"
           >
-            <div className="aspect-video rounded-xl bg-midnight-ink/80 flex items-center justify-center overflow-hidden border border-white/10">
-              <div className="text-center p-8">
-                <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-cyber-amber/20 text-cyber-amber mb-4">
-                  <span className="text-4xl font-bold">▶</span>
-                </div>
-                <p className="text-soft-cloud/60 text-sm uppercase tracking-wider">
-                  Founder&apos;s tape — video coming soon
-                </p>
-              </div>
+            <div className="aspect-video rounded-xl bg-midnight-ink/80 overflow-hidden border border-white/10">
+              <video
+                className="w-full h-full object-cover"
+                src="/videos/founder-story.mp4"
+                controls
+                playsInline
+                preload="metadata"
+              />
             </div>
             <div className="mt-6 flex gap-3">
               <Quote className="size-8 text-cyber-amber/70 shrink-0 mt-0.5" />

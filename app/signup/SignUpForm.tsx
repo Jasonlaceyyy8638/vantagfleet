@@ -38,13 +38,21 @@ export function SignUpForm() {
     setDotVerified(false);
     try {
       const res = await fetch(`/api/verify-dot?dot=${encodeURIComponent(dot)}`);
-      const data = await res.json();
+      let data: { error?: string; legalName?: string | null } = {};
+      try {
+        data = await res.json();
+      } catch {
+        setVerifyError('DOT number not found or not registered with FMCSA.');
+        return;
+      }
       if (!res.ok) {
-        setVerifyError(data?.error ?? 'Verification failed.');
+        setVerifyError(data?.error ?? 'DOT number not found or not registered with FMCSA.');
         return;
       }
       setDotVerified(true);
       if (data.legalName) setCompanyName(data.legalName);
+    } catch {
+      setVerifyError('Verification failed. Please try again.');
     } finally {
       setVerifyLoading(false);
     }
@@ -111,20 +119,6 @@ export function SignUpForm() {
     return (
       <form onSubmit={handleCompanySubmit} className="space-y-4">
         <div>
-          <label htmlFor="companyName" className="block text-sm font-medium text-cloud-dancer mb-1">
-            Company name
-          </label>
-          <input
-            id="companyName"
-            type="text"
-            value={companyName}
-            onChange={(e) => setCompanyName(e.target.value)}
-            required
-            className="w-full px-3 py-2 rounded-lg bg-deep-ink border border-[#30363d] text-cloud-dancer placeholder-cloud-dancer/50 focus:outline-none focus:ring-2 focus:ring-transformative-teal"
-            placeholder="Acme Trucking LLC"
-          />
-        </div>
-        <div>
           <label htmlFor="usdot" className="block text-sm font-medium text-cloud-dancer mb-1">
             USDOT number *
           </label>
@@ -161,6 +155,20 @@ export function SignUpForm() {
             </p>
           )}
           {verifyError && <p className="mt-1 text-sm text-red-400">{verifyError}</p>}
+        </div>
+        <div>
+          <label htmlFor="companyName" className="block text-sm font-medium text-cloud-dancer mb-1">
+            Company name
+          </label>
+          <input
+            id="companyName"
+            type="text"
+            value={companyName}
+            onChange={(e) => setCompanyName(e.target.value)}
+            required
+            className="w-full px-3 py-2 rounded-lg bg-deep-ink border border-[#30363d] text-cloud-dancer placeholder-cloud-dancer/50 focus:outline-none focus:ring-2 focus:ring-transformative-teal"
+            placeholder="Acme Trucking LLC"
+          />
         </div>
         {message && <p className="text-sm text-red-400">{message}</p>}
         <button
