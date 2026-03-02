@@ -53,11 +53,15 @@ export type OrgFeatureKey = (typeof ORG_FEATURE_KEYS)[number];
 
 export type OrgTierAndFeatures = { tier: string | null; features: string[] };
 
+/** FMCSA safety rating: Satisfactory, Conditional, Unsatisfactory, or None. */
+export type SafetyRating = 'Satisfactory' | 'Conditional' | 'Unsatisfactory' | 'None' | null;
+
 export type CarrierRow = {
   id: string;
   name: string;
   usdot_number: string | null;
   subscriptionStatus: SubscriptionStatus;
+  safetyRating: SafetyRating;
 };
 
 export type CarrierIntegrationsRow = {

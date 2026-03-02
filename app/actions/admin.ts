@@ -17,6 +17,7 @@ import type {
   CarrierRow,
   CarrierIntegrationsRow,
   MotiveDriverRow,
+  SafetyRating,
 } from '@/lib/admin-types';
 import { ORG_FEATURE_KEYS } from '@/lib/admin-types';
 
@@ -508,7 +509,40 @@ export async function updateOrgFeatures(
   return { ok: true };
 }
 
-/** All carriers (organizations) with Stripe subscription status. Admin-only. */
+const FMCSA_CARRIER_URL = 'https://mobile.fmcsa.dot.gov/qc/services/carriers';
+
+/** Fetch FMCSA safety rating for a DOT number. Returns null on error or if not found. */
+async function fetchFmcsaSafetyRating(dot: string): Promise<SafetyRating> {
+  const webKey = process.env.FMCSA_WEBKEY?.trim();
+  if (!webKey) return null;
+  try {
+    const url = `${FMCSA_CARRIER_URL}/${encodeURIComponent(dot)}?webKey=${encodeURIComponent(webKey)}`;
+    const res = await fetch(url, { headers: { Accept: 'application/json' }, signal: AbortSignal.timeout(8000) });
+    if (!res.ok) return null;
+    const data = (await res.json()) as {
+      content?: {
+        carrier?: {
+          safetyRating?: string;
+          rating?: string;
+          SafetyRating?: string;
+        };
+      };
+    };
+    const raw =
+      data?.content?.carrier?.safetyRating ??
+      data?.content?.carrier?.rating ??
+      data?.content?.carrier?.SafetyRating;
+    if (!raw || typeof raw !== 'string') return null;
+    const normalized = raw.trim();
+    if (normalized === 'Satisfactory' || normalized === 'Conditional' || normalized === 'Unsatisfactory' || normalized === 'None')
+      return normalized as SafetyRating;
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+/** All carriers (organizations) with Stripe subscription status and FMCSA safety rating. Admin-only. */
 export async function getCarriersWithSubscription(): Promise<CarrierRow[]> {
   await requireAdmin();
   const admin = createAdminClient();
@@ -522,8 +556,16 @@ export async function getCarriersWithSubscription(): Promise<CarrierRow[]> {
   const secretKey = process.env.STRIPE_SECRET_KEY;
   const stripe = secretKey ? new Stripe(secretKey) : null;
 
+  const safetyPromises = orgs.map((org) =>
+    org.usdot_number?.trim()
+      ? fetchFmcsaSafetyRating(org.usdot_number.trim())
+      : Promise.resolve(null as SafetyRating)
+  );
+  const safetyRatings = await Promise.all(safetyPromises);
+
   const rows: CarrierRow[] = [];
-  for (const org of orgs) {
+  for (let i = 0; i < orgs.length; i++) {
+    const org = orgs[i];
     let status: SubscriptionStatus = 'none';
     if (org.stripe_customer_id && stripe) {
       try {
@@ -547,6 +589,7 @@ export async function getCarriersWithSubscription(): Promise<CarrierRow[]> {
       name: org.name,
       usdot_number: org.usdot_number ?? null,
       subscriptionStatus: status,
+      safetyRating: safetyRatings[i] ?? null,
     });
   }
   return rows;

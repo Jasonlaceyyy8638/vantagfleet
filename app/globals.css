@@ -112,6 +112,15 @@ body {
   animation: hero-btn-shine 0.6s ease-out forwards;
 }
 
+/* Signup success: amber scanning line */
+@keyframes scan-line {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100vh); }
+}
+.animate-scan-line {
+  animation: scan-line 3s linear infinite;
+}
+
 /* Hero login card: HUD corner brackets — very thin amber line */
 .hud-corner {
   border-width: 0.5px;

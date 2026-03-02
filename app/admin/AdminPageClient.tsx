@@ -304,17 +304,23 @@ export function AdminPageClient({
                 <th className="px-6 py-3 font-medium">Company Name</th>
                 <th className="px-6 py-3 font-medium">DOT Number</th>
                 <th className="px-6 py-3 font-medium">Subscription</th>
+                <th className="px-6 py-3 font-medium">Safety Status</th>
                 <th className="px-6 py-3 font-medium">Actions</th>
               </tr>
             </thead>
             <tbody>
               {initialCarriers.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="px-6 py-8 text-center text-soft-cloud/50">No carriers yet.</td>
+                  <td colSpan={5} className="px-6 py-8 text-center text-soft-cloud/50">No carriers yet.</td>
                 </tr>
               ) : (
                 initialCarriers.map((c) => (
-                  <tr key={c.id} className="border-b border-white/5 hover:bg-white/5">
+                  <tr
+                    key={c.id}
+                    className={`border-b border-white/5 hover:bg-white/5 ${
+                      c.safetyRating === 'Unsatisfactory' ? 'bg-red-500/15 border-l-4 border-l-red-500' : ''
+                    }`}
+                  >
                     <td className="px-6 py-3 text-soft-cloud">{c.name}</td>
                     <td className="px-6 py-3 text-soft-cloud/80">{c.usdot_number ?? '—'}</td>
                     <td className="px-6 py-3">
@@ -324,6 +330,21 @@ export function AdminPageClient({
                         c.subscriptionStatus === 'trialing' ? 'text-blue-400' : 'text-soft-cloud/60'
                       }>
                         {formatSubscriptionStatus(c.subscriptionStatus)}
+                      </span>
+                    </td>
+                    <td className="px-6 py-3">
+                      <span
+                        className={
+                          c.safetyRating === 'Unsatisfactory'
+                            ? 'font-medium text-red-400'
+                            : c.safetyRating === 'Satisfactory'
+                              ? 'text-green-400'
+                              : c.safetyRating === 'Conditional'
+                                ? 'text-amber-400'
+                                : 'text-soft-cloud/60'
+                        }
+                      >
+                        {c.safetyRating ?? '—'}
                       </span>
                     </td>
                     <td className="px-6 py-3">

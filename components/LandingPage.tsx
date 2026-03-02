@@ -1,13 +1,14 @@
 'use client';
 
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Navbar } from '@/components/Navbar';
 import { PricingSection } from '@/components/PricingSection';
 import { HeroLoginCard } from '@/components/HeroLoginCard';
-import { FileCheck, Users, Truck, Shield, ArrowRight, Plug, Quote, MapPin } from 'lucide-react';
+import { FileCheck, Users, Truck, Shield, ArrowRight, Plug, Quote, MapPin, X, Play } from 'lucide-react';
 import type { NavbarRole } from '@/lib/admin';
 
 const glassCardClass =
@@ -25,6 +26,8 @@ const HERO_VIDEO_SOURCES = [
 export function LandingPage({ isAuthenticated = false, navbarRole = null }: LandingPageProps) {
   const searchParams = useSearchParams();
   const heroVideoRef = useRef<HTMLVideoElement>(null);
+  const [storyModalOpen, setStoryModalOpen] = useState(false);
+  const founderVideoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
     const code = searchParams.get('code');
@@ -48,6 +51,20 @@ export function LandingPage({ isAuthenticated = false, navbarRole = null }: Land
       video.removeEventListener('canplay', play);
     };
   }, []);
+
+  useEffect(() => {
+    if (!storyModalOpen) return;
+    const v = founderVideoRef.current;
+    if (v) v.play().catch(() => {});
+    const onEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setStoryModalOpen(false);
+    };
+    document.addEventListener('keydown', onEscape);
+    return () => {
+      document.removeEventListener('keydown', onEscape);
+      if (v) v.pause();
+    };
+  }, [storyModalOpen]);
 
   return (
     <div className="min-h-screen bg-midnight-ink">
@@ -107,17 +124,27 @@ export function LandingPage({ isAuthenticated = false, navbarRole = null }: Land
               <div className="mt-10 w-full flex justify-center">
                 <HeroLoginCard redirectTo="/dashboard" />
               </div>
-              <motion.p
+              <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ duration: 0.5, delay: 0.3 }}
-                className="mt-6 text-sm text-soft-cloud/70"
+                className="mt-6 flex flex-wrap items-center justify-center gap-4"
               >
-                Don&apos;t have an account?{' '}
-                <Link href="/signup" className="text-[#FFBF00] hover:underline font-medium">
-                  Get started free
-                </Link>
-              </motion.p>
+                <p className="text-sm text-soft-cloud/70">
+                  Don&apos;t have an account?{' '}
+                  <Link href="/signup" className="text-[#FFBF00] hover:underline font-medium">
+                    Get started free
+                  </Link>
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setStoryModalOpen(true)}
+                  className="inline-flex items-center gap-2 px-6 py-3 rounded-xl border-2 border-[#FFBF00] text-[#FFBF00] font-semibold text-sm hover:bg-[#FFBF00]/10 transition-colors"
+                >
+                  <Play className="size-4" />
+                  Watch Our Story
+                </button>
+              </motion.div>
             </>
           ) : (
             <motion.div
@@ -137,6 +164,14 @@ export function LandingPage({ isAuthenticated = false, navbarRole = null }: Land
                   : 'Go to Dashboard'}
                 <ArrowRight className="size-5" />
               </Link>
+              <button
+                type="button"
+                onClick={() => setStoryModalOpen(true)}
+                className="inline-flex items-center gap-2 px-6 py-4 rounded-xl border-2 border-[#FFBF00] text-[#FFBF00] font-bold text-lg hover:bg-[#FFBF00]/10 transition-colors"
+              >
+                <Play className="size-5" />
+                Watch Our Story
+              </button>
             </motion.div>
           )}
         </div>
@@ -203,8 +238,10 @@ export function LandingPage({ isAuthenticated = false, navbarRole = null }: Land
             <div className="mt-6 flex gap-3">
               <Quote className="size-8 text-cyber-amber/70 shrink-0 mt-0.5" />
               <blockquote className="text-lg sm:text-xl text-soft-cloud/90 italic leading-relaxed">
-                I started VantagFleet because I was tired of logging into five different apps just to
-                see if my fleet was legal. We deserve better.
+                I spent a decade looking at the white lines on the asphalt. I&apos;ve felt the stress of a roadside
+                inspection and the headache of logs that just won&apos;t sync. VantagFleet wasn&apos;t built by a
+                developer who never left the city; it was built by a carrier who knows that in this business, time
+                is the only currency that matters. We don&apos;t just track your fleet—we protect your livelihood.
               </blockquote>
             </div>
           </motion.div>
@@ -418,6 +455,64 @@ export function LandingPage({ isAuthenticated = false, navbarRole = null }: Land
       <PricingSection />
 
       <CTASection isAuthenticated={isAuthenticated} navbarRole={navbarRole} />
+
+      {/* Founder story video modal */}
+      <AnimatePresence>
+        {storyModalOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-xl"
+              onClick={() => setStoryModalOpen(false)}
+              aria-hidden
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.96 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.96 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+              className="fixed left-1/2 top-1/2 z-[101] w-full max-w-4xl -translate-x-1/2 -translate-y-1/2 px-4"
+              role="dialog"
+              aria-modal="true"
+              aria-label="Founder story video"
+            >
+              <div className="relative rounded-2xl border-2 border-white/10 bg-midnight-ink/95 shadow-2xl overflow-hidden">
+                <button
+                  type="button"
+                  onClick={() => setStoryModalOpen(false)}
+                  className="absolute right-4 top-4 z-10 rounded-full p-2 text-soft-cloud/80 hover:text-[#FFBF00] hover:bg-white/10 transition-colors focus:outline-none focus:ring-2 focus:ring-[#FFBF00]"
+                  aria-label="Close"
+                >
+                  <X className="size-6 drop-shadow-md hover:drop-shadow-[0_0_8px_rgba(255,191,0,0.6)]" />
+                </button>
+                <div className="aspect-video w-full bg-black">
+                  <video
+                    ref={founderVideoRef}
+                    src="/videos/founder-story.mp4"
+                    className="h-full w-full object-contain"
+                    autoPlay
+                    playsInline
+                    muted
+                    loop
+                    controls
+                  />
+                </div>
+                <motion.p
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.4, duration: 0.5 }}
+                  className="px-6 pb-6 pt-2 text-center text-sm text-soft-cloud/70 italic"
+                >
+                  Built for the road. — <span className="text-soft-cloud font-medium not-italic">Jason Lacey</span>, Founder
+                </motion.p>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
