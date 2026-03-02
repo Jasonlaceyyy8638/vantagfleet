@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import {
   saveIntegration,
+  connectFmcsaWithPlatformKey,
   runComplianceSync,
   getIntegrationsForOrg,
   type IntegrationRow,
@@ -12,9 +13,8 @@ import { syncMotiveFleet } from '@/app/actions/motive-sync';
 import { Plug, Loader2, Check, X, RefreshCw, CloudDownload } from 'lucide-react';
 
 const PROVIDERS: { id: IntegrationProvider; name: string; label: string; placeholder: string }[] = [
-  { id: 'samsara', name: 'Samsara', label: 'Samsara', placeholder: 'API Key or Client ID' },
-  { id: 'motive', name: 'Motive', label: 'Motive', placeholder: 'API Key or Client ID' },
-  { id: 'fmcsa', name: 'FMCSA', label: 'FMCSA', placeholder: 'API Key or Client ID' },
+  { id: 'motive', name: 'Motive', label: 'Motive', placeholder: '' },
+  { id: 'fmcsa', name: 'FMCSA', label: 'FMCSA', placeholder: 'Paste key from FMCSA portal' },
 ];
 
 const COMING_SOON_PROVIDERS: { id: string; name: string; description: string }[] = [
@@ -42,6 +42,8 @@ export function IntegrationsHubClient({ orgId, initialIntegrations }: Props) {
   const [notifyMeEmail, setNotifyMeEmail] = useState('');
   const [notifyMeSending, setNotifyMeSending] = useState(false);
   const [notifyMeError, setNotifyMeError] = useState<string | null>(null);
+  const [fmcsaConnectLoading, setFmcsaConnectLoading] = useState(false);
+  const [fmcsaConnectError, setFmcsaConnectError] = useState<string | null>(null);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -119,6 +121,20 @@ export function IntegrationsHubClient({ orgId, initialIntegrations }: Props) {
     setModalProvider(provider);
     setCredential('');
     setError(null);
+    setFmcsaConnectError(null);
+  };
+
+  const handleConnectFmcsa = async () => {
+    setFmcsaConnectError(null);
+    setFmcsaConnectLoading(true);
+    const result = await connectFmcsaWithPlatformKey(orgId);
+    setFmcsaConnectLoading(false);
+    if ('ok' in result) {
+      const next = await getIntegrationsForOrg(orgId);
+      setIntegrations(next);
+    } else {
+      setFmcsaConnectError(result.error);
+    }
   };
 
   return (
@@ -139,9 +155,8 @@ export function IntegrationsHubClient({ orgId, initialIntegrations }: Props) {
                 <h2 className="text-lg font-semibold text-soft-cloud">{p.name}</h2>
               </div>
               <p className="text-sm text-soft-cloud/60 mb-4 flex-1">
-                {p.id === 'samsara' && 'Connect Samsara to sync vehicles and driver data.'}
-                {p.id === 'motive' && 'Connect Motive (formerly KeepTruckin) for ELD and fleet data.'}
-                {p.id === 'fmcsa' && 'Connect FMCSA for safety and compliance data.'}
+                {p.id === 'motive' && 'Connect with your Motive account. Click Connect to sign in and authorize—no API key needed.'}
+                {p.id === 'fmcsa' && 'Connect FMCSA for safety and compliance data with one click. No API key needed—VantagFleet uses secure FMCSA access for your organization.'}
               </p>
               <div className="flex flex-col gap-2">
                 <div className="flex items-center justify-between flex-wrap gap-2">
@@ -167,13 +182,41 @@ export function IntegrationsHubClient({ orgId, initialIntegrations }: Props) {
                         {syncDataLoading ? 'Syncing…' : 'Sync Data'}
                       </button>
                     )}
-                    <button
-                      type="button"
-                      onClick={() => openModal(p.id)}
-                      className="px-3 py-1.5 rounded-lg text-sm font-medium bg-cyber-amber text-midnight-ink hover:bg-cyber-amber/90 transition-colors"
-                    >
-                      {connected ? 'Update' : 'Connect'}
-                    </button>
+                    {p.id === 'motive' ? (
+                      <a
+                        href={`/api/auth/motive?org_id=${encodeURIComponent(orgId)}`}
+                        className="px-3 py-1.5 rounded-lg text-sm font-medium bg-cyber-amber text-midnight-ink hover:bg-cyber-amber/90 transition-colors inline-block"
+                      >
+                        {connected ? 'Reconnect' : 'Connect'}
+                      </a>
+                    ) : p.id === 'fmcsa' ? (
+                      <div className="flex flex-col items-end gap-1">
+                        <button
+                          type="button"
+                          onClick={handleConnectFmcsa}
+                          disabled={fmcsaConnectLoading}
+                          className="px-3 py-1.5 rounded-lg text-sm font-medium bg-cyber-amber text-midnight-ink hover:bg-cyber-amber/90 disabled:opacity-60 transition-colors"
+                        >
+                          {fmcsaConnectLoading ? <Loader2 className="size-3.5 animate-spin inline" /> : null}
+                          {fmcsaConnectLoading ? 'Connecting…' : connected ? 'Reconnect' : 'Connect'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => openModal('fmcsa')}
+                          className="text-xs text-soft-cloud/60 hover:text-cyber-amber transition-colors"
+                        >
+                          {connected ? 'Use my own key' : 'Use my own API key'}
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => openModal(p.id)}
+                        className="px-3 py-1.5 rounded-lg text-sm font-medium bg-cyber-amber text-midnight-ink hover:bg-cyber-amber/90 transition-colors"
+                      >
+                        {connected ? 'Update' : 'Connect'}
+                      </button>
+                    )}
                   </div>
                 </div>
                 {p.id === 'motive' && (motiveLastSyncedAt ?? row?.last_synced_at) && (
@@ -181,13 +224,8 @@ export function IntegrationsHubClient({ orgId, initialIntegrations }: Props) {
                     Last Synced: {formatLastSynced(motiveLastSyncedAt ?? row?.last_synced_at ?? null)}
                   </p>
                 )}
-                {p.id === 'motive' && !connected && (
-                  <a
-                    href={`/api/auth/motive?org_id=${encodeURIComponent(orgId)}`}
-                    className="text-xs text-cyber-amber/90 hover:text-cyber-amber"
-                  >
-                    Or sign in with Motive OAuth →
-                  </a>
+                {p.id === 'fmcsa' && fmcsaConnectError && (
+                  <p className="text-xs text-amber-400 mt-1">{fmcsaConnectError}</p>
                 )}
               </div>
             </div>
@@ -299,17 +337,22 @@ export function IntegrationsHubClient({ orgId, initialIntegrations }: Props) {
                 <X className="size-5" />
               </button>
             </div>
+            <p className="text-sm text-soft-cloud/70 mb-4">
+              {modalProvider === 'fmcsa'
+                ? 'Optional: paste your own FMCSA API key from the FMCSA portal to use instead of the platform connection.'
+                : 'Enter your API key or credentials from your provider.'}
+            </p>
             <form onSubmit={handleSave} className="space-y-4">
               <div>
                 <label htmlFor="integration-credential" className="block text-sm font-medium text-soft-cloud/80 mb-1.5">
-                  API Key or Client ID
+                  API Key
                 </label>
                 <input
                   id="integration-credential"
                   type="password"
                   value={credential}
                   onChange={(e) => setCredential(e.target.value)}
-                  placeholder={PROVIDERS.find((p) => p.id === modalProvider)?.placeholder}
+                  placeholder={modalProvider === 'fmcsa' ? 'Paste key from FMCSA portal' : 'Paste your API key'}
                   className="w-full px-3 py-2.5 rounded-lg bg-midnight-ink border border-white/10 text-soft-cloud placeholder-soft-cloud/50 focus:outline-none focus:ring-2 focus:ring-cyber-amber focus:border-cyber-amber/50"
                 />
               </div>

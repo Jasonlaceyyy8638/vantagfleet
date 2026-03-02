@@ -29,6 +29,39 @@ async function ensureUserInOrg(orgId: string): Promise<boolean> {
   return orgIds.includes(orgId);
 }
 
+/** Connect FMCSA using the platform's FMCSA_WEBKEY. No API key required from the carrier. */
+export async function connectFmcsaWithPlatformKey(orgId: string): Promise<{ ok: true } | { error: string }> {
+  const allowed = await ensureUserInOrg(orgId);
+  if (!allowed) return { error: 'You do not have access to this organization.' };
+
+  const platformKey = process.env.FMCSA_WEBKEY?.trim();
+  if (!platformKey) return { error: 'FMCSA is not configured. Contact support.' };
+
+  const supabase = await createClient();
+  const { data: existing } = await supabase
+    .from('carrier_integrations')
+    .select('id')
+    .eq('org_id', orgId)
+    .eq('provider', 'fmcsa')
+    .maybeSingle();
+
+  const credential = 'platform'; // Sentinel: use process.env.FMCSA_WEBKEY server-side when calling FMCSA APIs.
+
+  if (existing) {
+    const { error } = await supabase
+      .from('carrier_integrations')
+      .update({ credential, updated_at: new Date().toISOString() })
+      .eq('id', existing.id);
+    if (error) return { error: error.message };
+  } else {
+    const { error } = await supabase
+      .from('carrier_integrations')
+      .insert({ org_id: orgId, provider: 'fmcsa', credential });
+    if (error) return { error: error.message };
+  }
+  return { ok: true };
+}
+
 /** Save or update integration credential for the given org. Caller must be in org. */
 export async function saveIntegration(
   orgId: string,

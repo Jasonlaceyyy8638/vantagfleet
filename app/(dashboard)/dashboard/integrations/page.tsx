@@ -21,8 +21,11 @@ export default async function IntegrationsPage() {
   return (
     <div className="p-6 md:p-8 max-w-5xl">
       <h1 className="text-2xl font-bold text-soft-cloud mb-2">Integrations Hub</h1>
-      <p className="text-soft-cloud/70 mb-6">
-        Connect Samsara, Motive, and FMCSA to sync data. Run a compliance check to generate alerts for expired CDL/med or missing inspections.
+      <p className="text-soft-cloud/70 mb-2">
+        Connect your providers by signing in—no hunting for API keys. Click Connect, sign in with your provider, and authorize VantagFleet.
+      </p>
+      <p className="text-soft-cloud/50 text-sm mb-6">
+        <strong>Motive:</strong> Click Connect to sign in with your Motive account and authorize. <strong>FMCSA:</strong> Click Connect to enable FMCSA access—no API key needed. You can also use your own API key if you prefer.
       </p>
       <IntegrationsHubClient orgId={orgId} initialIntegrations={integrations} />
     </div>
