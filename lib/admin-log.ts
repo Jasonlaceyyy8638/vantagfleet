@@ -4,7 +4,10 @@ export type AdminLogAction =
   | 'refund'
   | 'organization_created'
   | 'organization_updated'
-  | 'manual_subscription';
+  | 'manual_subscription'
+  | 'cancel_subscription'
+  | 'downgrade_plan'
+  | 'carrier_deleted';
 
 export async function logAdminAction(
   employeeId: string,
