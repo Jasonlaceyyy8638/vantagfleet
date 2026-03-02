@@ -63,6 +63,11 @@ export function AdminPageClient({
 
   const [grantCreditOrgId, setGrantCreditOrgId] = useState<string | null>(null);
   const [grantCreditLoading, setGrantCreditLoading] = useState<string | null>(null);
+  const [grantCreditToast, setGrantCreditToast] = useState<{
+    type: 'success' | 'error';
+    message: string;
+    newBillingDate?: string;
+  } | null>(null);
   const grantCreditDropdownRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
 
@@ -76,6 +81,12 @@ export function AdminPageClient({
     document.addEventListener('click', handleClickOutside);
     return () => document.removeEventListener('click', handleClickOutside);
   }, [grantCreditOrgId]);
+
+  useEffect(() => {
+    if (!grantCreditToast) return;
+    const t = setTimeout(() => setGrantCreditToast(null), 5000);
+    return () => clearTimeout(t);
+  }, [grantCreditToast]);
 
   const handleCreateOrg = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -164,7 +175,22 @@ export function AdminPageClient({
   });
 
   return (
-    <div className="space-y-10">
+    <div className="space-y-10 relative">
+      {grantCreditToast && (
+        <div
+          className={`fixed top-4 left-1/2 -translate-x-1/2 z-[100] px-4 py-3 rounded-lg shadow-lg flex flex-col gap-0.5 min-w-[240px] ${
+            grantCreditToast.type === 'success'
+              ? 'bg-electric-teal/95 text-midnight-ink'
+              : 'bg-red-500/90 text-white'
+          }`}
+        >
+          <span className="font-semibold">{grantCreditToast.type === 'success' ? 'Success' : 'Error'}</span>
+          <span className="text-sm opacity-95">{grantCreditToast.message}</span>
+          {grantCreditToast.newBillingDate && (
+            <span className="text-sm font-medium mt-0.5">Next billing: {grantCreditToast.newBillingDate}</span>
+          )}
+        </div>
+      )}
       {loadError && (
         <div className="rounded-xl border border-amber-500/50 bg-amber-500/10 px-4 py-3 text-amber-200 text-sm">
           Could not load some data: {loadError}. Check server env (e.g. SUPABASE_SERVICE_ROLE_KEY) and try again.
@@ -339,12 +365,12 @@ export function AdminPageClient({
                             className="inline-flex items-center gap-1 rounded-lg border border-white/20 bg-white/5 px-2.5 py-1.5 text-xs font-medium text-soft-cloud hover:bg-white/10 disabled:opacity-50"
                           >
                             <Gift className="size-3.5" />
-                            Grant Free Credit
+                            Grant Credit
                             <ChevronDown className={`size-3.5 transition-transform ${grantCreditOrgId === c.id ? 'rotate-180' : ''}`} />
                           </button>
                           {grantCreditOrgId === c.id && (
-                            <div className="absolute left-0 top-full z-20 mt-1 max-h-48 w-36 overflow-y-auto rounded-lg border border-white/10 bg-card py-1 shadow-xl">
-                              {Array.from({ length: 30 }, (_, i) => i + 1).map((d) => (
+                            <div className="absolute left-0 top-full z-20 mt-1 w-32 rounded-lg border border-white/10 bg-card py-1 shadow-xl">
+                              {([7, 14, 30] as const).map((d) => (
                                 <button
                                   key={d}
                                   type="button"
@@ -358,21 +384,35 @@ export function AdminPageClient({
                                         body: JSON.stringify({ orgId: c.id, days: d }),
                                       });
                                       const data = await res.json();
+                                      setGrantCreditOrgId(null);
                                       if (!res.ok) {
-                                        alert(data?.error ?? 'Failed to grant credit');
+                                        setGrantCreditToast({
+                                          type: 'error',
+                                          message: data?.error ?? 'Failed to grant credit',
+                                        });
                                         return;
                                       }
-                                      setGrantCreditOrgId(null);
                                       router.refresh();
-                                      alert(data?.message ?? `${d} day${d === 1 ? '' : 's'} free credit granted.`);
+                                      const billingDate =
+                                        data.newBillingDate &&
+                                        new Date(data.newBillingDate).toLocaleDateString('en-US', {
+                                          month: 'short',
+                                          day: 'numeric',
+                                          year: 'numeric',
+                                        });
+                                      setGrantCreditToast({
+                                        type: 'success',
+                                        message: data?.message ?? `Granted ${d} days credit.`,
+                                        newBillingDate: billingDate,
+                                      });
                                     } finally {
                                       setGrantCreditLoading(null);
                                     }
                                   }}
                                   disabled={!!grantCreditLoading}
-                                  className="w-full px-3 py-1.5 text-left text-sm text-soft-cloud hover:bg-white/10 disabled:opacity-50"
+                                  className="w-full px-3 py-2 text-left text-sm text-soft-cloud hover:bg-white/10 disabled:opacity-50"
                                 >
-                                  {d} Day{d === 1 ? '' : 's'}
+                                  +{d} Days
                                 </button>
                               ))}
                             </div>

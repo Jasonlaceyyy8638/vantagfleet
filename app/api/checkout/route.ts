@@ -31,7 +31,8 @@ export async function POST(request: NextRequest) {
     const session = await stripe.checkout.sessions.create({
       mode: 'subscription',
       line_items: [{ price: priceId, quantity: 1 }],
-      success_url: `${baseUrl}/dashboard?payment=success`,
+      // is_trial=true so the dashboard can track trial signups in Supabase if desired
+      success_url: `${baseUrl}/dashboard?payment=success&is_trial=true`,
       cancel_url: `${baseUrl}/pricing`,
       payment_method_collection: 'always',
       metadata: {

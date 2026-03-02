@@ -61,14 +61,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const nowSec = Math.floor(Date.now() / 1000);
-    const newTrialEnd = nowSec + days * 24 * 60 * 60;
-    await stripe.subscriptions.update(active.id, { trial_end: newTrialEnd });
+    // Get current subscription to extend from existing period/trial end
+    const subscription = await stripe.subscriptions.retrieve(active.id);
+    const currentEnd = subscription.trial_end ?? subscription.current_period_end;
+    const newEnd = currentEnd + days * 24 * 60 * 60;
+
+    await stripe.subscriptions.update(active.id, {
+      trial_end: newEnd,
+      proration_behavior: 'none', // don't charge/credit for the change
+    });
 
     return NextResponse.json({
       ok: true,
+      success: true,
       subscriptionId: active.id,
-      trialEnd: newTrialEnd,
+      newBillingDate: new Date(newEnd * 1000),
       message: `Granted ${days} day${days === 1 ? '' : 's'} free credit. Next payment delayed.`,
     });
   } catch (err) {

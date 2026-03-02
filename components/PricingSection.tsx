@@ -1,8 +1,14 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Loader2 } from 'lucide-react';
+
+function trialEndDate(): string {
+  const d = new Date();
+  d.setDate(d.getDate() + 30);
+  return d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+}
 
 const PLANS = [
   {
@@ -26,6 +32,7 @@ const PLANS = [
 
 export function PricingSection() {
   const [loadingTier, setLoadingTier] = useState<string | null>(null);
+  const cancelBeforeDate = useMemo(() => trialEndDate(), []);
 
   const handleCheckout = async (tierId: 'starter' | 'pro') => {
     setLoadingTier(tierId);
@@ -81,6 +88,9 @@ export function PricingSection() {
                 <span className="text-3xl font-bold text-cyber-amber">${plan.price}</span>
                 <span className="text-soft-cloud/60">/{plan.interval}</span>
               </div>
+              <p className="mt-2 text-xs text-soft-cloud/70">
+                30 days free, then ${plan.price}/mo. Cancel anytime before {cancelBeforeDate}.
+              </p>
               <p className="mt-4 text-sm text-soft-cloud/80 leading-relaxed flex-1">
                 {plan.description}
               </p>

@@ -1,7 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Check, Loader2 } from 'lucide-react';
+
+function trialEndDate(): string {
+  const d = new Date();
+  d.setDate(d.getDate() + 30);
+  return d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+}
 
 const TIERS: Array<{
   id: 'starter' | 'pro';
@@ -30,6 +36,7 @@ const TIERS: Array<{
 
 export function Pricing() {
   const [loadingTier, setLoadingTier] = useState<string | null>(null);
+  const cancelBeforeDate = useMemo(() => trialEndDate(), []);
 
   const handleCheckout = async (tierId: 'starter' | 'pro') => {
     setLoadingTier(tierId);
@@ -63,6 +70,9 @@ export function Pricing() {
             <span className="text-3xl font-bold text-cyber-amber">${tier.price}</span>
             <span className="text-soft-cloud/60">/{tier.interval}</span>
           </div>
+          <p className="mt-2 text-xs text-soft-cloud/70">
+            30 days free, then ${tier.price}/mo. Cancel anytime before {cancelBeforeDate}.
+          </p>
           <ul className="mt-6 space-y-3 flex-1">
             {tier.features.map((f) => (
               <li key={f} className="flex items-center gap-2 text-sm text-soft-cloud/90">

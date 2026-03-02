@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/client';
 import { createOrganization } from '@/app/actions/auth';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { Loader2, CheckCircle2 } from 'lucide-react';
 
 function getSupabaseClient() {
   return createClient();
@@ -21,7 +22,33 @@ export function SignUpForm() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [orgId, setOrgId] = useState<string | null>(null);
+  const [dotVerified, setDotVerified] = useState(false);
+  const [verifyLoading, setVerifyLoading] = useState(false);
+  const [verifyError, setVerifyError] = useState<string | null>(null);
   const router = useRouter();
+
+  const handleVerifyDot = async () => {
+    const dot = usdot.trim();
+    if (!dot) {
+      setVerifyError('Enter a DOT number first.');
+      return;
+    }
+    setVerifyError(null);
+    setVerifyLoading(true);
+    setDotVerified(false);
+    try {
+      const res = await fetch(`/api/verify-dot?dot=${encodeURIComponent(dot)}`);
+      const data = await res.json();
+      if (!res.ok) {
+        setVerifyError(data?.error ?? 'Verification failed.');
+        return;
+      }
+      setDotVerified(true);
+      if (data.legalName) setCompanyName(data.legalName);
+    } finally {
+      setVerifyLoading(false);
+    }
+  };
 
   const handleCompanySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -101,23 +128,47 @@ export function SignUpForm() {
           <label htmlFor="usdot" className="block text-sm font-medium text-cloud-dancer mb-1">
             USDOT number *
           </label>
-          <input
-            id="usdot"
-            type="text"
-            value={usdot}
-            onChange={(e) => setUsdot(e.target.value)}
-            required
-            className="w-full px-3 py-2 rounded-lg bg-deep-ink border border-[#30363d] text-cloud-dancer placeholder-cloud-dancer/50 focus:outline-none focus:ring-2 focus:ring-transformative-teal"
-            placeholder="e.g. 1234567"
-          />
+          <div className="flex gap-2">
+            <input
+              id="usdot"
+              type="text"
+              value={usdot}
+              onChange={(e) => {
+                setUsdot(e.target.value);
+                setDotVerified(false);
+                setVerifyError(null);
+              }}
+              required
+              className="flex-1 px-3 py-2 rounded-lg bg-deep-ink border border-[#30363d] text-cloud-dancer placeholder-cloud-dancer/50 focus:outline-none focus:ring-2 focus:ring-transformative-teal"
+              placeholder="e.g. 1234567"
+            />
+            <button
+              type="button"
+              onClick={handleVerifyDot}
+              disabled={verifyLoading || !usdot.trim()}
+              className="shrink-0 px-4 py-2 rounded-lg border border-[#30363d] text-cloud-dancer hover:bg-deep-ink disabled:opacity-50 flex items-center gap-1.5"
+            >
+              {verifyLoading ? <Loader2 className="size-4 animate-spin" /> : null}
+              Verify
+            </button>
+          </div>
+          {dotVerified && (
+            <p className="mt-2 flex items-center gap-1.5 text-sm text-green-500">
+              <CheckCircle2 className="size-4 shrink-0" />
+              <span className="inline-flex items-center rounded-md bg-green-500/15 px-2 py-0.5 font-medium text-green-400">
+                FMCSA Verified
+              </span>
+            </p>
+          )}
+          {verifyError && <p className="mt-1 text-sm text-red-400">{verifyError}</p>}
         </div>
         {message && <p className="text-sm text-red-400">{message}</p>}
         <button
           type="submit"
-          disabled={loading}
+          disabled={loading || !dotVerified}
           className="w-full py-2.5 rounded-lg bg-cyber-amber hover:bg-cyber-amber/90 disabled:opacity-50 text-deep-ink font-medium"
         >
-          {loading ? 'Creating…' : 'Continue'}
+          {loading ? 'Creating…' : 'Create Account'}
         </button>
       </form>
     );
