@@ -14,9 +14,10 @@ const glassCardClass =
 
 type LandingPageProps = { isAuthenticated?: boolean; navbarRole?: NavbarRole | null };
 
+// Trucking/road-related hero video only — no generic samples (e.g. removed GoT promo)
 const HERO_VIDEO_SOURCES = [
   'https://assets.mixkit.co/videos/preview/mixkit-highway-traffic-at-night-with-long-exposure-4010-large.mp4',
-  'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
+  'https://assets.mixkit.co/videos/preview/mixkit-truck-on-highway-4073-large.mp4',
 ];
 
 export function LandingPage({ isAuthenticated = false, navbarRole = null }: LandingPageProps) {
