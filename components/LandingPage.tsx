@@ -3,7 +3,7 @@
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Navbar } from '@/components/Navbar';
 import { PricingSection } from '@/components/PricingSection';
 import { FileCheck, Users, Truck, Shield, ArrowRight, Plug, Quote, MapPin } from 'lucide-react';
@@ -14,9 +14,19 @@ const glassCardClass =
 
 type LandingPageProps = { isAuthenticated?: boolean; navbarRole?: NavbarRole | null };
 
+const HERO_VIDEO_SOURCES = [
+  'https://assets.mixkit.co/videos/preview/mixkit-highway-traffic-at-night-with-long-exposure-4010-large.mp4',
+  'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
+];
+
 export function LandingPage({ isAuthenticated = false, navbarRole = null }: LandingPageProps) {
   const searchParams = useSearchParams();
   const heroVideoRef = useRef<HTMLVideoElement>(null);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     const code = searchParams.get('code');
@@ -29,38 +39,44 @@ export function LandingPage({ isAuthenticated = false, navbarRole = null }: Land
   }, [searchParams]);
 
   useEffect(() => {
+    if (!mounted) return;
     const video = heroVideoRef.current;
     if (!video) return;
     const play = () => video.play().catch(() => {});
     play();
     video.addEventListener('loadeddata', play);
-    return () => video.removeEventListener('loadeddata', play);
-  }, []);
+    video.addEventListener('canplay', play);
+    return () => {
+      video.removeEventListener('loadeddata', play);
+      video.removeEventListener('canplay', play);
+    };
+  }, [mounted]);
 
   return (
     <div className="min-h-screen bg-midnight-ink">
       <Navbar isAuthenticated={isAuthenticated} />
 
-      {/* Hero: full-screen cinematic background — use NEXT_PUBLIC_HERO_VIDEO_URL (e.g. CDN) to avoid binary in repo */}
-      <section className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden">
+      {/* Hero: full-screen cinematic background — video rendered only on client to avoid SSR/hydration issues */}
+      <section className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden bg-midnight-ink">
         <div className="absolute inset-0 z-0">
-          <video
-            ref={heroVideoRef}
-            autoPlay
-            muted
-            loop
-            playsInline
-            preload="auto"
-            className="absolute inset-0 w-full h-full object-cover z-0 min-h-full min-w-full"
-          >
-            {/* Mixkit first (reliable CDN) so hero always shows video; your file second when Netlify serves it */}
-            <source
-              src="https://assets.mixkit.co/videos/preview/mixkit-highway-traffic-at-night-with-long-exposure-4010-large.mp4"
-              type="video/mp4"
-            />
-            <source src="/videos/hero-truck.mp4" type="video/mp4" />
-          </video>
-          <div className="absolute inset-0 bg-black/60" aria-hidden />
+          {mounted && (
+            <video
+              ref={heroVideoRef}
+              autoPlay
+              muted
+              loop
+              playsInline
+              preload="auto"
+              style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
+              className="min-h-full min-w-full"
+            >
+              {HERO_VIDEO_SOURCES.map((src) => (
+                <source key={src} src={src} type="video/mp4" />
+              ))}
+              <source src="/videos/hero-truck.mp4" type="video/mp4" />
+            </video>
+          )}
+          <div className="absolute inset-0 bg-black/50" aria-hidden />
         </div>
 
         <div className="relative z-10 flex flex-col items-center justify-center px-4 text-center max-w-4xl mx-auto">
