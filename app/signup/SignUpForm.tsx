@@ -3,8 +3,8 @@
 import { createClient } from '@/lib/supabase/client';
 import { createOrganization } from '@/app/actions/auth';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
-import { Loader2, CheckCircle2 } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Loader2, CheckCircle2, X } from 'lucide-react';
 
 function getSupabaseClient() {
   return createClient();
@@ -25,34 +25,47 @@ export function SignUpForm() {
   const [dotVerified, setDotVerified] = useState(false);
   const [verifyLoading, setVerifyLoading] = useState(false);
   const [verifyError, setVerifyError] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ message: string } | null>(null);
   const router = useRouter();
+
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 5000);
+    return () => clearTimeout(t);
+  }, [toast]);
 
   const handleVerifyDot = async () => {
     const dot = usdot.trim();
     if (!dot) {
-      setVerifyError('Enter a DOT number first.');
+      setToast({ message: 'Enter a DOT number first.' });
       return;
     }
     setVerifyError(null);
     setVerifyLoading(true);
     setDotVerified(false);
     try {
-      const res = await fetch(`/api/verify-dot?dot=${encodeURIComponent(dot)}`);
+      const res = await fetch(`/api/verify-dot?dotNumber=${encodeURIComponent(dot)}`);
       let data: { error?: string; legalName?: string | null } = {};
       try {
         data = await res.json();
       } catch {
-        setVerifyError('DOT number not found or not registered with FMCSA.');
+        const msg = 'DOT number not found or not registered with FMCSA.';
+        setVerifyError(msg);
+        setToast({ message: msg });
         return;
       }
       if (!res.ok) {
-        setVerifyError(data?.error ?? 'DOT number not found or not registered with FMCSA.');
+        const msg = data?.error ?? 'DOT number not found or not registered with FMCSA.';
+        setVerifyError(msg);
+        setToast({ message: msg });
         return;
       }
       setDotVerified(true);
-      if (data.legalName) setCompanyName(data.legalName);
+      setCompanyName(data.legalName ?? '');
     } catch {
-      setVerifyError('Verification failed. Please try again.');
+      const msg = 'Verification failed. Please try again.';
+      setVerifyError(msg);
+      setToast({ message: msg });
     } finally {
       setVerifyLoading(false);
     }
@@ -117,6 +130,20 @@ export function SignUpForm() {
 
   if (step === 'company') {
     return (
+      <div className="relative">
+        {toast && (
+          <div className="mb-4 flex items-center justify-between gap-3 rounded-lg border border-red-500/50 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+            <span>{toast.message}</span>
+            <button
+              type="button"
+              onClick={() => setToast(null)}
+              className="shrink-0 rounded p-1 hover:bg-red-500/20"
+              aria-label="Dismiss"
+            >
+              <X className="size-4" />
+            </button>
+          </div>
+        )}
       <form onSubmit={handleCompanySubmit} className="space-y-4">
         <div>
           <label htmlFor="usdot" className="block text-sm font-medium text-cloud-dancer mb-1">
@@ -179,6 +206,7 @@ export function SignUpForm() {
           {loading ? 'Creating…' : 'Create Account'}
         </button>
       </form>
+      </div>
     );
   }
 
