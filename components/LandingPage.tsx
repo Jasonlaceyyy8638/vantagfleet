@@ -23,11 +23,21 @@ const HERO_VIDEO_SOURCES = [
   'https://assets.mixkit.co/videos/preview/mixkit-highway-traffic-at-night-with-long-exposure-4010-large.mp4',
 ];
 
+// Founder story: local first, then optional env fallback (NEXT_PUBLIC_FOUNDER_VIDEO_URL e.g. Supabase URL)
+const FOUNDER_VIDEO_SOURCES = [
+  '/videos/founder-story.mp4',
+  ...(typeof process !== 'undefined' && process.env.NEXT_PUBLIC_FOUNDER_VIDEO_URL
+    ? [process.env.NEXT_PUBLIC_FOUNDER_VIDEO_URL]
+    : []),
+];
+
 export function LandingPage({ isAuthenticated = false, navbarRole = null }: LandingPageProps) {
   const searchParams = useSearchParams();
   const heroVideoRef = useRef<HTMLVideoElement>(null);
   const [storyModalOpen, setStoryModalOpen] = useState(false);
   const founderVideoRef = useRef<HTMLVideoElement>(null);
+  const [founderVideoSourceIndex, setFounderVideoSourceIndex] = useState(0);
+  const [founderVideoFailed, setFounderVideoFailed] = useState(false);
 
   useEffect(() => {
     const code = searchParams.get('code');
@@ -231,13 +241,41 @@ export function LandingPage({ isAuthenticated = false, navbarRole = null }: Land
             className="relative rounded-2xl border-2 border-cyber-amber/60 bg-black/40 p-2 sm:p-3 shadow-[0_0_60px_-12px_rgba(255,176,0,0.2)]"
           >
             <div className="aspect-video rounded-xl bg-midnight-ink/80 overflow-hidden border border-white/10">
-              <video
-                className="w-full h-full object-cover"
-                src="/videos/founder-story.mp4"
-                controls
-                playsInline
-                preload="auto"
-              />
+              {founderVideoFailed ? (
+                <div className="w-full h-full flex flex-col items-center justify-center gap-3 bg-black/60 text-soft-cloud/80 p-6">
+                  <p className="text-sm">Video couldn&apos;t load. Try refreshing or contact us.</p>
+                  <a
+                    href={FOUNDER_VIDEO_SOURCES[0]}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[#FFBF00] hover:underline text-sm font-medium"
+                  >
+                    Open video in new tab
+                  </a>
+                  <a
+                    href="mailto:info@vantagfleet.com"
+                    className="text-soft-cloud/60 hover:text-soft-cloud text-xs"
+                  >
+                    info@vantagfleet.com
+                  </a>
+                </div>
+              ) : (
+                <video
+                  key={founderVideoSourceIndex}
+                  className="w-full h-full object-cover"
+                  src={FOUNDER_VIDEO_SOURCES[founderVideoSourceIndex]}
+                  controls
+                  playsInline
+                  preload="auto"
+                  onError={() => {
+                    if (founderVideoSourceIndex < FOUNDER_VIDEO_SOURCES.length - 1) {
+                      setFounderVideoSourceIndex((i) => i + 1);
+                    } else {
+                      setFounderVideoFailed(true);
+                    }
+                  }}
+                />
+              )}
             </div>
             <div className="mt-6 flex gap-3">
               <Quote className="size-8 text-cyber-amber/70 shrink-0 mt-0.5" />

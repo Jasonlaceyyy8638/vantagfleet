@@ -21,43 +21,72 @@ export async function GET(request: NextRequest) {
 
   try {
     const url = `${FMCSA_CARRIER_URL}/${encodeURIComponent(dot)}?webKey=${encodeURIComponent(webKey)}`;
-    const res = await fetch(url, { headers: { Accept: 'application/json' } });
+    const res = await fetch(url, {
+      headers: { Accept: 'application/json' },
+      signal: AbortSignal.timeout(12000),
+    });
 
-    if (res.status === 404) {
-      return NextResponse.json(
-        { error: 'DOT number not found or not registered with FMCSA.' },
-        { status: 404 }
-      );
-    }
-
-    let data: {
-      content?: {
-        carrier?: {
-          allowedToOperate?: string;
-          allowToOperate?: string;
-          legalName?: string;
-        };
-      };
-    };
+    let data: unknown;
     try {
-      data = (await res.json()) as typeof data;
+      data = await res.json();
     } catch {
+      if (res.status === 404) {
+        return NextResponse.json(
+          { error: 'DOT number not found or not registered with FMCSA.' },
+          { status: 404 }
+        );
+      }
+      if (res.status === 401 || res.status === 403) {
+        return NextResponse.json(
+          { error: 'DOT verification is temporarily unavailable. Please try again later.' },
+          { status: 503 }
+        );
+      }
       return NextResponse.json(
         { error: 'DOT number not found or not registered with FMCSA.' },
         { status: 502 }
       );
     }
 
-    const carrier = data?.content?.carrier;
-    if (!carrier) {
+    // FMCSA can return 200 with content as a string error message (e.g. "No results found")
+    const content = (data as { content?: unknown }).content;
+    if (typeof content === 'string') {
       return NextResponse.json(
         { error: 'DOT number not found or not registered with FMCSA.' },
         { status: 404 }
       );
     }
 
-    const allowed =
-      carrier.allowedToOperate ?? carrier.allowToOperate;
+    if (!res.ok) {
+      if (res.status === 401 || res.status === 403) {
+        return NextResponse.json(
+          { error: 'DOT verification is temporarily unavailable. Please try again later.' },
+          { status: 503 }
+        );
+      }
+      return NextResponse.json(
+        { error: 'DOT number not found or not registered with FMCSA.' },
+        { status: res.status === 404 ? 404 : 502 }
+      );
+    }
+
+    // content can be { carrier: {...} } or sometimes an array of one carrier
+    let carrier = (content as { carrier?: Record<string, unknown> })?.carrier;
+    if (!carrier && Array.isArray(content) && content[0]) {
+      carrier = (content[0] as { carrier?: Record<string, unknown> })?.carrier;
+    }
+    if (!carrier || typeof carrier !== 'object') {
+      return NextResponse.json(
+        { error: 'DOT number not found or not registered with FMCSA.' },
+        { status: 404 }
+      );
+    }
+
+    const allowed = (
+      carrier.allowedToOperate ??
+      carrier.allowToOperate ??
+      (carrier as Record<string, unknown>).AllowedToOperate
+    ) as string | undefined;
     if (allowed === 'N') {
       return NextResponse.json(
         { error: 'This DOT is not authorized for operation.' },
@@ -65,9 +94,16 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    const legalNameRaw =
+      (carrier.legalName as string | undefined) ??
+      (carrier as Record<string, unknown>).LegalName;
+    const legalName =
+      legalNameRaw != null && String(legalNameRaw).trim()
+        ? String(legalNameRaw).trim()
+        : null;
     return NextResponse.json({
       ok: true,
-      legalName: carrier.legalName ?? null,
+      legalName,
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Verification failed';
