@@ -49,3 +49,26 @@ body {
   );
   animation: card-shine 5s ease-in-out infinite;
 }
+
+/* Landing: glassmorphism buttons */
+.glass-btn {
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 4px 24px -4px rgba(0, 0, 0, 0.2);
+}
+.glass-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 176, 0, 0.35);
+  box-shadow: 0 4px 24px -4px rgba(255, 176, 0, 0.15);
+}
+
+/* Social proof marquee */
+@keyframes scroll-logos {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+.animate-scroll-logos {
+  animation: scroll-logos 30s linear infinite;
+}

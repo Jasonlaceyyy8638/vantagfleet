@@ -110,7 +110,10 @@ export function Navbar({ isAuthenticated: initialAuth = false }: { isAuthenticat
         )}
         {ready && !auth && (
           <>
-            <Link href="/login" className={linkBase}>
+            <Link
+              href="/login"
+              className="glass-btn px-4 py-2.5 rounded-lg font-medium text-soft-cloud hover:text-soft-cloud transition-colors"
+            >
               Sign In
             </Link>
             {!isTauri && (
@@ -123,7 +126,7 @@ export function Navbar({ isAuthenticated: initialAuth = false }: { isAuthenticat
             )}
             <Link
               href="/signup"
-              className="px-5 py-2.5 rounded-lg bg-cyber-amber text-midnight-ink font-bold hover:bg-cyber-amber/90"
+              className="glass-btn px-5 py-2.5 rounded-lg font-bold text-soft-cloud border-cyber-amber/30 hover:border-cyber-amber/50 hover:shadow-[0_0_20px_-4px_rgba(255,176,0,0.25)] transition-all"
             >
               Sign Up
             </Link>
