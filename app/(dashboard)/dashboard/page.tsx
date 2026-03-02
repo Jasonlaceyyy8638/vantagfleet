@@ -56,7 +56,7 @@ export default async function DashboardPage() {
   const tier = (orgRow as { tier?: string | null } | null)?.tier ?? null;
   const featuresRaw = (orgRow as { features?: unknown } | null)?.features;
   const featuresList = Array.isArray(featuresRaw) ? featuresRaw : [];
-  const effectiveFeatures = getEffectiveOrgFeatures(tier, featuresList);
+  const effectiveFeatures = await getEffectiveOrgFeatures(tier, featuresList);
   const showPredictiveAuditAi = effectiveFeatures.includes('predictive_audit_ai');
   const showAdvancedRouteHistory = effectiveFeatures.includes('advanced_route_history');
 

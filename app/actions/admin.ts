@@ -519,7 +519,7 @@ export async function getOrgTierAndFeatures(orgId: string): Promise<OrgTierAndFe
 }
 
 /** Effective feature list: Diamond tier adds the two premium features; then merge with org.features. */
-export function getEffectiveOrgFeatures(tier: string | null, features: string[]): string[] {
+export async function getEffectiveOrgFeatures(tier: string | null, features: string[]): Promise<string[]> {
   const diamondFeatures =
     tier?.toLowerCase() === 'diamond' ? ['predictive_audit_ai', 'advanced_route_history'] : [];
   const set = new Set<string>([...diamondFeatures, ...features]);
