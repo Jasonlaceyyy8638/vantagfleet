@@ -14,7 +14,7 @@ const glassCardClass =
 
 type LandingPageProps = { isAuthenticated?: boolean; navbarRole?: NavbarRole | null };
 
-// Trucking/road hero: Mixkit highway; fallback gradient shows when video is blocked or fails
+// Hero video: use NEXT_PUBLIC_HERO_VIDEO_URL (CDN) first so it actually works on Netlify
 const HERO_VIDEO_SOURCES = [
   'https://assets.mixkit.co/videos/preview/mixkit-highway-traffic-at-night-with-long-exposure-4010-large.mp4',
 ];
@@ -75,6 +75,9 @@ export function LandingPage({ isAuthenticated = false, navbarRole = null }: Land
               style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
               className="min-h-full min-w-full z-[1]"
             >
+              {process.env.NEXT_PUBLIC_HERO_VIDEO_URL && (
+                <source src={process.env.NEXT_PUBLIC_HERO_VIDEO_URL} type="video/mp4" />
+              )}
               {HERO_VIDEO_SOURCES.map((src) => (
                 <source key={src} src={src} type="video/mp4" />
               ))}
