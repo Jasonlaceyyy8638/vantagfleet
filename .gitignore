@@ -37,6 +37,3 @@ next-env.d.ts
 # Tauri signing keys (never commit)
 main.key
 main.key.pub
-
-# Large binary assets (host elsewhere; Netlify secrets scan flags binary content)
-public/videos/*.mp4
