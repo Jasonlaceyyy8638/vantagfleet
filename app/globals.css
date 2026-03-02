@@ -72,3 +72,10 @@ body {
 .animate-scroll-logos {
   animation: scroll-logos 30s linear infinite;
 }
+
+/* Map preview placeholder grid */
+.map-grid-pattern {
+  background-image: linear-gradient(rgba(255, 176, 0, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 176, 0, 0.06) 1px, transparent 1px);
+  background-size: 24px 24px;
+}

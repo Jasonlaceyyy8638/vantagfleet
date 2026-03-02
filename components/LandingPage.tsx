@@ -6,7 +6,7 @@ import { useSearchParams } from 'next/navigation';
 import { useEffect } from 'react';
 import { Navbar } from '@/components/Navbar';
 import { PricingSection } from '@/components/PricingSection';
-import { FileCheck, Users, Truck, Shield, ArrowRight, Plug, Quote } from 'lucide-react';
+import { FileCheck, Users, Truck, Shield, ArrowRight, Plug, Quote, MapPin } from 'lucide-react';
 import type { NavbarRole } from '@/lib/admin';
 
 const glassCardClass =
@@ -31,7 +31,7 @@ export function LandingPage({ isAuthenticated = false, navbarRole = null }: Land
     <div className="min-h-screen bg-midnight-ink">
       <Navbar isAuthenticated={isAuthenticated} />
 
-      {/* Hero: Built by a Carrier — amber-lit truck dashboard video */}
+      {/* Hero: full-screen cinematic background — /videos/hero-truck.mp4 */}
       <section className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden">
         <div className="absolute inset-0 z-0">
           <video
@@ -39,18 +39,12 @@ export function LandingPage({ isAuthenticated = false, navbarRole = null }: Land
             muted
             loop
             playsInline
+            poster="/images/hero-fallback.jpg"
             className="absolute inset-0 w-full h-full object-cover z-0"
           >
-            <source
-              src="https://assets.mixkit.co/videos/preview/mixkit-highway-traffic-at-night-with-long-exposure-4010-large.mp4"
-              type="video/mp4"
-            />
+            <source src="/videos/hero-truck.mp4" type="video/mp4" />
           </video>
-          <div className="absolute inset-0 bg-midnight-ink/60" aria-hidden />
-          <div
-            className="absolute inset-0 bg-gradient-to-b from-cyber-amber/20 via-transparent to-cyber-amber/15"
-            aria-hidden
-          />
+          <div className="absolute inset-0 bg-black/60" aria-hidden />
         </div>
 
         <div className="relative z-10 flex flex-col items-center justify-center px-4 text-center max-w-4xl mx-auto">
@@ -58,10 +52,9 @@ export function LandingPage({ isAuthenticated = false, navbarRole = null }: Land
             initial={{ opacity: 0, y: 32 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-            className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-soft-cloud leading-tight"
+            className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-white leading-tight"
           >
-            Built by a Carrier.{' '}
-            <span className="text-cyber-amber">Not a Tech Company.</span>
+            Built by a <span style={{ color: '#FFBF00' }}>Carrier</span>. Not a Tech Company.
           </motion.h1>
           <motion.p
             initial={{ opacity: 0, y: 24 }}
@@ -145,13 +138,14 @@ export function LandingPage({ isAuthenticated = false, navbarRole = null }: Land
         </div>
       </section>
 
-      {/* Founder's Tape — amber-bordered video + quote */}
-      <section className="relative py-24 px-4 bg-midnight-ink">
+      {/* The Story — Founder's Tape: video + quote */}
+      <section className="relative py-24 px-4 bg-midnight-ink border-t border-white/5">
         <div className="max-w-4xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 24 }}
             whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, amount: 0.2 }}
+            viewport={{ once: true, amount: 0.15 }}
+            transition={{ duration: 0.7 }}
             className="relative rounded-2xl border-2 border-cyber-amber/60 bg-black/40 p-2 sm:p-3 shadow-[0_0_60px_-12px_rgba(255,176,0,0.2)]"
           >
             <div className="aspect-video rounded-xl bg-midnight-ink/80 flex items-center justify-center overflow-hidden border border-white/10">
@@ -175,7 +169,101 @@ export function LandingPage({ isAuthenticated = false, navbarRole = null }: Land
         </div>
       </section>
 
-      {/* Bento: Integrations — Motive, Geotab, Samsara */}
+      {/* Live Map Preview — Mapbox fleet map teaser */}
+      <section className="relative py-24 px-4 bg-midnight-ink border-t border-white/5">
+        <div className="max-w-5xl mx-auto">
+          <motion.h2
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.15 }}
+            transition={{ duration: 0.6 }}
+            className="text-3xl sm:text-4xl font-bold text-soft-cloud text-center mb-2"
+          >
+            Your fleet on the <span className="text-cyber-amber">map</span>
+          </motion.h2>
+          <motion.p
+            initial={{ opacity: 0, y: 12 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.15 }}
+            transition={{ duration: 0.6, delay: 0.1 }}
+            className="text-soft-cloud/60 text-center mb-12"
+          >
+            Real-time Mapbox view. One dashboard, every unit.
+          </motion.p>
+          <motion.div
+            initial={{ opacity: 0, y: 28 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.15 }}
+            transition={{ duration: 0.7 }}
+            className="relative rounded-2xl overflow-hidden border border-white/10 bg-card shadow-[0_0_80px_-20px_rgba(255,176,0,0.12)]"
+          >
+            <div className="aspect-video bg-midnight-ink flex items-center justify-center relative">
+              {/* Optional: use /images/map-preview.png when you have a screenshot */}
+              <img
+                src="/images/map-preview.png"
+                alt="VantagFleet map preview"
+                className="absolute inset-0 w-full h-full object-cover z-10"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).style.display = 'none';
+                }}
+              />
+              <div className="map-preview-placeholder absolute inset-0 flex items-center justify-center bg-gradient-to-br from-midnight-ink via-card to-midnight-ink">
+                <div className="absolute inset-0 opacity-20 map-grid-pattern" aria-hidden />
+                <div className="relative flex flex-col items-center gap-4">
+                  <div className="p-4 rounded-full bg-cyber-amber/20 border border-cyber-amber/40">
+                    <MapPin className="size-12 text-cyber-amber" />
+                  </div>
+                  <p className="text-soft-cloud/70 text-sm font-medium">Live Mapbox fleet view</p>
+                  <p className="text-soft-cloud/50 text-xs">Add /images/map-preview.png for a custom screenshot</p>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Trust Bar — Motive, Motus, Samsara (Soon), Geotab (Soon) */}
+      <section className="relative py-16 px-4 border-y border-white/10 bg-white/[0.02]">
+        <motion.p
+          initial={{ opacity: 0, y: 12 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.2 }}
+          className="text-center text-soft-cloud/50 text-sm uppercase tracking-wider mb-10"
+        >
+          Integrated with the tools you already run
+        </motion.p>
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.2 }}
+          transition={{ duration: 0.6 }}
+          className="max-w-4xl mx-auto flex flex-wrap items-center justify-center gap-8 sm:gap-12"
+        >
+          {[
+            { name: 'Motive', soon: false },
+            { name: 'Motus', soon: false },
+            { name: 'Samsara', soon: true },
+            { name: 'Geotab', soon: true },
+          ].map((partner, i) => (
+            <div
+              key={partner.name}
+              className="flex items-center gap-2 px-6 py-3 rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm"
+            >
+              <Plug className={`size-5 ${partner.soon ? 'text-soft-cloud/40' : 'text-cyber-amber'}`} />
+              <span className={`font-semibold ${partner.soon ? 'text-soft-cloud/50' : 'text-soft-cloud'}`}>
+                {partner.name}
+              </span>
+              {partner.soon && (
+                <span className="rounded bg-cyber-amber/20 px-2 py-0.5 text-[10px] font-semibold uppercase text-cyber-amber">
+                  Coming Soon
+                </span>
+              )}
+            </div>
+          ))}
+        </motion.div>
+      </section>
+
+      {/* Truth / Why — three columns */}
       <section className="relative py-24 px-4 bg-midnight-ink border-t border-white/5">
         <div className="max-w-5xl mx-auto">
           <motion.h2
