@@ -26,6 +26,7 @@ export function LandingPage({ isAuthenticated = false, navbarRole = null }: Land
   const [mounted, setMounted] = useState(false);
   const [heroVideoSrc, setHeroVideoSrc] = useState(HERO_VIDEO_SOURCES[0]);
   const [heroSourceIndex, setHeroSourceIndex] = useState(0);
+  const heroVideoRetriedRef = useRef(false);
 
   useEffect(() => {
     setMounted(true);
@@ -42,6 +43,14 @@ export function LandingPage({ isAuthenticated = false, navbarRole = null }: Land
   }, [searchParams]);
 
   const onHeroVideoError = () => {
+    if (!heroVideoSrc) return; // ignore during retry (src briefly cleared)
+    // Retry Supabase once (transient load), then fall back to Mixkit
+    if (heroSourceIndex === 0 && !heroVideoRetriedRef.current) {
+      heroVideoRetriedRef.current = true;
+      setHeroVideoSrc('');
+      setTimeout(() => setHeroVideoSrc(HERO_VIDEO_SOURCES[0]), 400);
+      return;
+    }
     const next = heroSourceIndex + 1;
     if (next < HERO_VIDEO_SOURCES.length) {
       setHeroSourceIndex(next);
