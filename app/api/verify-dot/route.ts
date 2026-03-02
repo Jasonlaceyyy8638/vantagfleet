@@ -1,44 +1,59 @@
 import { NextResponse } from 'next/server';
 
+const FMCSA_BASE = 'https://mobile.fmcsa.dot.gov/qc/services/carriers';
+
 export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const dotNumber = searchParams.get('dotNumber');
+  const url = new URL(request.url);
+  const dotNumber = (url.searchParams.get('dotNumber') ?? url.searchParams.get('dot'))?.trim();
 
-  // Use the key directly for this test to rule out .env issues
-  const webKey = '3f7deecba66a779b9d8d484b8ff95efdd3d9f40';
+  const webKey = process.env.FMCSA_WEB_KEY?.trim() ?? process.env.FMCSA_WEBKEY?.trim();
 
-  if (!dotNumber) return NextResponse.json({ error: 'No DOT' }, { status: 400 });
+  if (!dotNumber) {
+    return NextResponse.json({ error: 'DOT number is required. Use ?dotNumber=1234567' }, { status: 400 });
+  }
+
+  if (!webKey) {
+    return NextResponse.json(
+      { error: 'DOT verification is not configured. Contact support.' },
+      { status: 503 }
+    );
+  }
 
   try {
-    console.log(`[DEBUG] Fetching DOT: ${dotNumber}`);
+    const fmcsaUrl = `${FMCSA_BASE}/${encodeURIComponent(dotNumber)}?webKey=${encodeURIComponent(webKey)}`;
+    const res = await fetch(fmcsaUrl, {
+      cache: 'no-store',
+      headers: { Accept: 'application/json' },
+    });
 
-    const response = await fetch(
-      `https://mobile.fmcsa.dot.gov/qc/services/carriers/${dotNumber}?webKey=${webKey}`,
-      {
-        method: 'GET',
-        headers: {
-          Accept: 'application/json',
-          'User-Agent': 'VantagFleet-App', // Some gov APIs require a User-Agent
-        },
-      }
-    );
+    if (!res.ok) {
+      const is5xx = res.status >= 500;
+      const message = is5xx
+        ? 'The government DOT database is temporarily unavailable. Please try again in a few minutes.'
+        : `FMCSA responded with ${res.status}. Try again later.`;
+      return NextResponse.json({ error: message }, { status: 502 });
+    }
 
-    const text = await response.text(); // Get raw text first to see if it's even JSON
-    console.log('[DEBUG] Raw Response:', text);
+    let data: { content?: { carrier?: { legalName?: string; allowedToOperate?: string } } };
+    try {
+      data = await res.json();
+    } catch {
+      return NextResponse.json({ error: 'Invalid response from FMCSA' }, { status: 502 });
+    }
 
-    const data = JSON.parse(text);
     const carrier = data?.content?.carrier;
 
     if (!carrier) {
-      return NextResponse.json({ error: 'Not found in FMCSA' }, { status: 404 });
+      return NextResponse.json({ error: 'Carrier not found' }, { status: 404 });
     }
 
     return NextResponse.json({
-      legalName: carrier.legalName,
-      status: carrier.allowedToOperate === 'Y' ? 'Active' : 'Inactive',
+      ok: true,
+      legalName: carrier.legalName ?? null,
+      active: carrier.allowedToOperate === 'Y',
     });
-  } catch (error) {
-    console.error('[DEBUG] Fetch Failed:', error);
-    return NextResponse.json({ error: 'Connection failed' }, { status: 500 });
+  } catch (err) {
+    console.error('[verify-dot] Error:', err);
+    return NextResponse.json({ error: 'Server Connection Failed' }, { status: 500 });
   }
 }

@@ -4,7 +4,8 @@ import { createClient } from '@/lib/supabase/client';
 import { createOrganization } from '@/app/actions/auth';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
-import { Loader2, CheckCircle2, X } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { CheckCircle2, X } from 'lucide-react';
 
 function getSupabaseClient() {
   return createClient();
@@ -25,7 +26,9 @@ export function SignUpForm() {
   const [dotVerified, setDotVerified] = useState(false);
   const [verifyLoading, setVerifyLoading] = useState(false);
   const [verifyError, setVerifyError] = useState<string | null>(null);
-  const [toast, setToast] = useState<{ message: string } | null>(null);
+  const [toast, setToast] = useState<{ message: string; type?: 'success' | 'error' } | null>(null);
+  const [dotInputError, setDotInputError] = useState(false);
+  const [companyNameFlash, setCompanyNameFlash] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -34,7 +37,19 @@ export function SignUpForm() {
     return () => clearTimeout(t);
   }, [toast]);
 
-  const handleVerifyDot = async () => {
+  useEffect(() => {
+    if (!dotInputError) return;
+    const t = setTimeout(() => setDotInputError(false), 2000);
+    return () => clearTimeout(t);
+  }, [dotInputError]);
+
+  useEffect(() => {
+    if (!companyNameFlash) return;
+    const t = setTimeout(() => setCompanyNameFlash(false), 500);
+    return () => clearTimeout(t);
+  }, [companyNameFlash]);
+
+  const handleVerify = async () => {
     const dot = usdot.trim();
     if (!dot) {
       setToast({ message: 'Enter a DOT number first.' });
@@ -52,16 +67,23 @@ export function SignUpForm() {
         const msg = 'DOT number not found or not registered with FMCSA.';
         setVerifyError(msg);
         setToast({ message: msg });
+        setDotInputError(true);
         return;
       }
       if (!res.ok) {
         const msg = data?.error ?? 'DOT number not found or not registered with FMCSA.';
         setVerifyError(msg);
         setToast({ message: msg });
+        if (msg.toLowerCase().includes('carrier not found') || msg.toLowerCase().includes('not found')) {
+          setDotInputError(true);
+        }
         return;
       }
       setDotVerified(true);
-      setCompanyName(data.legalName ?? '');
+      const name = data.legalName ?? '';
+      setCompanyName(name);
+      setToast({ message: name ? `Verified: ${name}` : 'Carrier verified.', type: 'success' });
+      setCompanyNameFlash(true);
     } catch {
       const msg = 'Verification failed. Please try again.';
       setVerifyError(msg);
@@ -132,12 +154,18 @@ export function SignUpForm() {
     return (
       <div className="relative">
         {toast && (
-          <div className="mb-4 flex items-center justify-between gap-3 rounded-lg border border-red-500/50 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+          <div
+            className={`mb-4 flex items-center justify-between gap-3 rounded-lg border px-4 py-3 text-sm ${
+              toast.type === 'success'
+                ? 'border-green-500/50 bg-green-500/10 text-green-200'
+                : 'border-red-500/50 bg-red-500/10 text-red-200'
+            }`}
+          >
             <span>{toast.message}</span>
             <button
               type="button"
               onClick={() => setToast(null)}
-              className="shrink-0 rounded p-1 hover:bg-red-500/20"
+              className={`shrink-0 rounded p-1 ${toast.type === 'success' ? 'hover:bg-green-500/20' : 'hover:bg-red-500/20'}`}
               aria-label="Dismiss"
             >
               <X className="size-4" />
@@ -150,7 +178,7 @@ export function SignUpForm() {
             USDOT number *
           </label>
           <div className="flex gap-2">
-            <input
+            <motion.input
               id="usdot"
               type="text"
               value={usdot}
@@ -158,32 +186,55 @@ export function SignUpForm() {
                 setUsdot(e.target.value);
                 setDotVerified(false);
                 setVerifyError(null);
+                setDotInputError(false);
               }}
               required
-              className="flex-1 px-3 py-2 rounded-lg bg-deep-ink border border-[#30363d] text-cloud-dancer placeholder-cloud-dancer/50 focus:outline-none focus:ring-2 focus:ring-transformative-teal"
+              animate={dotInputError ? { x: [0, -6, 6, -6, 6, 0] } : { x: 0 }}
+              transition={{ duration: 0.4 }}
+              className={`flex-1 px-3 py-2 rounded-lg bg-deep-ink text-cloud-dancer placeholder-cloud-dancer/50 focus:outline-none focus:ring-2 focus:ring-transformative-teal border ${
+                dotInputError ? 'border-red-500' : 'border-[#30363d]'
+              }`}
               placeholder="e.g. 1234567"
             />
-            <div className="relative shrink-0">
-              {verifyLoading && (
-                <>
-                  <span className="verify-radar-ring" aria-hidden />
-                  <span className="verify-radar-ring" aria-hidden />
-                  <span className="verify-radar-ring" aria-hidden />
-                </>
-              )}
-              <button
+            <div className="relative shrink-0 flex items-center justify-center">
+              <motion.button
+                key={dotVerified ? 'verified' : 'verify'}
                 type="button"
-                onClick={handleVerifyDot}
+                onClick={handleVerify}
                 disabled={verifyLoading || !usdot.trim()}
-                className={`relative z-10 px-4 py-2 rounded-lg border flex items-center gap-1.5 transition-colors ${
-                  verifyLoading
-                    ? 'border-[#FFBF00]/70 bg-[#FFBF00]/10 text-[#FFBF00]'
-                    : 'border-[#30363d] text-cloud-dancer hover:bg-deep-ink'
-                } disabled:opacity-50`}
+                initial={
+                  dotVerified
+                    ? { scale: 0.88, backgroundColor: 'rgb(245 158 11)', color: 'rgb(0 0 0)' }
+                    : { scale: 1, backgroundColor: 'transparent', color: 'rgb(245 158 11)' }
+                }
+                animate={{
+                  scale: 1,
+                  backgroundColor: dotVerified ? 'rgb(245 158 11)' : 'transparent',
+                  color: dotVerified ? 'rgb(0 0 0)' : 'rgb(245 158 11)',
+                  borderColor: 'rgb(245 158 11)',
+                }}
+                transition={
+                  dotVerified
+                    ? { type: 'spring', stiffness: 400, damping: 16 }
+                    : { duration: 0.2 }
+                }
+                className="relative z-10 px-4 py-2 rounded-lg border-2 flex items-center justify-center gap-1.5 min-w-[10rem] disabled:opacity-50 overflow-visible"
               >
-                {verifyLoading ? <Loader2 className="size-4 animate-spin" /> : null}
-                Verify
-              </button>
+                {verifyLoading && (
+                  <>
+                    <motion.span
+                      className="absolute w-4 h-4 rounded-full bg-amber-500/60"
+                      aria-hidden
+                      animate={{ scale: [0.6, 1.8], opacity: [0.7, 0] }}
+                      transition={{ repeat: Infinity, duration: 1.2, ease: 'easeOut' }}
+                    />
+                    <span className="absolute inset-0 rounded-lg bg-amber-500/25 animate-ping" aria-hidden />
+                  </>
+                )}
+                <span className="relative z-10 text-sm font-medium tracking-wide">
+                  {verifyLoading ? 'SCANNING SATELLITE...' : dotVerified ? 'VERIFIED' : 'Verify'}
+                </span>
+              </motion.button>
             </div>
           </div>
           {dotVerified && (
@@ -206,7 +257,13 @@ export function SignUpForm() {
             value={companyName}
             onChange={(e) => setCompanyName(e.target.value)}
             required
-            className="w-full px-3 py-2 rounded-lg bg-deep-ink border border-[#30363d] text-cloud-dancer placeholder-cloud-dancer/50 focus:outline-none focus:ring-2 focus:ring-transformative-teal"
+            className={`w-full px-3 py-2 rounded-lg bg-deep-ink border text-cloud-dancer placeholder-cloud-dancer/50 focus:outline-none focus:ring-2 focus:ring-transformative-teal transition-all duration-200 ${
+              companyNameFlash
+                ? 'border-amber-500 shadow-[0_0_16px_rgba(245,158,11,0.4)]'
+                : dotVerified
+                  ? 'border-green-500/50 shadow-[0_0_14px_rgba(34,197,94,0.35)]'
+                  : 'border-[#30363d]'
+            }`}
             placeholder="Acme Trucking LLC"
           />
         </div>

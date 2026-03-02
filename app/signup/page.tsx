@@ -17,7 +17,9 @@ export default async function SignUpPage() {
       <div className="w-full max-w-md rounded-xl border border-[#30363d] bg-card p-6 shadow-xl">
         <div className="flex flex-col items-center text-center mb-6">
           <Logo size={64} className="h-16 w-16 shrink-0" />
-          <h1 className="text-xl font-bold text-cyber-amber mt-4">Welcome to VantagFleet</h1>
+          <h1 className="text-xl font-bold mt-4 text-soft-cloud">
+            Welcome to <span className="text-soft-cloud">Vantag</span><span className="text-cyber-amber">Fleet</span>
+          </h1>
         </div>
         <p className="text-cloud-dancer/70 text-sm mb-4">Register your company, then set your login.</p>
         <SignUpForm />

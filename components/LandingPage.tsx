@@ -23,9 +23,10 @@ const HERO_VIDEO_SOURCES = [
   'https://assets.mixkit.co/videos/preview/mixkit-highway-traffic-at-night-with-long-exposure-4010-large.mp4',
 ];
 
-// Founder story: local first, then optional env fallback (NEXT_PUBLIC_FOUNDER_VIDEO_URL e.g. Supabase URL)
+// Founder story: local first, then Supabase fallback, then env (so it works when local 404s)
 const FOUNDER_VIDEO_SOURCES = [
   '/videos/founder-story.mp4',
+  'https://dmejysrnxvpjenutdypx.supabase.co/storage/v1/object/public/hero-assets/founder-story.mp4',
   ...(typeof process !== 'undefined' && process.env.NEXT_PUBLIC_FOUNDER_VIDEO_URL
     ? [process.env.NEXT_PUBLIC_FOUNDER_VIDEO_URL]
     : []),
@@ -38,6 +39,7 @@ export function LandingPage({ isAuthenticated = false, navbarRole = null }: Land
   const founderVideoRef = useRef<HTMLVideoElement>(null);
   const [founderVideoSourceIndex, setFounderVideoSourceIndex] = useState(0);
   const [founderVideoFailed, setFounderVideoFailed] = useState(false);
+  const [founderVideoError, setFounderVideoError] = useState<string | null>(null);
 
   useEffect(() => {
     const code = searchParams.get('code');
@@ -242,8 +244,14 @@ export function LandingPage({ isAuthenticated = false, navbarRole = null }: Land
           >
             <div className="aspect-video rounded-xl bg-midnight-ink/80 overflow-hidden border border-white/10">
               {founderVideoFailed ? (
-                <div className="w-full h-full flex flex-col items-center justify-center gap-3 bg-black/60 text-soft-cloud/80 p-6">
+                <div className="w-full h-full flex flex-col items-center justify-center gap-3 bg-black/60 text-soft-cloud/80 p-6 text-center">
                   <p className="text-sm">Video couldn&apos;t load. Try refreshing or contact us.</p>
+                  {founderVideoError && (
+                    <p className="text-xs text-soft-cloud/50 max-w-md">{founderVideoError}</p>
+                  )}
+                  <p className="text-xs text-soft-cloud/50 max-w-md">
+                    Use a standard MP4 (H.264) in <code className="bg-white/10 px-1 rounded">public/videos/founder-story.mp4</code>, or upload to Supabase and set <code className="bg-white/10 px-1 rounded">NEXT_PUBLIC_FOUNDER_VIDEO_URL</code>.
+                  </p>
                   <a
                     href={FOUNDER_VIDEO_SOURCES[0]}
                     target="_blank"
@@ -261,18 +269,34 @@ export function LandingPage({ isAuthenticated = false, navbarRole = null }: Land
                 </div>
               ) : (
                 <video
-                  key={founderVideoSourceIndex}
+                  ref={founderVideoRef}
                   className="w-full h-full object-cover"
-                  src={FOUNDER_VIDEO_SOURCES[founderVideoSourceIndex]}
                   controls
                   playsInline
                   preload="auto"
-                  onError={() => {
+                  src={FOUNDER_VIDEO_SOURCES[founderVideoSourceIndex]}
+                  onError={(e) => {
+                    const v = e.currentTarget;
+                    const code = v.error?.code;
+                    const msg =
+                      code === 1
+                        ? 'Playback was aborted.'
+                        : code === 2
+                          ? 'Network error (file missing or unreachable).'
+                          : code === 3
+                            ? 'Decode error (try re-exporting as H.264 MP4).'
+                            : code === 4
+                              ? 'Format not supported (use H.264 MP4).'
+                              : v.error?.message || 'Unknown error.';
+                    setFounderVideoError(msg);
                     if (founderVideoSourceIndex < FOUNDER_VIDEO_SOURCES.length - 1) {
                       setFounderVideoSourceIndex((i) => i + 1);
                     } else {
                       setFounderVideoFailed(true);
                     }
+                  }}
+                  onLoadedData={() => {
+                    setFounderVideoError(null);
                   }}
                 />
               )}
@@ -318,16 +342,7 @@ export function LandingPage({ isAuthenticated = false, navbarRole = null }: Land
             transition={{ duration: 0.7 }}
             className="relative rounded-2xl overflow-hidden border border-white/10 bg-card shadow-[0_0_80px_-20px_rgba(255,176,0,0.12)]"
           >
-            <div className="aspect-video bg-midnight-ink flex items-center justify-center relative">
-              {/* Optional: use /images/map-preview.png when you have a screenshot */}
-              <img
-                src="/images/map-preview.png"
-                alt="VantagFleet map preview"
-                className="absolute inset-0 w-full h-full object-cover z-10"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).style.display = 'none';
-                }}
-              />
+            <div className="aspect-video bg-midnight-ink flex items-center justify-center relative overflow-hidden">
               <div className="map-preview-placeholder absolute inset-0 flex items-center justify-center bg-gradient-to-br from-midnight-ink via-card to-midnight-ink">
                 <div className="absolute inset-0 opacity-20 map-grid-pattern" aria-hidden />
                 <div className="relative flex flex-col items-center gap-4">
@@ -335,7 +350,7 @@ export function LandingPage({ isAuthenticated = false, navbarRole = null }: Land
                     <MapPin className="size-12 text-cyber-amber" />
                   </div>
                   <p className="text-soft-cloud/70 text-sm font-medium">Live Mapbox fleet view</p>
-                  <p className="text-soft-cloud/50 text-xs">Add /images/map-preview.png for a custom screenshot</p>
+                  <p className="text-soft-cloud/50 text-xs">Your fleet at a glance in the dashboard</p>
                 </div>
               </div>
             </div>
