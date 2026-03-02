@@ -15,11 +15,8 @@ import {
   getOrgTierAndFeatures,
   updateOrgTier,
   updateOrgFeatures,
-  ORG_FEATURE_KEYS,
-  type CustomerRow,
-  type ChargeRow,
-  type SubscriptionStatus,
 } from '@/app/actions/admin';
+import { ORG_FEATURE_KEYS, type CustomerRow, type ChargeRow, type SubscriptionStatus } from '@/lib/admin-types';
 import { createRefund, REFUND_REASONS } from '@/app/actions/stripe-refund';
 import { createCustomerPortal } from '@/app/actions/stripe';
 import { Search, Plus, DollarSign, Loader2, RefreshCw, Settings, CreditCard, ExternalLink, Trash2, ArrowDown, XCircle } from 'lucide-react';

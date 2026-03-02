@@ -5,6 +5,20 @@ import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getPlatformRole, isPlatformStaff, isAdmin } from '@/lib/admin';
 import { logAdminAction } from '@/lib/admin-log';
+import type {
+  CustomerRow,
+  SubscriptionStatus,
+  ChargeRow,
+  ProfileRow,
+  AdminStats,
+  WishlistCounts,
+  UserRequestRow,
+  OrgTierAndFeatures,
+  CarrierRow,
+  CarrierIntegrationsRow,
+  MotiveDriverRow,
+} from '@/lib/admin-types';
+import { ORG_FEATURE_KEYS } from '@/lib/admin-types';
 
 /** Allow owner (ADMIN_OWNER_ID) and anyone with isAdmin; else require platform_roles staff. */
 async function requireStaff() {
@@ -20,17 +34,6 @@ async function requireAdmin() {
   const ok = await isAdmin(supabase);
   if (!ok) throw new Error('Forbidden');
 }
-
-export type CustomerRow = {
-  id: string;
-  name: string;
-  usdot_number: string | null;
-  stripe_customer_id: string | null;
-  status: string;
-  created_at: string;
-};
-
-export type SubscriptionStatus = 'active' | 'past_due' | 'canceled' | 'trialing' | 'none';
 
 export async function getSubscriptionStatus(
   stripeCustomerId: string
@@ -84,17 +87,6 @@ export async function searchCustomers(query: string): Promise<CustomerRow[]> {
   if (error) throw new Error(error.message);
   return (data ?? []) as CustomerRow[];
 }
-
-export type ChargeRow = {
-  id: string;
-  amount: number;
-  currency: string;
-  created: number;
-  status: string;
-  description: string | null;
-  refunded: boolean;
-  payment_intent: string | null;
-};
 
 export async function getCustomerCharges(
   stripeCustomerId: string
@@ -360,16 +352,6 @@ export async function createOrganizationForCustomer(
   }
 }
 
-export type ProfileRow = {
-  profile_id: string;
-  user_id: string;
-  email: string | null;
-  full_name: string | null;
-  org_id: string | null;
-  org_name: string | null;
-  role: string;
-};
-
 /** List all profiles for admin user management. Admin-only. */
 export async function listProfilesForAdmin(): Promise<ProfileRow[]> {
   await requireAdmin();
@@ -421,12 +403,6 @@ export async function listOrganizationsForAdmin(): Promise<{ id: string; name: s
   return (data ?? []) as { id: string; name: string }[];
 }
 
-export type AdminStats = {
-  totalRevenue: number;
-  activeFleets: number;
-  newSignupsThisWeek: number;
-};
-
 /** Financial dashboard stats. Admin-only. */
 export async function getAdminStats(): Promise<AdminStats> {
   await requireAdmin();
@@ -463,8 +439,6 @@ export async function getAdminStats(): Promise<AdminStats> {
   };
 }
 
-export type WishlistCounts = { geotab: number; samsara: number };
-
 export async function getWishlistCounts(): Promise<WishlistCounts> {
   await requireStaff();
   const admin = createAdminClient();
@@ -478,14 +452,6 @@ export async function getWishlistCounts(): Promise<WishlistCounts> {
   };
 }
 
-export type UserRequestRow = {
-  id: string;
-  type: string;
-  description: string;
-  status: string;
-  created_at: string;
-};
-
 export async function getProductRoadmapRequests(): Promise<UserRequestRow[]> {
   await requireStaff();
   const admin = createAdminClient();
@@ -497,11 +463,6 @@ export async function getProductRoadmapRequests(): Promise<UserRequestRow[]> {
   if (error) return [];
   return (data ?? []) as UserRequestRow[];
 }
-
-export const ORG_FEATURE_KEYS = ['predictive_audit_ai', 'advanced_route_history'] as const;
-export type OrgFeatureKey = (typeof ORG_FEATURE_KEYS)[number];
-
-export type OrgTierAndFeatures = { tier: string | null; features: string[] };
 
 /** Get tier and features for an org (admin/support only). */
 export async function getOrgTierAndFeatures(orgId: string): Promise<OrgTierAndFeatures> {
@@ -547,13 +508,6 @@ export async function updateOrgFeatures(
   return { ok: true };
 }
 
-export type CarrierRow = {
-  id: string;
-  name: string;
-  usdot_number: string | null;
-  subscriptionStatus: SubscriptionStatus;
-};
-
 /** All carriers (organizations) with Stripe subscription status. Admin-only. */
 export async function getCarriersWithSubscription(): Promise<CarrierRow[]> {
   await requireAdmin();
@@ -597,13 +551,6 @@ export async function getCarriersWithSubscription(): Promise<CarrierRow[]> {
   }
   return rows;
 }
-
-export type CarrierIntegrationsRow = {
-  id: string;
-  name: string;
-  usdot_number: string | null;
-  integrations: string[];
-};
 
 /** Carriers and their active integrations (Samsara, Motive, FMCSA). Admin-only. Returns [] on error (e.g. table not yet migrated). */
 export async function listCarriersWithIntegrations(): Promise<CarrierIntegrationsRow[]> {
@@ -659,14 +606,6 @@ export async function getTotalVehiclesFromConnectedCarriers(): Promise<number> {
     return 0;
   }
 }
-
-export type MotiveDriverRow = {
-  id: string;
-  name: string;
-  org_id: string;
-  org_name: string;
-  motive_id: string;
-};
 
 /** Drivers imported from Motive (motive_id set), with org name. Staff (admin or employee) only. */
 export async function listMotiveDrivers(): Promise<MotiveDriverRow[]> {

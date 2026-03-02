@@ -6,11 +6,8 @@ import {
   assignUserToOrganization,
   listProfilesForAdmin,
   listOrganizationsForAdmin,
-  type ProfileRow,
-  type AdminStats,
-  type CarrierRow,
-  type CarrierIntegrationsRow,
 } from '@/app/actions/admin';
+import type { ProfileRow, AdminStats, CarrierRow, CarrierIntegrationsRow } from '@/lib/admin-types';
 import { addEmployeeByEmail, listStaff, type StaffRow } from '@/app/actions/admin-team';
 import type { StripeStats } from '@/app/actions/stripe-stats';
 import { Building2, Loader2, UserPlus, Users, DollarSign, Truck, UserCheck, CreditCard, TrendingUp, Plug } from 'lucide-react';

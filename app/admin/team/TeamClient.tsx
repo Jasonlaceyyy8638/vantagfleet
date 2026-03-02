@@ -14,7 +14,7 @@ import {
   replyToTicket,
   type SupportTicketRow,
 } from '@/app/actions/support-tickets';
-import type { MotiveDriverRow } from '@/app/actions/admin';
+import type { MotiveDriverRow } from '@/lib/admin-types';
 import { UserPlus, Loader2, Trash2, X, Users, Inbox, Send, Truck } from 'lucide-react';
 
 const ROLES: { value: VantagStaffRole; label: string }[] = [
