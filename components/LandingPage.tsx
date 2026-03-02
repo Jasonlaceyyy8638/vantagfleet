@@ -3,7 +3,7 @@
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { Navbar } from '@/components/Navbar';
 import { PricingSection } from '@/components/PricingSection';
 import { FileCheck, Users, Truck, Shield, ArrowRight, Plug, Quote, MapPin } from 'lucide-react';
@@ -16,6 +16,7 @@ type LandingPageProps = { isAuthenticated?: boolean; navbarRole?: NavbarRole | n
 
 export function LandingPage({ isAuthenticated = false, navbarRole = null }: LandingPageProps) {
   const searchParams = useSearchParams();
+  const heroVideoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
     const code = searchParams.get('code');
@@ -27,6 +28,15 @@ export function LandingPage({ isAuthenticated = false, navbarRole = null }: Land
     }
   }, [searchParams]);
 
+  useEffect(() => {
+    const video = heroVideoRef.current;
+    if (!video) return;
+    const play = () => video.play().catch(() => {});
+    play();
+    video.addEventListener('loadeddata', play);
+    return () => video.removeEventListener('loadeddata', play);
+  }, []);
+
   return (
     <div className="min-h-screen bg-midnight-ink">
       <Navbar isAuthenticated={isAuthenticated} />
@@ -35,19 +45,20 @@ export function LandingPage({ isAuthenticated = false, navbarRole = null }: Land
       <section className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden">
         <div className="absolute inset-0 z-0">
           <video
+            ref={heroVideoRef}
             autoPlay
             muted
             loop
             playsInline
-            poster="/images/hero-fallback.jpg"
-            className="absolute inset-0 w-full h-full object-cover z-0"
+            preload="auto"
+            className="absolute inset-0 w-full h-full object-cover z-0 min-h-full min-w-full"
           >
-            {/* 1) Your video from public/videos/ (same-origin). 2) Mixkit fallback so a video always plays. */}
-            <source src="/videos/hero-truck.mp4" type="video/mp4" />
+            {/* Mixkit first (reliable CDN) so hero always shows video; your file second when Netlify serves it */}
             <source
               src="https://assets.mixkit.co/videos/preview/mixkit-highway-traffic-at-night-with-long-exposure-4010-large.mp4"
               type="video/mp4"
             />
+            <source src="/videos/hero-truck.mp4" type="video/mp4" />
           </video>
           <div className="absolute inset-0 bg-black/60" aria-hidden />
         </div>
