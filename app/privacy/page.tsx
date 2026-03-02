@@ -53,6 +53,32 @@ export default function PrivacyPage() {
             safety. We may share aggregated or de-identified data that cannot reasonably identify you.
           </p>
 
+          <h2 className="text-xl font-semibold text-soft-cloud mt-8 mb-2">Data Integration &amp; Compliance Disclosure</h2>
+          <h3 className="text-lg font-medium text-soft-cloud mt-4 mb-1">1. Scope of Data Collection</h3>
+          <p>
+            VantagFleet integrates with third-party telematics and mileage providers, including Motive (formerly KeepTruckin) and Motus. We collect and process the following data strictly for the purpose of International Fuel Tax Agreement (IFTA) compliance and audit-risk mitigation:
+          </p>
+          <ul className="list-disc pl-6 space-y-1">
+            <li><strong>GPS &amp; Telematics (Motive):</strong> Vehicle coordinates, timestamps, and HOS logs.</li>
+            <li><strong>Verified Mileage (Motus):</strong> Odometer readings and trip distance logs.</li>
+          </ul>
+          <h3 className="text-lg font-medium text-soft-cloud mt-4 mb-1">2. Purpose of Processing</h3>
+          <p>
+            This data is used solely to cross-reference mileage records and identify discrepancies (reporting gaps) that could result in regulatory non-compliance for the carrier. VantagFleet does not use this data for driver performance monitoring unrelated to safety/compliance, nor for any marketing or reimbursement purposes.
+          </p>
+          <h3 className="text-lg font-medium text-soft-cloud mt-4 mb-1">3. Data Sharing &amp; Third Parties</h3>
+          <p>
+            VantagFleet does not sell, rent, or share data collected from Motive or Motus with any third-party advertisers or insurance providers. Data is only shared with:
+          </p>
+          <ul className="list-disc pl-6 space-y-1">
+            <li><strong>Authorized Carrier Administrators:</strong> Within the VantagFleet organization dashboard.</li>
+            <li><strong>Government Authorities:</strong> Only when explicitly exported by the user as a &quot;DOT-Ready Audit Report.&quot;</li>
+          </ul>
+          <h3 className="text-lg font-medium text-soft-cloud mt-4 mb-1">4. Data Retention</h3>
+          <p>
+            Integration tokens (OAuth) can be revoked by the user at any time. Upon revocation, VantagFleet will cease all data synchronization. Cached compliance logs are retained for the duration required by FMCSA and IFTA record-keeping regulations (typically 4 years).
+          </p>
+
           <h2 className="text-xl font-semibold text-soft-cloud mt-8 mb-2">4. Data Security and Retention</h2>
           <p>
             We implement appropriate technical and organizational measures to protect your data. We

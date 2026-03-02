@@ -8,11 +8,15 @@ import {
   ShieldCheck,
   LayoutDashboard,
   UserCog,
+  DollarSign,
+  FileCheck,
 } from 'lucide-react';
 
 const adminNav = [
   { href: '/admin', label: 'Overview', icon: ShieldCheck },
   { href: '/admin/support', label: 'Customer Support', icon: Headphones },
+  { href: '/admin/revenue', label: 'Revenue', icon: DollarSign },
+  { href: '/admin/compliance', label: 'IFTA Audit', icon: FileCheck },
   { href: '/admin/setup', label: 'Organization Setup', icon: Building2 },
   { href: '/admin/team', label: 'Team', icon: UserCog },
 ];
@@ -55,13 +59,20 @@ export function AdminSidebar({ role }: { role: string }) {
           );
         })}
       </nav>
-      <div className="p-3 border-t border-white/10">
+      <div className="p-3 border-t border-white/10 space-y-1">
+        <Link
+          href="/admin"
+          className="flex items-center gap-2 text-sm text-soft-cloud/70 hover:text-soft-cloud px-3 py-2 rounded-lg hover:bg-white/5"
+        >
+          <ShieldCheck className="size-4" />
+          Back to Overview
+        </Link>
         <Link
           href="/dashboard"
           className="flex items-center gap-2 text-sm text-soft-cloud/70 hover:text-soft-cloud px-3 py-2 rounded-lg hover:bg-white/5"
         >
           <LayoutDashboard className="size-4" />
-          ← Dashboard
+          Carrier dashboard
         </Link>
         <p className="text-xs text-soft-cloud/50 mt-2 px-3 uppercase tracking-wider">
           {role}

@@ -3,5 +3,20 @@
   "identifier": "default",
   "description": "enables the default permissions",
   "windows": ["main"],
-  "permissions": ["core:default", "updater:default", "process:default"]
+  "permissions": [
+    "core:default",
+    "updater:default",
+    "process:default",
+    "dialog:default",
+    "fs:default",
+    {
+      "identifier": "fs:scope",
+      "allow": [
+        { "path": "$DESKTOP/*" },
+        { "path": "$DOCUMENT/*" },
+        { "path": "$DOWNLOAD/*" },
+        { "path": "$HOME/*" }
+      ]
+    }
+  ]
 }

@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { InviteButton } from '@/components/InviteButton';
 import { FleetMapDynamic } from '@/components/FleetMapDynamic';
+import { HealthCard } from '@/components/HealthCard';
 
 const ORG_COOKIE = 'vantag-current-org-id';
 const ALERT_DAYS = 30;
@@ -149,10 +150,17 @@ export default async function DashboardPage() {
 
   return (
     <div className="p-6 md:p-8 max-w-6xl">
-      <h1 className="text-2xl font-bold text-cloud-dancer mb-2">Dashboard</h1>
-      <p className="text-cloud-dancer/70 mb-8">
-        Overview of compliance status and expiring items.
-      </p>
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-8">
+        <div>
+          <h1 className="text-2xl font-bold text-cloud-dancer mb-2">Dashboard</h1>
+          <p className="text-cloud-dancer/70">
+            Overview of compliance status and expiring items.
+          </p>
+        </div>
+        <div className="sm:shrink-0">
+          <HealthCard />
+        </div>
+      </div>
 
       {/* Compliance score & stats */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
