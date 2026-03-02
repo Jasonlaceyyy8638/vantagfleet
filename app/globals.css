@@ -15,3 +15,37 @@ body {
   color: var(--foreground);
   background: var(--background);
 }
+
+/* Shine effect for Coming Soon integration cards (desktop) */
+@keyframes card-shine {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.card-shine-wrap {
+  position: relative;
+  overflow: hidden;
+}
+
+.card-shine-wrap .card-shine {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+.card-shine-wrap .card-shine::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 176, 0, 0.07),
+    transparent
+  );
+  animation: card-shine 5s ease-in-out infinite;
+}

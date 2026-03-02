@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
-import { isAdmin } from '@/lib/admin';
+import { isSuperAdmin } from '@/lib/admin';
 import { redirect } from 'next/navigation';
 import {
   listProfilesForAdmin,
@@ -18,8 +18,8 @@ const emptyStripeStats = { total_revenue: 0, active_subscriptions: 0 };
 
 export default async function AdminPage() {
   const supabase = await createClient();
-  const admin = await isAdmin(supabase);
-  if (!admin) redirect('/');
+  const superAdmin = await isSuperAdmin(supabase);
+  if (!superAdmin) redirect('/');
 
   let profiles: Awaited<ReturnType<typeof listProfilesForAdmin>> = [];
   let orgs: Awaited<ReturnType<typeof listOrganizationsForAdmin>> = [];

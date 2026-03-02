@@ -246,15 +246,15 @@ export function AdminPageClient({
         </div>
       </section>
 
-      {/* Subscription Tracker — Carriers */}
+      {/* Carrier List — with View as (impersonation) for super-admin */}
       <section className="rounded-xl border border-white/10 bg-card overflow-hidden">
         <div className="border-b border-white/10 px-6 py-4 flex items-center gap-3">
           <div className="p-2 rounded-lg bg-cyber-amber/20">
             <CreditCard className="size-5 text-cyber-amber" />
           </div>
           <div>
-            <h2 className="font-semibold text-soft-cloud">Carriers</h2>
-            <p className="text-sm text-soft-cloud/60">Company name, DOT number, and Stripe subscription status.</p>
+            <h2 className="font-semibold text-soft-cloud">Carrier List</h2>
+            <p className="text-sm text-soft-cloud/60">View dashboard as a carrier to see highest-tier features as they do.</p>
           </div>
         </div>
         <div className="overflow-x-auto">
@@ -264,12 +264,13 @@ export function AdminPageClient({
                 <th className="px-6 py-3 font-medium">Company Name</th>
                 <th className="px-6 py-3 font-medium">DOT Number</th>
                 <th className="px-6 py-3 font-medium">Subscription</th>
+                <th className="px-6 py-3 font-medium">Actions</th>
               </tr>
             </thead>
             <tbody>
               {initialCarriers.length === 0 ? (
                 <tr>
-                  <td colSpan={3} className="px-6 py-8 text-center text-soft-cloud/50">No carriers yet.</td>
+                  <td colSpan={4} className="px-6 py-8 text-center text-soft-cloud/50">No carriers yet.</td>
                 </tr>
               ) : (
                 initialCarriers.map((c) => (
@@ -284,6 +285,34 @@ export function AdminPageClient({
                       }>
                         {formatSubscriptionStatus(c.subscriptionStatus)}
                       </span>
+                    </td>
+                    <td className="px-6 py-3">
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          const w = typeof window !== 'undefined' ? (window as unknown as { __TAURI__?: unknown; __TAURI_INTERNAL__?: unknown }) : null;
+                          if (w && (w.__TAURI__ || w.__TAURI_INTERNAL__)) {
+                            const pin = window.prompt('Enter super-admin PIN to view as this carrier:');
+                            if (pin == null) return;
+                            try {
+                              const { invoke } = await import('@tauri-apps/api/core');
+                              const ok = await invoke<boolean>('verify_super_admin_pin', { pin });
+                              if (!ok) {
+                                alert('Invalid PIN. Admin mode is protected.');
+                                return;
+                              }
+                            } catch {
+                              alert('Could not verify PIN.');
+                              return;
+                            }
+                          }
+                          document.cookie = `impersonated_org_id=${encodeURIComponent(c.id)}; path=/; max-age=3600`;
+                          window.location.href = '/dashboard';
+                        }}
+                        className="text-xs font-medium text-cyber-amber hover:text-cyber-amber/90 hover:underline"
+                      >
+                        View Dashboard as {c.name}
+                      </button>
                     </td>
                   </tr>
                 ))

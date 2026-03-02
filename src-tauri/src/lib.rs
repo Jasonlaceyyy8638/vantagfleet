@@ -1,6 +1,15 @@
+#[tauri::command]
+fn verify_super_admin_pin(pin: String) -> bool {
+  match std::env::var("SUPER_ADMIN_PIN") {
+    Ok(env_pin) => pin == env_pin,
+    Err(_) => false,
+  }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
   tauri::Builder::default()
+    .invoke_handler(tauri::generate_handler![verify_super_admin_pin])
     .plugin(tauri_plugin_updater::Builder::new().build())
     .plugin(tauri_plugin_process::init())
     .plugin(tauri_plugin_dialog::init())

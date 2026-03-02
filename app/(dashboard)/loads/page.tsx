@@ -2,8 +2,7 @@ import { createClient } from '@/lib/supabase/server';
 import { cookies } from 'next/headers';
 import { ProfitabilityCalculator } from './ProfitabilityCalculator';
 import { IftaSection } from './IftaSection';
-
-const ORG_COOKIE = 'vantag-current-org-id';
+import { getDashboardOrgId } from '@/lib/admin';
 
 function getQuarterRange(): { start: string; end: string; label: string } {
   const now = new Date();
@@ -17,19 +16,10 @@ function getQuarterRange(): { start: string; end: string; label: string } {
   return { start, end, label: `Q${q} ${year}` };
 }
 
-async function getCurrentOrgId(supabase: Awaited<ReturnType<typeof createClient>>) {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return null;
-  const { data: profiles } = await supabase.from('profiles').select('org_id').eq('user_id', user.id);
-  const orgIds = Array.from(new Set((profiles ?? []).map((p) => p.org_id)));
-  const cookieStore = await cookies();
-  const stored = cookieStore.get(ORG_COOKIE)?.value;
-  return stored && orgIds.includes(stored) ? stored : orgIds[0] ?? null;
-}
-
 export default async function LoadsPage() {
   const supabase = await createClient();
-  const orgId = await getCurrentOrgId(supabase);
+  const cookieStore = await cookies();
+  const orgId = await getDashboardOrgId(supabase, cookieStore);
   if (!orgId) {
     return (
       <div className="p-6 md:p-8">

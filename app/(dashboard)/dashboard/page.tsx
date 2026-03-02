@@ -15,30 +15,21 @@ import {
   Truck,
   TrendingUp,
   Calendar,
+  Sparkles,
+  MapPin,
 } from 'lucide-react';
 import { InviteButton } from '@/components/InviteButton';
 import { FleetMapDynamic } from '@/components/FleetMapDynamic';
 import { HealthCard } from '@/components/HealthCard';
+import { getDashboardOrgId } from '@/lib/admin';
+import { getEffectiveOrgFeatures } from '@/app/actions/admin';
 
-const ORG_COOKIE = 'vantag-current-org-id';
 const ALERT_DAYS = 30;
-
-async function getCurrentOrgId(supabase: Awaited<ReturnType<typeof createClient>>) {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return null;
-  const { data: profiles } = await supabase
-    .from('profiles')
-    .select('org_id')
-    .eq('user_id', user.id);
-  const orgIds = Array.from(new Set((profiles ?? []).map((p) => p.org_id)));
-  const cookieStore = await cookies();
-  const stored = cookieStore.get(ORG_COOKIE)?.value;
-  return stored && orgIds.includes(stored) ? stored : orgIds[0] ?? null;
-}
 
 export default async function DashboardPage() {
   const supabase = await createClient();
-  const orgId = await getCurrentOrgId(supabase);
+  const cookieStore = await cookies();
+  const orgId = await getDashboardOrgId(supabase, cookieStore);
   if (!orgId) {
     return (
       <div className="p-8">
@@ -51,6 +42,7 @@ export default async function DashboardPage() {
     { data: drivers },
     { data: vehicles },
     { data: complianceDocs },
+    { data: orgRow },
   ] = await Promise.all([
     supabase.from('drivers').select('id, name, med_card_expiry').eq('org_id', orgId),
     supabase.from('vehicles').select('id, unit_number, annual_inspection_due').eq('org_id', orgId),
@@ -58,7 +50,15 @@ export default async function DashboardPage() {
       .from('compliance_docs')
       .select('id, doc_type, expiry_date, driver_id')
       .eq('org_id', orgId),
+    supabase.from('organizations').select('tier, features').eq('id', orgId).single(),
   ]);
+
+  const tier = (orgRow as { tier?: string | null } | null)?.tier ?? null;
+  const featuresRaw = (orgRow as { features?: unknown } | null)?.features;
+  const featuresList = Array.isArray(featuresRaw) ? featuresRaw : [];
+  const effectiveFeatures = getEffectiveOrgFeatures(tier, featuresList);
+  const showPredictiveAuditAi = effectiveFeatures.includes('predictive_audit_ai');
+  const showAdvancedRouteHistory = effectiveFeatures.includes('advanced_route_history');
 
   const driverList = drivers ?? [];
   const vehicleList = vehicles ?? [];
@@ -215,6 +215,36 @@ export default async function DashboardPage() {
           className="mt-2"
         />
       </section>
+
+      {/* Premium placeholders (Diamond tier or admin-enabled) */}
+      {(showPredictiveAuditAi || showAdvancedRouteHistory) && (
+        <section className="mb-8">
+          <div className="grid gap-4 sm:grid-cols-2">
+            {showPredictiveAuditAi && (
+              <div className="rounded-xl border border-cyber-amber/30 bg-cyber-amber/5 p-5">
+                <div className="flex items-center gap-2 mb-2">
+                  <Sparkles className="size-5 text-cyber-amber" />
+                  <h2 className="font-semibold text-cloud-dancer">Predictive Audit AI</h2>
+                </div>
+                <p className="text-sm text-cloud-dancer/70">
+                  AI-powered audit risk and compliance insights. Coming soon.
+                </p>
+              </div>
+            )}
+            {showAdvancedRouteHistory && (
+              <div className="rounded-xl border border-cyber-amber/30 bg-cyber-amber/5 p-5">
+                <div className="flex items-center gap-2 mb-2">
+                  <MapPin className="size-5 text-cyber-amber" />
+                  <h2 className="font-semibold text-cloud-dancer">Advanced Route History</h2>
+                </div>
+                <p className="text-sm text-cloud-dancer/70">
+                  Detailed route and mileage history. Coming soon.
+                </p>
+              </div>
+            )}
+          </div>
+        </section>
+      )}
 
       {/* Alerts */}
       <section className="rounded-xl bg-card border border-[#30363d] overflow-hidden">

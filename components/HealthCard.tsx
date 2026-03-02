@@ -184,6 +184,14 @@ export function HealthCard() {
                 Last sync: {formatLastSync(health?.lastSync ?? '')}
               </p>
             </div>
+            <div className="pt-2 border-t border-white/5">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-soft-cloud/50 mb-1">
+                Roadmap
+              </p>
+              <p className="text-xs text-soft-cloud/60">
+                Coming soon: Geotab, Samsara
+              </p>
+            </div>
           </>
         )}
       </div>

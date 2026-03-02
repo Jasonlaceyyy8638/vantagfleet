@@ -70,6 +70,52 @@ export async function isAdmin(supabase: SupabaseClient): Promise<boolean> {
   return (userRow?.role as string) === 'ADMIN';
 }
 
+/** Platform role can be super-admin (from platform_roles.role). */
+export type PlatformRoleSuper = PlatformRole | 'super-admin';
+
+/**
+ * Returns true only for super-admins: owner ID or platform_roles.role = 'super-admin'.
+ * Used to gate /admin/** and impersonation.
+ */
+export async function isSuperAdmin(supabase: SupabaseClient): Promise<boolean> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return false;
+  if (user.id === ADMIN_OWNER_ID) return true;
+  const { data } = await supabase
+    .from('platform_roles')
+    .select('role')
+    .eq('user_id', user.id)
+    .single();
+  return (data?.role as string) === 'super-admin';
+}
+
+const ORG_COOKIE = 'vantag-current-org-id';
+export const IMPERSONATE_COOKIE = 'impersonated_org_id';
+
+/**
+ * Returns the effective org ID for dashboard data: if user is super-admin and
+ * impersonated_org_id cookie is set, use that; otherwise use the normal current-org cookie.
+ * Use this in dashboard layout and pages so impersonation is respected.
+ */
+export async function getDashboardOrgId(
+  supabase: SupabaseClient,
+  cookieStore: { get: (name: string) => { value: string } | undefined }
+): Promise<string | null> {
+  const impersonated = cookieStore.get(IMPERSONATE_COOKIE)?.value;
+  if (impersonated && (await isSuperAdmin(supabase))) {
+    return impersonated;
+  }
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
+  const { data: profiles } = await supabase
+    .from('profiles')
+    .select('org_id')
+    .eq('user_id', user.id);
+  const orgIds = Array.from(new Set((profiles ?? []).map((p) => p.org_id).filter((id): id is string => id != null)));
+  const stored = cookieStore.get(ORG_COOKIE)?.value;
+  return stored && orgIds.includes(stored) ? stored : orgIds[0] ?? null;
+}
+
 /** Role used for Navbar: platform_roles + public.users, not profiles (profiles.role is per-org app_role). */
 export type NavbarRole = 'ADMIN' | 'OWNER' | 'EMPLOYEE' | 'CUSTOMER';
 

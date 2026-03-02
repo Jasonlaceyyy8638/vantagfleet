@@ -463,6 +463,90 @@ export async function getAdminStats(): Promise<AdminStats> {
   };
 }
 
+export type WishlistCounts = { geotab: number; samsara: number };
+
+export async function getWishlistCounts(): Promise<WishlistCounts> {
+  await requireStaff();
+  const admin = createAdminClient();
+  const [{ count: geotab }, { count: samsara }] = await Promise.all([
+    admin.from('integration_wishlist').select('*', { count: 'exact', head: true }).eq('provider', 'geotab'),
+    admin.from('integration_wishlist').select('*', { count: 'exact', head: true }).eq('provider', 'samsara'),
+  ]);
+  return {
+    geotab: geotab ?? 0,
+    samsara: samsara ?? 0,
+  };
+}
+
+export type UserRequestRow = {
+  id: string;
+  type: string;
+  description: string;
+  status: string;
+  created_at: string;
+};
+
+export async function getProductRoadmapRequests(): Promise<UserRequestRow[]> {
+  await requireStaff();
+  const admin = createAdminClient();
+  const { data, error } = await admin
+    .from('user_requests')
+    .select('id, type, description, status, created_at')
+    .order('created_at', { ascending: false })
+    .limit(100);
+  if (error) return [];
+  return (data ?? []) as UserRequestRow[];
+}
+
+export const ORG_FEATURE_KEYS = ['predictive_audit_ai', 'advanced_route_history'] as const;
+export type OrgFeatureKey = (typeof ORG_FEATURE_KEYS)[number];
+
+export type OrgTierAndFeatures = { tier: string | null; features: string[] };
+
+/** Get tier and features for an org (admin/support only). */
+export async function getOrgTierAndFeatures(orgId: string): Promise<OrgTierAndFeatures> {
+  await requireStaff();
+  const admin = createAdminClient();
+  const { data } = await admin
+    .from('organizations')
+    .select('tier, features')
+    .eq('id', orgId)
+    .single();
+  const tier = (data?.tier as string) ?? null;
+  const raw = data?.features;
+  const features = Array.isArray(raw) ? raw : typeof raw === 'string' ? [raw] : [];
+  return { tier, features };
+}
+
+/** Effective feature list: Diamond tier adds the two premium features; then merge with org.features. */
+export function getEffectiveOrgFeatures(tier: string | null, features: string[]): string[] {
+  const diamondFeatures =
+    tier?.toLowerCase() === 'diamond' ? ['predictive_audit_ai', 'advanced_route_history'] : [];
+  const set = new Set<string>([...diamondFeatures, ...features]);
+  return [...set];
+}
+
+/** Update an org's tier. Staff only. */
+export async function updateOrgTier(orgId: string, tier: string): Promise<{ ok: true } | { error: string }> {
+  await requireStaff();
+  const admin = createAdminClient();
+  const { error } = await admin.from('organizations').update({ tier: tier || null }).eq('id', orgId);
+  if (error) return { error: error.message };
+  return { ok: true };
+}
+
+/** Update an org's features array (e.g. toggle predictive_audit_ai, advanced_route_history). Staff only. */
+export async function updateOrgFeatures(
+  orgId: string,
+  features: string[]
+): Promise<{ ok: true } | { error: string }> {
+  await requireStaff();
+  const admin = createAdminClient();
+  const { error } = await admin.from('organizations').update({ features }).eq('id', orgId);
+  if (error) return { error: error.message };
+  return { ok: true };
+}
+
 export type CarrierRow = {
   id: string;
   name: string;

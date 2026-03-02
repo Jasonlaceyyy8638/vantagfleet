@@ -12,6 +12,10 @@ import {
   cancelCarrierPlan,
   downgradeCarrierPlan,
   deleteCarrierFromSystem,
+  getOrgTierAndFeatures,
+  updateOrgTier,
+  updateOrgFeatures,
+  ORG_FEATURE_KEYS,
   type CustomerRow,
   type ChargeRow,
   type SubscriptionStatus,
@@ -58,6 +62,11 @@ export function AdminSupportClient() {
   const [deleteCarrierOrg, setDeleteCarrierOrg] = useState<CustomerRow | null>(null);
   const [deleteSubmitting, setDeleteSubmitting] = useState(false);
 
+  const [orgTier, setOrgTier] = useState<string>('starter');
+  const [orgFeatures, setOrgFeatures] = useState<string[]>([]);
+  const [featuresLoading, setFeaturesLoading] = useState(false);
+  const [featuresSaving, setFeaturesSaving] = useState(false);
+
   const showToast = useCallback((type: 'success' | 'error', message: string) => {
     setToast({ type, message });
     setTimeout(() => setToast(null), 5000);
@@ -93,6 +102,18 @@ export function AdminSupportClient() {
     }, 280);
     return () => clearTimeout(t);
   }, [query]);
+
+  useEffect(() => {
+    if (!manageOrg) return;
+    setFeaturesLoading(true);
+    getOrgTierAndFeatures(manageOrg.id)
+      .then(({ tier, features }) => {
+        setOrgTier(tier ?? 'starter');
+        setOrgFeatures(Array.isArray(features) ? features : []);
+      })
+      .catch(() => { setOrgTier('starter'); setOrgFeatures([]); })
+      .finally(() => setFeaturesLoading(false));
+  }, [manageOrg?.id]);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -490,6 +511,72 @@ export function AdminSupportClient() {
                   Open billing portal for customer
                 </button>
               )}
+              <div className="border-t border-white/10 pt-3 mt-3 space-y-2">
+                <p className="text-xs font-medium text-soft-cloud/60 uppercase tracking-wider">Features &amp; tier</p>
+                {featuresLoading ? (
+                  <p className="text-sm text-soft-cloud/50">Loading…</p>
+                ) : (
+                  <>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <label className="text-sm text-soft-cloud/80">Tier</label>
+                      <select
+                        value={orgTier}
+                        onChange={(e) => setOrgTier(e.target.value)}
+                        className="px-2 py-1 rounded bg-midnight-ink border border-white/10 text-soft-cloud text-sm"
+                      >
+                        <option value="starter">Starter</option>
+                        <option value="pro">Pro</option>
+                        <option value="Diamond">Diamond</option>
+                      </select>
+                    </div>
+                    <div className="flex flex-col gap-2 mt-2">
+                      {ORG_FEATURE_KEYS.map((key) => {
+                        const label = key === 'predictive_audit_ai' ? 'Predictive Audit AI' : 'Advanced Route History';
+                        const on = orgFeatures.includes(key);
+                        return (
+                          <label key={key} className="flex items-center gap-2 text-sm text-soft-cloud/90 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={on}
+                              onChange={() => {
+                                setOrgFeatures((prev) =>
+                                  on ? prev.filter((f) => f !== key) : [...prev, key]
+                                );
+                              }}
+                              className="rounded border-white/20 text-cyber-amber focus:ring-cyber-amber"
+                            />
+                            {label}
+                          </label>
+                        );
+                      })}
+                    </div>
+                    <button
+                      type="button"
+                      disabled={featuresSaving}
+                      onClick={async () => {
+                        setFeaturesSaving(true);
+                        try {
+                          const [tierRes, featRes] = await Promise.all([
+                            updateOrgTier(manageOrg.id, orgTier),
+                            updateOrgFeatures(manageOrg.id, orgFeatures),
+                          ]);
+                          if ('ok' in tierRes && 'ok' in featRes) {
+                            showToast('success', 'Features and tier updated.');
+                          } else {
+                            showToast('error', 'ok' in tierRes ? (featRes as { error: string }).error : (tierRes as { error: string }).error);
+                          }
+                        } finally {
+                          setFeaturesSaving(false);
+                        }
+                      }}
+                      className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-cyber-amber/20 text-cyber-amber text-sm font-medium hover:bg-cyber-amber/30 disabled:opacity-60"
+                    >
+                      {featuresSaving ? <Loader2 className="size-4 animate-spin" /> : null}
+                      Save features
+                    </button>
+                  </>
+                )}
+              </div>
               <div className="border-t border-white/10 pt-3 mt-3 space-y-2">
                 <p className="text-xs font-medium text-soft-cloud/60 uppercase tracking-wider">Plan &amp; account</p>
                 {manageOrg.stripe_customer_id && (

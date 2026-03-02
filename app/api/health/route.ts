@@ -2,8 +2,8 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { cookies } from 'next/headers';
+import { getDashboardOrgId, isSuperAdmin, IMPERSONATE_COOKIE } from '@/lib/admin';
 
-const ORG_COOKIE = 'vantag-current-org-id';
 const MOTIVE_API_BASE = 'https://api.gomotive.com/v1';
 
 type MotiveCredential = {
@@ -20,7 +20,7 @@ export async function GET() {
   }
 
   const cookieStore = await cookies();
-  const orgId = cookieStore.get(ORG_COOKIE)?.value;
+  const orgId = await getDashboardOrgId(supabase, cookieStore);
   if (!orgId) {
     return NextResponse.json(
       { motive: 'error', motus: 'pending', lastSync: '', motiveError: 'no_org' },
@@ -28,13 +28,16 @@ export async function GET() {
     );
   }
 
-  const { data: profiles } = await supabase
-    .from('profiles')
-    .select('org_id')
-    .eq('user_id', user.id);
-  const orgIds = (profiles ?? []).map((p) => p.org_id).filter((id): id is string => id != null);
-  if (!orgIds.includes(orgId)) {
-    return NextResponse.json({ error: 'Access denied to this organization' }, { status: 403 });
+  const impersonating = cookieStore.get(IMPERSONATE_COOKIE)?.value === orgId && (await isSuperAdmin(supabase));
+  if (!impersonating) {
+    const { data: profiles } = await supabase
+      .from('profiles')
+      .select('org_id')
+      .eq('user_id', user.id);
+    const orgIds = (profiles ?? []).map((p) => p.org_id).filter((id): id is string => id != null);
+    if (!orgIds.includes(orgId)) {
+      return NextResponse.json({ error: 'Access denied to this organization' }, { status: 403 });
+    }
   }
 
   const admin = createAdminClient();

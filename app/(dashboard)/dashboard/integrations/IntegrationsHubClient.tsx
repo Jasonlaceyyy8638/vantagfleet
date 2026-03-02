@@ -17,6 +17,11 @@ const PROVIDERS: { id: IntegrationProvider; name: string; label: string; placeho
   { id: 'fmcsa', name: 'FMCSA', label: 'FMCSA', placeholder: 'API Key or Client ID' },
 ];
 
+const COMING_SOON_PROVIDERS: { id: string; name: string; description: string }[] = [
+  { id: 'geotab', name: 'Geotab', description: 'Connect Geotab for telematics and fleet data.' },
+  { id: 'samsara', name: 'Samsara', description: 'Connect Samsara to sync vehicles and driver data.' },
+];
+
 type Props = { orgId: string; initialIntegrations: IntegrationRow[] };
 
 export function IntegrationsHubClient({ orgId, initialIntegrations }: Props) {
@@ -33,6 +38,10 @@ export function IntegrationsHubClient({ orgId, initialIntegrations }: Props) {
     () => initialIntegrations.find((i) => i.provider === 'motive')?.last_synced_at ?? null
   );
   const [syncDataLoading, setSyncDataLoading] = useState(false);
+  const [notifyMeProvider, setNotifyMeProvider] = useState<{ id: string; name: string } | null>(null);
+  const [notifyMeEmail, setNotifyMeEmail] = useState('');
+  const [notifyMeSending, setNotifyMeSending] = useState(false);
+  const [notifyMeError, setNotifyMeError] = useState<string | null>(null);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -184,6 +193,39 @@ export function IntegrationsHubClient({ orgId, initialIntegrations }: Props) {
             </div>
           );
         })}
+        {COMING_SOON_PROVIDERS.map((p) => (
+          <div
+            key={`coming-soon-${p.id}`}
+            className="card-shine-wrap relative rounded-xl border border-white/10 bg-card p-6 flex flex-col shadow-lg hover:border-cyber-amber/20 transition-colors"
+          >
+            <span className="card-shine" aria-hidden />
+            <span className="absolute top-3 right-3 rounded-md bg-cyber-amber/20 border border-cyber-amber/50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-cyber-amber">
+              Coming Soon
+            </span>
+            <div className="flex items-center gap-3 mb-3">
+              <div className="p-2 rounded-lg bg-cyber-amber/20" style={{ filter: 'grayscale(1)' }}>
+                <Plug className="size-6 text-cyber-amber" />
+              </div>
+              <h2 className="text-lg font-semibold text-soft-cloud" style={{ filter: 'blur(1px)' }}>
+                {p.name}
+              </h2>
+            </div>
+            <p className="text-sm text-soft-cloud/60 mb-4 flex-1" style={{ filter: 'blur(1px)' }}>
+              {p.description}
+            </p>
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center justify-end">
+                <button
+                  type="button"
+                  onClick={() => { setNotifyMeProvider({ id: p.id, name: p.name }); setNotifyMeError(null); }}
+                  className="px-3 py-1.5 rounded-lg text-sm font-medium bg-cyber-amber/20 text-cyber-amber hover:bg-cyber-amber/30 transition-colors"
+                >
+                  Notify Me
+                </button>
+              </div>
+            </div>
+          </div>
+        ))}
       </div>
 
       {/* Motive fleet sync */}
@@ -287,6 +329,96 @@ export function IntegrationsHubClient({ orgId, initialIntegrations }: Props) {
                 >
                   {saving ? <Loader2 className="size-4 animate-spin" /> : <Plug className="size-4" />}
                   {saving ? 'Saving…' : 'Save'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Notify Me modal for coming-soon integrations */}
+      {notifyMeProvider && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-midnight-ink/90 backdrop-blur-sm">
+          <div
+            className="absolute inset-0"
+            onClick={() => { setNotifyMeProvider(null); setNotifyMeEmail(''); setNotifyMeError(null); }}
+            aria-hidden
+          />
+          <div className="relative w-full max-w-md rounded-xl border border-white/10 bg-card p-6 shadow-xl border-cyber-amber/20">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-soft-cloud">Notify Me</h3>
+              <button
+                type="button"
+                onClick={() => { setNotifyMeProvider(null); setNotifyMeEmail(''); setNotifyMeError(null); }}
+                className="p-2 rounded-lg text-soft-cloud/60 hover:text-soft-cloud hover:bg-white/10 transition-colors"
+                aria-label="Close"
+              >
+                <X className="size-5" />
+              </button>
+            </div>
+            <p className="text-sm text-soft-cloud/80 mb-4">
+              We are currently finalizing our {notifyMeProvider.name} integration. Enter your email to be the first to know when it drops.
+            </p>
+            {notifyMeError && <p className="text-sm text-red-400 mb-2">{notifyMeError}</p>}
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                if (!notifyMeProvider) return;
+                setNotifyMeSending(true);
+                try {
+                  const res = await fetch('/api/notify-me', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      provider: notifyMeProvider.id,
+                      email: notifyMeEmail.trim(),
+                    }),
+                  });
+                  const data = await res.json().catch(() => ({}));
+                  if (res.ok && data.ok) {
+                    setNotifyMeProvider(null);
+                    setNotifyMeEmail('');
+                    setNotifyMeError(null);
+                  } else {
+                    setNotifyMeError(data.error ?? 'Could not submit. Try again.');
+                  }
+                } catch {
+                  setNotifyMeError('Request failed. Try again.');
+                } finally {
+                  setNotifyMeSending(false);
+                }
+              }}
+              className="space-y-4"
+            >
+              <div>
+                <label htmlFor="notify-email" className="block text-sm font-medium text-soft-cloud/80 mb-1.5">
+                  Email
+                </label>
+                <input
+                  id="notify-email"
+                  type="email"
+                  value={notifyMeEmail}
+                  onChange={(e) => setNotifyMeEmail(e.target.value)}
+                  placeholder="you@company.com"
+                  className="w-full px-3 py-2.5 rounded-lg bg-midnight-ink border border-white/10 text-soft-cloud placeholder-soft-cloud/50 focus:outline-none focus:ring-2 focus:ring-cyber-amber focus:border-cyber-amber/50"
+                  required
+                />
+              </div>
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => { setNotifyMeProvider(null); setNotifyMeEmail(''); setNotifyMeError(null); }}
+                  className="flex-1 px-4 py-2.5 rounded-lg border border-white/20 text-soft-cloud hover:bg-white/5 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={notifyMeSending || !notifyMeEmail.trim()}
+                  className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-cyber-amber text-midnight-ink font-semibold hover:bg-cyber-amber/90 disabled:opacity-60 transition-colors"
+                >
+                  {notifyMeSending ? <Loader2 className="size-4 animate-spin" /> : null}
+                  {notifyMeSending ? 'Sending…' : 'Notify Me'}
                 </button>
               </div>
             </form>

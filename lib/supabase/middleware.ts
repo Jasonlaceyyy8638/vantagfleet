@@ -7,7 +7,7 @@ const ADMIN_OWNER_ID = 'ae175e55-72b4-4441-9e3c-02ecd8225bf7';
 export async function updateSession(
   request: NextRequest,
   pathname?: string
-): Promise<{ response: NextResponse; user: { id: string } | null; isStaff?: boolean; isAdmin?: boolean }> {
+): Promise<{ response: NextResponse; user: { id: string } | null; isStaff?: boolean; isAdmin?: boolean; isSuperAdmin?: boolean }> {
   const response = NextResponse.next({ request });
 
   const supabase = createServerClient(
@@ -31,21 +31,22 @@ export async function updateSession(
 
   let isStaff: boolean | undefined;
   let isAdmin: boolean | undefined;
+  let isSuperAdmin: boolean | undefined;
   if (user) {
-    // Owner exception: bypass all org/DOT checks; allow full /admin access
     if (user.id === ADMIN_OWNER_ID) {
       isStaff = true;
       isAdmin = true;
+      isSuperAdmin = true;
     } else {
-      // Role from platform_roles, then public.users (not profiles — profiles.role is per-org app_role)
       const { data: platform } = await supabase
         .from('platform_roles')
         .select('role')
         .eq('user_id', user.id)
         .single();
       const platformRole = platform?.role;
-      isStaff = !!platformRole && (platformRole === 'ADMIN' || platformRole === 'EMPLOYEE');
-      if (platformRole === 'ADMIN') {
+      isSuperAdmin = platformRole === 'super-admin';
+      isStaff = !!platformRole && (platformRole === 'ADMIN' || platformRole === 'EMPLOYEE' || platformRole === 'super-admin');
+      if (platformRole === 'ADMIN' || platformRole === 'super-admin') {
         isAdmin = true;
       } else {
         const { data: userRow } = await supabase
@@ -58,5 +59,5 @@ export async function updateSession(
     }
   }
 
-  return { response, user: user ?? null, isStaff, isAdmin };
+  return { response, user: user ?? null, isStaff, isAdmin, isSuperAdmin };
 }

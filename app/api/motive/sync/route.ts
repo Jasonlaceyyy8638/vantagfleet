@@ -3,8 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { cookies } from 'next/headers';
 import { runMotiveSyncCore } from '@/lib/motive-sync-core';
-
-const ORG_COOKIE = 'vantag-current-org-id';
+import { getDashboardOrgId, isSuperAdmin, IMPERSONATE_COOKIE } from '@/lib/admin';
 
 /**
  * POST /api/motive/sync
@@ -19,15 +18,18 @@ export async function POST(request: NextRequest) {
   }
 
   const cookieStore = await cookies();
-  const orgId = cookieStore.get(ORG_COOKIE)?.value;
+  const orgId = await getDashboardOrgId(supabase, cookieStore);
   if (!orgId) {
     return NextResponse.json({ error: 'No organization selected' }, { status: 400 });
   }
 
-  const { data: profiles } = await supabase.from('profiles').select('org_id').eq('user_id', user.id);
-  const orgIds = (profiles ?? []).map((p) => p.org_id).filter((id): id is string => id != null);
-  if (!orgIds.includes(orgId)) {
-    return NextResponse.json({ error: 'You do not have access to this organization' }, { status: 403 });
+  const impersonating = cookieStore.get(IMPERSONATE_COOKIE)?.value === orgId && (await isSuperAdmin(supabase));
+  if (!impersonating) {
+    const { data: profiles } = await supabase.from('profiles').select('org_id').eq('user_id', user.id);
+    const orgIds = (profiles ?? []).map((p) => p.org_id).filter((id): id is string => id != null);
+    if (!orgIds.includes(orgId)) {
+      return NextResponse.json({ error: 'You do not have access to this organization' }, { status: 403 });
+    }
   }
 
   const result = await runMotiveSyncCore(orgId);

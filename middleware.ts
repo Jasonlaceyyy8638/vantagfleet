@@ -43,26 +43,26 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(redirect);
   }
 
-  // Owner exception: bypass ALL organization/DOT checks; send straight to /admin for any carrier route
+  // Super-admin impersonating: if they have impersonated_org_id cookie, let them through to dashboard (don't redirect to /admin)
+  const impersonatedOrgId = request.cookies.get('impersonated_org_id')?.value;
+  const carrierRoutes = ['/dashboard', '/drivers', '/vehicles', '/loads', '/compliance', '/regulatory', '/settings', '/roadside-mode'];
+
   if (user.id === ADMIN_OWNER_ID) {
-    const carrierRoutes = ['/dashboard', '/drivers', '/vehicles', '/loads', '/compliance', '/regulatory', '/settings', '/roadside-mode'];
-    if (carrierRoutes.some((r) => pathname.startsWith(r))) {
+    if (carrierRoutes.some((r) => pathname.startsWith(r)) && !impersonatedOrgId) {
       return NextResponse.redirect(new URL('/admin', request.url));
     }
-    // Allow /admin and all /admin/* for owner (isAdmin is set in updateSession)
     return response;
   }
 
-  // Any Admin (role from platform_roles or users): allow /admin; never require org_id or onboarding
-  if (isAdmin === true) {
-    if (pathname.startsWith('/dashboard') || pathname.startsWith('/drivers') || pathname.startsWith('/vehicles') || pathname.startsWith('/loads') || pathname.startsWith('/compliance') || pathname.startsWith('/regulatory') || pathname.startsWith('/settings') || pathname.startsWith('/roadside-mode')) {
+  if (isSuperAdmin === true || isAdmin === true) {
+    if (carrierRoutes.some((r) => pathname.startsWith(r)) && !impersonatedOrgId) {
       return NextResponse.redirect(new URL('/admin', request.url));
     }
   }
 
-  // Admin portal: only ADMIN may access; redirect others to home
+  // Admin portal: only super-admin may access (platform_roles.role = 'super-admin' or owner ID)
   if (pathname.startsWith('/admin')) {
-    if (isAdmin !== true) {
+    if (isSuperAdmin !== true) {
       return NextResponse.redirect(new URL('/', request.url));
     }
   }

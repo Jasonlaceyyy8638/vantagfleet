@@ -5,10 +5,13 @@ import {
   getAdminStats,
   getCarriersWithSubscription,
   getTotalVehiclesFromConnectedCarriers,
+  getWishlistCounts,
+  getProductRoadmapRequests,
 } from '@/app/actions/admin';
 import Link from 'next/link';
-import { DollarSign, Truck, CreditCard, ArrowLeft, Car, MapPin } from 'lucide-react';
+import { DollarSign, Truck, CreditCard, ArrowLeft, Car, MapPin, Heart, Map } from 'lucide-react';
 import { FleetMapDynamic } from '@/components/FleetMapDynamic';
+import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Cell } from 'recharts';
 
 function formatStatus(s: string): string {
   if (s === 'active') return 'Active';
@@ -23,11 +26,18 @@ export default async function AdminRevenuePage() {
   const admin = await isAdmin(supabase);
   if (!admin) redirect('/admin');
 
-  const [stats, carriers, totalVehicles] = await Promise.all([
+  const [stats, carriers, totalVehicles, wishlist, roadmapRequests] = await Promise.all([
     getAdminStats(),
     getCarriersWithSubscription(),
     getTotalVehiclesFromConnectedCarriers(),
+    getWishlistCounts(),
+    getProductRoadmapRequests(),
   ]);
+
+  const wishlistChartData = [
+    { name: 'Geotab', count: wishlist.geotab, fill: 'var(--accent)' },
+    { name: 'Samsara', count: wishlist.samsara, fill: 'var(--accent)' },
+  ];
 
   return (
     <div className="space-y-8">
@@ -109,6 +119,74 @@ export default async function AdminRevenuePage() {
                         {formatStatus(c.subscriptionStatus)}
                       </span>
                     </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section className="rounded-xl border border-white/10 bg-card overflow-hidden">
+        <div className="border-b border-white/10 px-6 py-4 flex items-center gap-3">
+          <Heart className="size-5 text-cyber-amber" />
+          <h2 className="font-semibold text-soft-cloud">Wishlist — Notify Me demand</h2>
+        </div>
+        <p className="px-6 py-2 text-sm text-soft-cloud/60">
+          Customer interest from &quot;Notify Me&quot; on Integrations (Geotab &amp; Samsara). Build the one with higher demand first.
+        </p>
+        <div className="px-6 pb-6 h-48">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={wishlistChartData} margin={{ top: 8, right: 16, left: 8, bottom: 8 }}>
+              <XAxis dataKey="name" tick={{ fill: 'rgba(226,232,240,0.8)', fontSize: 12 }} />
+              <YAxis tick={{ fill: 'rgba(226,232,240,0.6)', fontSize: 11 }} allowDecimals={false} />
+              <Bar dataKey="count" radius={4} name="Notify Me signups">
+                {wishlistChartData.map((entry, index) => (
+                  <Cell key={index} fill={entry.fill} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </section>
+
+      <section className="rounded-xl border border-white/10 bg-card overflow-hidden">
+        <div className="border-b border-white/10 px-6 py-4 flex items-center gap-3">
+          <Map className="size-5 text-cyber-amber" />
+          <h2 className="font-semibold text-soft-cloud">Product Roadmap</h2>
+        </div>
+        <p className="px-6 py-2 text-sm text-soft-cloud/60">
+          Custom compliance requests from the dashboard FAB. Review and prioritize for the next Desktop App update.
+        </p>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-white/10 text-left text-soft-cloud/70">
+                <th className="px-6 py-3 font-medium">Category</th>
+                <th className="px-6 py-3 font-medium">Description</th>
+                <th className="px-6 py-3 font-medium">Status</th>
+                <th className="px-6 py-3 font-medium">Submitted</th>
+              </tr>
+            </thead>
+            <tbody>
+              {roadmapRequests.length === 0 ? (
+                <tr>
+                  <td colSpan={4} className="px-6 py-8 text-center text-soft-cloud/50">No requests yet.</td>
+                </tr>
+              ) : (
+                roadmapRequests.map((r) => (
+                  <tr key={r.id} className="border-b border-white/5">
+                    <td className="px-6 py-3 text-soft-cloud">{r.type}</td>
+                    <td className="px-6 py-3 text-soft-cloud/90 max-w-md break-words">{r.description}</td>
+                    <td className="px-6 py-3">
+                      <span className={
+                        r.status === 'New' ? 'text-cyber-amber' :
+                        r.status === 'Reviewing' ? 'text-blue-400' : 'text-green-400'
+                      }>
+                        {r.status}
+                      </span>
+                    </td>
+                    <td className="px-6 py-3 text-soft-cloud/60">{new Date(r.created_at).toLocaleDateString()}</td>
                   </tr>
                 ))
               )}
