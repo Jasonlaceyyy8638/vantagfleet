@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import Link from 'next/link';
-import { Check, Loader2, Sparkles } from 'lucide-react';
+import { Check, Loader2, Sparkles, Mail } from 'lucide-react';
 
 function trialEndDate(): string {
   const d = new Date();
@@ -10,17 +10,18 @@ function trialEndDate(): string {
   return d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
 }
 
-const SOLO_FEATURES = [
-  'Mobile **Roadside Shield** for 1 Driver',
-  '**Digital document locker**',
-  '**SMS expiry alerts**',
+const SOLO_FEATURES: { text: string; icon?: 'sendgrid' }[] = [
+  { text: '**Roadside Shield** Mobile Folder' },
+  { text: '**Digital Doc Locker**' },
+  { text: '**SendGrid Expiry Alerts**', icon: 'sendgrid' },
 ];
 
 const PRO_FEATURES = [
-  'Everything in Solo Guard for **up to 10 trucks**',
-  '**Unlimited AI Document Scanning** (Med Cards, CDLs, COIs)',
-  '**Samsara & Motive ELD Integration** (Auto-sync HOS and Miles)',
-  '**Carrier Hiring Portal** (Onboard drivers in 2 minutes)',
+  '**Everything in Solo**',
+  '**Unlimited AI Smart-Scans**',
+  '**Carrier Hiring Portal**',
+  '**Samsara/Motive Sync**',
+  '**Audit-Ready Dashboard**',
 ];
 
 const FLEET_FEATURES = [
@@ -73,8 +74,9 @@ export function Pricing() {
     }
   };
 
-  const soloPrice = billing === 'annual' ? '$99/year' : '$15/mo';
-  const soloSubtext = billing === 'annual' ? '$15/mo billed annually' : 'or $99/year if paid annually';
+  const soloPrice = billing === 'annual' ? '$99' : '$15';
+  const soloUnit = billing === 'annual' ? '/ year' : '/ mo';
+  const soloSubtext = billing === 'annual' ? 'or $15/mo billed annually' : 'or $99/year if paid annually';
 
   return (
     <div className="max-w-6xl mx-auto">
@@ -111,13 +113,18 @@ export function Pricing() {
           <h3 className="text-xl font-bold text-soft-cloud">Solo Guard</h3>
           <div className="mt-4 flex items-baseline gap-1 flex-wrap">
             <span className="text-3xl font-bold text-cyber-amber">{soloPrice}</span>
+            <span className="text-soft-cloud/70 text-lg">{soloUnit}</span>
           </div>
           <p className="mt-1 text-xs text-soft-cloud/60">{soloSubtext}</p>
-          <ul className="mt-6 space-y-3 flex-1">
-            {SOLO_FEATURES.map((f) => (
-              <li key={f} className="flex items-start gap-2 text-sm text-soft-cloud/90">
-                <Check className="size-4 text-electric-teal shrink-0 mt-0.5" />
-                <FeatureText text={f} />
+          <ul className="mt-6 space-y-3 flex-1 text-sm text-soft-cloud/90">
+            {SOLO_FEATURES.map((f, i) => (
+              <li key={i} className="flex items-start gap-2">
+                {f.icon === 'sendgrid' ? (
+                  <Mail className="size-4 text-cyber-amber shrink-0 mt-0.5" aria-hidden />
+                ) : (
+                  <Check className="size-4 text-electric-teal shrink-0 mt-0.5" />
+                )}
+                <FeatureText text={f.text} />
               </li>
             ))}
           </ul>
@@ -148,9 +155,9 @@ export function Pricing() {
           <p className="mt-2 text-xs text-soft-cloud/70">
             30 days free, then $199/mo. Cancel anytime before {cancelBeforeDate}.
           </p>
-          <ul className="mt-6 space-y-3 flex-1">
-            {PRO_FEATURES.map((f) => (
-              <li key={f} className="flex items-start gap-2 text-sm text-soft-cloud/90">
+          <ul className="mt-6 space-y-3 flex-1 text-sm text-soft-cloud/90">
+            {PRO_FEATURES.map((f, i) => (
+              <li key={i} className="flex items-start gap-2">
                 <Check className="size-4 text-electric-teal shrink-0 mt-0.5" />
                 <FeatureText text={f} />
               </li>
@@ -177,9 +184,9 @@ export function Pricing() {
             <span className="text-2xl font-bold text-cyber-amber">Custom</span>
           </div>
           <p className="mt-1 text-sm text-soft-cloud/60">Contact us for pricing</p>
-          <ul className="mt-6 space-y-3 flex-1">
-            {FLEET_FEATURES.map((f) => (
-              <li key={f} className="flex items-start gap-2 text-sm text-soft-cloud/90">
+          <ul className="mt-6 space-y-3 flex-1 text-sm text-soft-cloud/90">
+            {FLEET_FEATURES.map((f, i) => (
+              <li key={i} className="flex items-start gap-2">
                 <Check className="size-4 text-electric-teal shrink-0 mt-0.5" />
                 <FeatureText text={f} />
               </li>

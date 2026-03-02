@@ -115,8 +115,8 @@ export async function inviteDriver(
   const emailResult = await sendEmail({
     to: email,
     from: FROM_EMAIL,
-    subject: `You're invited to VantagFleet — Set your password`,
-    text: `${orgName} invited you to join VantagFleet as a driver. Set your password and access your Roadside Folder and uploads here: ${inviteLink}\n\nThis link expires in ${INVITE_EXPIRES_DAYS} days.`,
+    subject: 'Set up your VantagFleet Roadside Shield',
+    text: `${orgName} invited you to join VantagFleet. Set up your Roadside Shield and upload your CDL here: ${inviteLink}\n\nSet your password and access your documents. This link expires in ${INVITE_EXPIRES_DAYS} days.`,
     html: inviteEmailHtml(orgName, inviteLink, INVITE_EXPIRES_DAYS),
   });
 
@@ -146,9 +146,9 @@ function inviteEmailHtml(orgName: string, inviteLink: string, expiresDays: numbe
   <div style="max-width:520px;margin:0 auto;padding:32px 24px;">
     <div style="border:1px solid rgba(245,158,11,0.3);border-radius:16px;background:rgba(15,23,42,0.95);padding:28px;">
       <p style="margin:0 0 8px;font-size:12px;text-transform:uppercase;letter-spacing:0.1em;color:#f59e0b;">VantagFleet</p>
-      <h1 style="margin:0 0 16px;font-size:22px;font-weight:700;color:#f59e0b;">You're invited to join as a driver</h1>
-      <p style="margin:0 0 16px;font-size:16px;line-height:1.6;color:#cbd5e1;"><strong>${escapeHtml(orgName)}</strong> invited you to VantagFleet. Set your password to access <strong>My Uploads</strong> and your <strong>Roadside Folder</strong>.</p>
-      <p style="margin:0 0 24px;"><a href="${escapeHtml(inviteLink)}" style="display:inline-block;padding:12px 24px;background:#f59e0b;color:#0f172a;font-weight:600;text-decoration:none;border-radius:8px;">Set password &amp; join</a></p>
+      <h1 style="margin:0 0 16px;font-size:22px;font-weight:700;color:#f59e0b;">Set up your VantagFleet Roadside Shield</h1>
+      <p style="margin:0 0 16px;font-size:16px;line-height:1.6;color:#cbd5e1;"><strong>${escapeHtml(orgName)}</strong> invited you. Set your password to access your <strong>Roadside Shield</strong> and upload your CDL.</p>
+      <p style="margin:0 0 24px;"><a href="${escapeHtml(inviteLink)}" style="display:inline-block;padding:12px 24px;background:#f59e0b;color:#0f172a;font-weight:600;text-decoration:none;border-radius:8px;">Set password &amp; get started</a></p>
       <p style="margin:0;font-size:13px;color:#94a3b8;">This link expires in ${expiresDays} days. If you didn't expect this email, you can ignore it.</p>
     </div>
   </div>
