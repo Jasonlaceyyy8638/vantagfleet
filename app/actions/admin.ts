@@ -523,7 +523,7 @@ export async function getEffectiveOrgFeatures(tier: string | null, features: str
   const diamondFeatures =
     tier?.toLowerCase() === 'diamond' ? ['predictive_audit_ai', 'advanced_route_history'] : [];
   const set = new Set<string>([...diamondFeatures, ...features]);
-  return [...set];
+  return Array.from(set);
 }
 
 /** Update an org's tier. Staff only. */
