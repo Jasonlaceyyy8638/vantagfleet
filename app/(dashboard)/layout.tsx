@@ -1,6 +1,7 @@
 import { Sidebar } from '@/components/Sidebar';
 import { OrgSetup } from '@/components/OrgSetup';
 import { ComplianceRequestFab } from '@/components/ComplianceRequestFab';
+import { SupportChat } from '@/components/SupportChat';
 import { ImpersonationBar } from '@/components/ImpersonationBar';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
@@ -49,6 +50,7 @@ export default async function DashboardLayout({
             {children}
           </main>
           <ComplianceRequestFab />
+          <SupportChat />
         </div>
       </div>
     );
@@ -90,6 +92,7 @@ export default async function DashboardLayout({
         {children}
       </main>
       <ComplianceRequestFab />
+      <SupportChat />
     </div>
   );
 }

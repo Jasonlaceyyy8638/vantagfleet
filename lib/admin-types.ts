@@ -74,3 +74,19 @@ export type MotiveDriverRow = {
   org_name: string;
   motive_id: string;
 };
+
+export type SupportMessageRow = {
+  id: string;
+  sender_id: string;
+  receiver_id: string | null;
+  org_id: string;
+  content: string;
+  created_at: string;
+};
+
+export type SupportConversationRow = {
+  org_id: string;
+  org_name: string;
+  last_at: string;
+  last_preview: string | null;
+};

@@ -10,11 +10,13 @@ import {
   UserCog,
   DollarSign,
   FileCheck,
+  MessageCircle,
 } from 'lucide-react';
 
 const adminNav = [
   { href: '/admin', label: 'Overview', icon: ShieldCheck },
   { href: '/admin/support', label: 'Customer Support', icon: Headphones },
+  { href: '/admin/support/chat', label: 'Live Chat', icon: MessageCircle },
   { href: '/admin/revenue', label: 'Revenue', icon: DollarSign },
   { href: '/admin/compliance', label: 'IFTA Audit', icon: FileCheck },
   { href: '/admin/setup', label: 'Organization Setup', icon: Building2 },
