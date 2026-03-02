@@ -30,7 +30,7 @@ export default async function DashboardLayout({
     const admin = createAdminClient();
     const { data: org } = await admin
       .from('organizations')
-      .select('id, name')
+      .select('id, name, usdot_number, status, created_at, updated_at')
       .eq('id', currentOrgId)
       .single();
     const organizations = org ? [org] : [];
