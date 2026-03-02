@@ -8,7 +8,7 @@ import { createPortal } from 'react-dom';
 import { Navbar } from '@/components/Navbar';
 import { PricingSection } from '@/components/PricingSection';
 import { HeroLoginCard } from '@/components/HeroLoginCard';
-import { FileCheck, Users, Truck, Shield, ArrowRight, Plug, Quote, MapPin, X, Play } from 'lucide-react';
+import { FileCheck, Users, Truck, Shield, ArrowRight, Plug, Quote, MapPin, X } from 'lucide-react';
 import type { NavbarRole } from '@/lib/admin';
 
 const glassCardClass =
@@ -54,14 +54,20 @@ export function LandingPage({ isAuthenticated = false, navbarRole = null }: Land
 
   useEffect(() => {
     if (!storyModalOpen) return;
-    const v = founderVideoRef.current;
-    if (v) v.play().catch(() => {});
+    const t = setTimeout(() => {
+      const v = founderVideoRef.current;
+      if (v) {
+        v.play().catch(() => {});
+      }
+    }, 100);
     const onEscape = (e: KeyboardEvent) => {
       if (e.key === 'Escape') setStoryModalOpen(false);
     };
     document.addEventListener('keydown', onEscape);
     return () => {
+      clearTimeout(t);
       document.removeEventListener('keydown', onEscape);
+      const v = founderVideoRef.current;
       if (v) v.pause();
     };
   }, [storyModalOpen]);
@@ -136,22 +142,23 @@ export function LandingPage({ isAuthenticated = false, navbarRole = null }: Land
                     Get started free
                   </Link>
                 </p>
-                <button
-                  type="button"
-                  onClick={() => setStoryModalOpen(true)}
-                  className="inline-flex items-center gap-2 px-6 py-3 rounded-xl border-2 border-[#FFBF00] text-[#FFBF00] font-semibold text-sm hover:bg-[#FFBF00]/10 transition-colors"
-                >
-                  <Play className="size-4" />
-                  Watch Our Story
-                </button>
               </motion.div>
+              <motion.a
+                href="mailto:info@vantagfleet.com"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.5, delay: 0.4 }}
+                className="mt-6 w-full max-w-md mx-auto block text-center backdrop-blur-2xl bg-black/40 border border-white/10 rounded-3xl py-4 px-6 shadow-[0_0_50px_-12px_rgba(255,191,0,0.25)] text-[#FFBF00] font-medium hover:bg-black/50 hover:border-[#FFBF00]/40 transition-colors"
+              >
+                info@vantagfleet.com
+              </motion.a>
             </>
           ) : (
             <motion.div
               initial={{ opacity: 0, y: 24 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.4 }}
-              className="mt-10 flex flex-wrap gap-4 justify-center"
+              className="mt-10 flex flex-col items-center gap-6"
             >
               <Link
                 href={
@@ -164,14 +171,12 @@ export function LandingPage({ isAuthenticated = false, navbarRole = null }: Land
                   : 'Go to Dashboard'}
                 <ArrowRight className="size-5" />
               </Link>
-              <button
-                type="button"
-                onClick={() => setStoryModalOpen(true)}
-                className="inline-flex items-center gap-2 px-6 py-4 rounded-xl border-2 border-[#FFBF00] text-[#FFBF00] font-bold text-lg hover:bg-[#FFBF00]/10 transition-colors"
+              <a
+                href="mailto:info@vantagfleet.com"
+                className="block text-center backdrop-blur-2xl bg-black/40 border border-white/10 rounded-3xl py-4 px-8 shadow-[0_0_50px_-12px_rgba(255,191,0,0.25)] text-[#FFBF00] font-medium hover:bg-black/50 hover:border-[#FFBF00]/40 transition-colors"
               >
-                <Play className="size-5" />
-                Watch Our Story
-              </button>
+                info@vantagfleet.com
+              </a>
             </motion.div>
           )}
         </div>
@@ -231,7 +236,7 @@ export function LandingPage({ isAuthenticated = false, navbarRole = null }: Land
                 src="/videos/founder-story.mp4"
                 controls
                 playsInline
-                preload="metadata"
+                preload="auto"
               />
             </div>
             <div className="mt-6 flex gap-3">
@@ -497,6 +502,7 @@ export function LandingPage({ isAuthenticated = false, navbarRole = null }: Land
                     muted
                     loop
                     controls
+                    preload="auto"
                   />
                 </div>
                 <motion.p
