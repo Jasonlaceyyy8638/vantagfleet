@@ -41,7 +41,30 @@ export function Navbar({ isAuthenticated: initialAuth = false }: { isAuthenticat
   const [isTauri, setIsTauri] = useState(false);
 
   useEffect(() => {
-    setIsTauri(typeof window !== 'undefined' && !!(window as unknown as { __TAURI__?: unknown }).__TAURI__);
+    const w = typeof window !== 'undefined' ? (window as unknown as { __TAURI__?: unknown; __TAURI_INTERNAL__?: unknown }) : null;
+    const check = () => {
+      if (w && (!!w.__TAURI__ || !!w.__TAURI_INTERNAL__)) return true;
+      if (typeof window !== 'undefined') {
+        try {
+          const params = new URLSearchParams(window.location.search);
+          if (params.get('tauri') === '1') {
+            sessionStorage.setItem('tauri', '1');
+            return true;
+          }
+          if (sessionStorage.getItem('tauri') === '1') return true;
+        } catch {
+          // ignore
+        }
+      }
+      return false;
+    };
+    if (check()) setIsTauri(true);
+    const t1 = setTimeout(() => { if (check()) setIsTauri(true); }, 150);
+    const t2 = setTimeout(() => { if (check()) setIsTauri(true); }, 500);
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+    };
   }, []);
 
   useEffect(() => {
@@ -93,7 +116,7 @@ export function Navbar({ isAuthenticated: initialAuth = false }: { isAuthenticat
             {!isTauri && (
               <Link
                 href="/download"
-                className="bg-amber-500 text-black px-4 py-2 rounded-md font-bold hover:bg-amber-600 transition-colors"
+                className="hidden md:inline-flex bg-amber-500 text-black px-4 py-2 rounded-md font-bold hover:bg-amber-600 transition-colors"
               >
                 Download App
               </Link>
@@ -157,7 +180,7 @@ export function Navbar({ isAuthenticated: initialAuth = false }: { isAuthenticat
             {!isTauri && (
               <Link
                 href="/download"
-                className="bg-amber-500 text-black px-4 py-2 rounded-md font-bold hover:bg-amber-600 transition-colors"
+                className="hidden md:inline-flex bg-amber-500 text-black px-4 py-2 rounded-md font-bold hover:bg-amber-600 transition-colors"
               >
                 Download App
               </Link>

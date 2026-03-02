@@ -19,7 +19,7 @@ const html = `<!DOCTYPE html>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>VantagFleet</title>
   <script>
-    window.location.replace('${PRODUCTION_URL}');
+    window.location.replace('${PRODUCTION_URL}?tauri=1');
   </script>
 </head>
 <body>
