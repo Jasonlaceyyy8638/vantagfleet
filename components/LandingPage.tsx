@@ -42,11 +42,8 @@ export function LandingPage({ isAuthenticated = false, navbarRole = null }: Land
             poster="/images/hero-fallback.jpg"
             className="absolute inset-0 w-full h-full object-cover z-0"
           >
-            {/* Your video: public/videos/hero-truck.mp4 → URL /videos/hero-truck.mp4 (works locally; use NEXT_PUBLIC_HERO_VIDEO_URL on Netlify) */}
-            <source
-              src={process.env.NEXT_PUBLIC_HERO_VIDEO_URL || '/videos/hero-truck.mp4'}
-              type="video/mp4"
-            />
+            {/* 1) Your video from public/videos/ (same-origin). 2) Mixkit fallback so a video always plays. */}
+            <source src="/videos/hero-truck.mp4" type="video/mp4" />
             <source
               src="https://assets.mixkit.co/videos/preview/mixkit-highway-traffic-at-night-with-long-exposure-4010-large.mp4"
               type="video/mp4"
