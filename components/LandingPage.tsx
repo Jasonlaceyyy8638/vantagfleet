@@ -16,21 +16,24 @@ const glassCardClass =
 
 type LandingPageProps = { isAuthenticated?: boolean; navbarRole?: NavbarRole | null };
 
-// Hero video: local/public first, then Supabase, then Mixkit (browser tries sources in order)
+// Hero video: env URL first (for production), then local, then Supabase, then Mixkit
 const HERO_VIDEO_SOURCES = [
+  ...(typeof process !== 'undefined' && process.env.NEXT_PUBLIC_HERO_VIDEO_URL
+    ? [process.env.NEXT_PUBLIC_HERO_VIDEO_URL]
+    : []),
   '/videos/hero-truck.mp4',
   'https://dmejysrnxvpjenutdypx.supabase.co/storage/v1/object/public/hero-assets/hero-truck.mp4',
   'https://assets.mixkit.co/videos/preview/mixkit-highway-traffic-at-night-with-long-exposure-4010-large.mp4',
-];
+].filter(Boolean);
 
-// Founder story: local first, then Supabase fallback, then env (so it works when local 404s)
+// Founder story: env URL first (use Supabase when set), then local, then hardcoded Supabase
 const FOUNDER_VIDEO_SOURCES = [
-  '/videos/founder-story.mp4',
-  'https://dmejysrnxvpjenutdypx.supabase.co/storage/v1/object/public/hero-assets/founder-story.mp4',
   ...(typeof process !== 'undefined' && process.env.NEXT_PUBLIC_FOUNDER_VIDEO_URL
     ? [process.env.NEXT_PUBLIC_FOUNDER_VIDEO_URL]
     : []),
-];
+  '/videos/founder-story.mp4',
+  'https://dmejysrnxvpjenutdypx.supabase.co/storage/v1/object/public/hero-assets/founder-story.mp4',
+].filter(Boolean);
 
 export function LandingPage({ isAuthenticated = false, navbarRole = null }: LandingPageProps) {
   const searchParams = useSearchParams();
