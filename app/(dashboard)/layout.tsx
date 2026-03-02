@@ -64,7 +64,7 @@ export default async function DashboardLayout({
   const currentOrgId = await getDashboardOrgId(supabase, cookieStore);
   const { data: profiles } = await supabase
     .from('profiles')
-    .select('org_id')
+    .select('org_id, role')
     .eq('user_id', user.id);
   if (!currentOrgId) {
     return <OrgSetup />;
@@ -80,6 +80,8 @@ export default async function DashboardLayout({
     .order('name');
 
   const showAdminLink = await isAdmin(supabase);
+  const currentProfile = (profiles ?? []).find((p) => p.org_id === currentOrgId);
+  const isDriverOnly = currentProfile?.role === 'Driver';
 
   return (
     <div className="flex min-h-screen">
@@ -87,6 +89,7 @@ export default async function DashboardLayout({
         organizations={organizations ?? []}
         currentOrgId={currentOrgId}
         showAdminLink={showAdminLink}
+        isDriverOnly={isDriverOnly}
       />
       <main className="flex-1 overflow-auto">
         {children}

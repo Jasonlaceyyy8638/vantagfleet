@@ -22,6 +22,8 @@ import {
   BarChart3,
   Headphones,
   FileStack,
+  FolderOpen,
+  Upload,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 
@@ -38,16 +40,23 @@ const nav = [
   { href: '/settings', label: 'Settings', icon: Settings },
 ];
 
+const driverNav = [
+  { href: '/documents', label: 'My Uploads', icon: Upload },
+  { href: '/driver/roadside-shield', label: 'Roadside Folder', icon: FolderOpen },
+];
+
 export function Sidebar({
   organizations,
   currentOrgId,
   showAdminLink = false,
   showAdminGearInTauri = false,
+  isDriverOnly = false,
 }: {
   organizations: Organization[];
   currentOrgId: string | null;
   showAdminLink?: boolean;
   showAdminGearInTauri?: boolean;
+  isDriverOnly?: boolean;
 }) {
   const pathname = usePathname();
   const [isTauri, setIsTauri] = useState(false);
@@ -93,17 +102,19 @@ export function Sidebar({
         </Link>
         <p className="text-xs text-soft-cloud/60 mt-0.5 ml-11">Compliance</p>
       </div>
-      <div className="p-3 border-b border-border">
-        <p className="text-xs font-medium text-soft-cloud/50 uppercase tracking-wider mb-2">
-          Organization
-        </p>
-        <OrgSwitcher
-          organizations={organizations}
-          currentOrgId={currentOrgId}
-        />
-      </div>
+      {!isDriverOnly && (
+        <div className="p-3 border-b border-border">
+          <p className="text-xs font-medium text-soft-cloud/50 uppercase tracking-wider mb-2">
+            Organization
+          </p>
+          <OrgSwitcher
+            organizations={organizations}
+            currentOrgId={currentOrgId}
+          />
+        </div>
+      )}
       <nav className="flex-1 p-3 space-y-0.5">
-        {nav.map((item) => {
+        {(isDriverOnly ? driverNav : nav).map((item) => {
           const isActive = pathname === item.href;
           const Icon = item.icon;
           return (

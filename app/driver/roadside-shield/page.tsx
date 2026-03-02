@@ -3,6 +3,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { getDashboardOrgId } from '@/lib/admin';
 import { cookies } from 'next/headers';
 import Link from 'next/link';
+import { EmailToOfficerButton } from './EmailToOfficerButton';
 
 const BUCKET = 'dq-documents';
 const SIGNED_URL_EXPIRES = 3600; // 1 hour
@@ -71,7 +72,12 @@ export default async function RoadsideShieldPage({
       </header>
 
       <main className="p-4 max-w-lg mx-auto">
-        {/* Share via Email */}
+        {/* Email to Officer — primary CTA with modal */}
+        <section className="mb-6">
+          <EmailToOfficerButton />
+        </section>
+
+        {/* Share via Email — form fallback */}
         <section className="mb-8">
           <form
             action="/api/driver/roadside-shield/share"

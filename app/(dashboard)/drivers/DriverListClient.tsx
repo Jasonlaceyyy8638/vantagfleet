@@ -5,6 +5,7 @@ import { ComplianceStatusBadge } from '@/components/ComplianceStatusBadge';
 import { DocumentUpload } from '@/components/DocumentUpload';
 import { scanDqFile } from '@/app/actions/scan-dq-file';
 import { scanDq } from '@/app/actions/scan-dq';
+import { inviteDriver } from '@/app/actions/driver-invite';
 import { useState, useRef } from 'react';
 import { UserPlus, Loader2, FileText, ScanLine, Scan } from 'lucide-react';
 
@@ -40,6 +41,8 @@ export function DriverListClient({
   const [docsDriverId, setDocsDriverId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
+  const [email, setEmail] = useState('');
   const [name, setName] = useState('');
   const [licenseNumber, setLicenseNumber] = useState('');
   const [licenseState, setLicenseState] = useState('');
@@ -141,24 +144,23 @@ export function DriverListClient({
     e.preventDefault();
     setLoading(true);
     setMessage('');
-    const { data, error } = await supabase
-      .from('drivers')
-      .insert({
-        org_id: orgId,
-        name: name.trim(),
-        license_number: licenseNumber.trim() || null,
-        license_state: licenseState.trim() || null,
-        med_card_expiry: medCardExpiry || null,
-        clearinghouse_status: clearinghouseStatus.trim() || null,
-      })
-      .select('id, name, license_number, license_state, med_card_expiry, clearinghouse_status')
-      .single();
+    setSuccessMessage('');
+    const result = await inviteDriver(orgId, {
+      email: email.trim(),
+      name: name.trim(),
+      licenseNumber: licenseNumber.trim() || undefined,
+      licenseState: licenseState.trim() || undefined,
+      medCardExpiry: medCardExpiry || undefined,
+      clearinghouseStatus: clearinghouseStatus.trim() || undefined,
+    });
     setLoading(false);
-    if (error) {
-      setMessage(error.message);
+    if (!result.ok) {
+      setMessage(result.error);
       return;
     }
-    setDrivers((prev) => [...prev, data]);
+    setDrivers((prev) => [...prev, result.driver]);
+    setSuccessMessage(`Invite sent to ${email.trim()}. They can set a password and join from the link in the email.`);
+    setEmail('');
     setName('');
     setLicenseNumber('');
     setLicenseState('');
@@ -181,13 +183,28 @@ export function DriverListClient({
         </button>
       </div>
 
+      {successMessage && (
+        <p className="text-sm text-emerald-400 bg-emerald-500/10 px-4 py-2 rounded-lg">{successMessage}</p>
+      )}
       {showForm && (
         <form
           onSubmit={handleAddDriver}
           className="rounded-xl border border-[#30363d] bg-card p-5 space-y-4"
         >
-          <h2 className="text-sm font-semibold text-cloud-dancer">New driver</h2>
+          <h2 className="text-sm font-semibold text-cloud-dancer">Invite a driver</h2>
+          <p className="text-xs text-cloud-dancer/70">They’ll receive an email with a link to set their password and access My Uploads and Roadside Folder.</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="sm:col-span-2">
+              <label className="block text-xs font-medium text-cloud-dancer/70 mb-1">Driver email *</label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                className="w-full px-3 py-2 rounded-lg bg-deep-ink border border-[#30363d] text-cloud-dancer text-sm focus:ring-2 focus:ring-transformative-teal"
+                placeholder="driver@example.com"
+              />
+            </div>
             <div>
               <label className="block text-xs font-medium text-cloud-dancer/70 mb-1">Name *</label>
               <input
@@ -255,7 +272,7 @@ export function DriverListClient({
               className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-cyber-amber hover:bg-cyber-amber/90 disabled:opacity-50 text-deep-ink text-sm font-medium"
             >
               {loading && <Loader2 className="size-4 animate-spin" />}
-              Add driver
+              Send invite
             </button>
           </div>
         </form>

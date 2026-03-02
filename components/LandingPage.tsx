@@ -65,6 +65,12 @@ export function LandingPage({ isAuthenticated = false, navbarRole = null }: Land
   const [roadmapSectionError, setRoadmapSectionError] = useState<string | null>(null);
   const [roadmapSectionToast, setRoadmapSectionToast] = useState<string | null>(null);
 
+  const [driverAppNotifyOpen, setDriverAppNotifyOpen] = useState(false);
+  const [driverAppNotifyEmail, setDriverAppNotifyEmail] = useState('');
+  const [driverAppNotifySubmitting, setDriverAppNotifySubmitting] = useState(false);
+  const [driverAppNotifySuccess, setDriverAppNotifySuccess] = useState(false);
+  const [driverAppNotifyError, setDriverAppNotifyError] = useState<string | null>(null);
+
   useEffect(() => {
     const code = searchParams.get('code');
     if (code) {
@@ -272,6 +278,30 @@ export function LandingPage({ isAuthenticated = false, navbarRole = null }: Land
       setRoadmapError('Network error. Try again.');
     } finally {
       setRoadmapSubmitting(false);
+    }
+  };
+
+  const handleDriverAppNotifySubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setDriverAppNotifyError(null);
+    setDriverAppNotifySubmitting(true);
+    try {
+      const res = await fetch('/api/driver-app-notify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: driverAppNotifyEmail.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setDriverAppNotifyError(data?.error ?? 'Something went wrong.');
+        return;
+      }
+      setDriverAppNotifySuccess(true);
+      setDriverAppNotifyEmail('');
+    } catch {
+      setDriverAppNotifyError('Network error. Try again.');
+    } finally {
+      setDriverAppNotifySubmitting(false);
     }
   };
 
@@ -917,6 +947,59 @@ export function LandingPage({ isAuthenticated = false, navbarRole = null }: Land
 
       <PricingSection />
 
+      {/* Driver App — Coming Soon */}
+      <section className="relative py-24 px-4 bg-midnight-ink border-t border-white/5">
+        <div className="max-w-4xl mx-auto text-center">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.2 }}
+            transition={{ duration: 0.6 }}
+          >
+            <p className="text-cyber-amber font-semibold text-sm uppercase tracking-wider mb-3">Coming Soon</p>
+            <h2 className="text-2xl sm:text-3xl font-bold text-soft-cloud mb-4">
+              The VantagFleet Driver App
+            </h2>
+            <p className="text-soft-cloud/80 text-lg mb-6 max-w-2xl mx-auto">
+              Your Roadside Shield in your pocket. Coming Q3 2026.
+            </p>
+            <div className="flex flex-wrap items-center justify-center gap-6 mb-8">
+              <a
+                href="#"
+                onClick={(e) => e.preventDefault()}
+                className="opacity-50 grayscale pointer-events-none inline-block"
+                aria-label="Download on the App Store (coming soon)"
+              >
+                <img
+                  src="https://tools.applemediaservices.com/api/badges/download-on-the-app-store/black/en-us?size=250x83"
+                  alt="Download on the App Store"
+                  className="h-10 w-auto object-contain"
+                />
+              </a>
+              <a
+                href="#"
+                onClick={(e) => e.preventDefault()}
+                className="opacity-50 grayscale pointer-events-none inline-block"
+                aria-label="Get it on Google Play (coming soon)"
+              >
+                <img
+                  src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png"
+                  alt="Get it on Google Play"
+                  className="h-12 w-auto object-contain"
+                />
+              </a>
+            </div>
+            <button
+              type="button"
+              onClick={() => setDriverAppNotifyOpen(true)}
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl border-2 border-cyber-amber/60 bg-cyber-amber/10 text-cyber-amber font-semibold hover:bg-cyber-amber/20 hover:border-cyber-amber/80 transition-colors"
+            >
+              Notify Me
+            </button>
+          </motion.div>
+        </div>
+      </section>
+
       <CTASection isAuthenticated={isAuthenticated} navbarRole={navbarRole} />
 
       {/* Founder story video modal */}
@@ -1267,6 +1350,91 @@ export function LandingPage({ isAuthenticated = false, navbarRole = null }: Land
                         className="flex-1 py-2.5 rounded-xl bg-amber-500 text-midnight-ink font-medium hover:bg-amber-400 disabled:opacity-60"
                       >
                         {roadmapSubmitting ? 'Submitting…' : 'Submit'}
+                      </button>
+                    </div>
+                  </form>
+                )}
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Driver App — Notify Me modal */}
+      <AnimatePresence>
+        {driverAppNotifyOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-md"
+              onClick={() => setDriverAppNotifyOpen(false)}
+              aria-hidden
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.96 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.96 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+              className="fixed left-1/2 top-1/2 z-[101] w-full max-w-md -translate-x-1/2 -translate-y-1/2 px-4"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="driver-app-notify-title"
+            >
+              <div className="rounded-2xl border border-white/10 bg-black/40 backdrop-blur-2xl shadow-[0_0_50px_-12px_rgba(255,191,0,0.2)] p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 id="driver-app-notify-title" className="text-lg font-semibold text-soft-cloud">
+                    Notify me when the Driver App launches
+                  </h3>
+                  <button
+                    type="button"
+                    onClick={() => setDriverAppNotifyOpen(false)}
+                    className="rounded-full p-2 text-soft-cloud/70 hover:text-amber-400 hover:bg-white/10 transition-colors"
+                    aria-label="Close"
+                  >
+                    <X className="size-5" />
+                  </button>
+                </div>
+                <p className="text-sm text-soft-cloud/70 mb-5">
+                  We&apos;ll email you when the VantagFleet Driver App is available on the App Store and Google Play (Q3 2026).
+                </p>
+                {driverAppNotifySuccess ? (
+                  <p className="text-soft-cloud py-4 text-center">You&apos;re on the list. We&apos;ll notify you at launch.</p>
+                ) : (
+                  <form onSubmit={handleDriverAppNotifySubmit} className="space-y-4">
+                    <div>
+                      <label htmlFor="driver-app-notify-email" className="block text-sm font-medium text-soft-cloud/80 mb-1">
+                        Email *
+                      </label>
+                      <input
+                        id="driver-app-notify-email"
+                        type="email"
+                        required
+                        value={driverAppNotifyEmail}
+                        onChange={(e) => setDriverAppNotifyEmail(e.target.value)}
+                        placeholder="you@company.com"
+                        className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/20 text-soft-cloud placeholder-soft-cloud/40 focus:outline-none focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/40"
+                      />
+                    </div>
+                    {driverAppNotifyError && (
+                      <p className="text-sm text-red-400">{driverAppNotifyError}</p>
+                    )}
+                    <div className="flex gap-3 pt-2">
+                      <button
+                        type="button"
+                        onClick={() => setDriverAppNotifyOpen(false)}
+                        className="flex-1 py-2.5 rounded-xl border border-white/20 text-soft-cloud/80 hover:bg-white/5"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={driverAppNotifySubmitting}
+                        className="flex-1 py-2.5 rounded-xl bg-amber-500 text-midnight-ink font-medium hover:bg-amber-400 disabled:opacity-60"
+                      >
+                        {driverAppNotifySubmitting ? 'Submitting…' : 'Notify Me'}
                       </button>
                     </div>
                   </form>
