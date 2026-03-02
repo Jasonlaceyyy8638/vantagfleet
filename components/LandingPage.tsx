@@ -8,7 +8,7 @@ import { createPortal } from 'react-dom';
 import { Navbar } from '@/components/Navbar';
 import { PricingSection } from '@/components/PricingSection';
 import { HeroLoginCard } from '@/components/HeroLoginCard';
-import { FileCheck, Users, Truck, Shield, ArrowRight, Plug, Quote, MapPin, X, Scale, FileText, Fuel } from 'lucide-react';
+import { FileCheck, Users, Truck, Shield, ArrowRight, Plug, Quote, MapPin, X, Scale, FileText, Fuel, ShieldCheck, CalendarClock, Gauge } from 'lucide-react';
 import type { NavbarRole } from '@/lib/admin';
 
 const glassCardClass =
@@ -57,6 +57,13 @@ export function LandingPage({ isAuthenticated = false, navbarRole = null }: Land
   const [roadmapSubmitting, setRoadmapSubmitting] = useState(false);
   const [roadmapSuccess, setRoadmapSuccess] = useState(false);
   const [roadmapError, setRoadmapError] = useState<string | null>(null);
+
+  const [roadmapSectionModalOpen, setRoadmapSectionModalOpen] = useState(false);
+  const [roadmapSectionEmail, setRoadmapSectionEmail] = useState('');
+  const [roadmapSectionDot, setRoadmapSectionDot] = useState('');
+  const [roadmapSectionSubmitting, setRoadmapSectionSubmitting] = useState(false);
+  const [roadmapSectionError, setRoadmapSectionError] = useState<string | null>(null);
+  const [roadmapSectionToast, setRoadmapSectionToast] = useState<string | null>(null);
 
   useEffect(() => {
     const code = searchParams.get('code');
@@ -166,6 +173,68 @@ export function LandingPage({ isAuthenticated = false, navbarRole = null }: Land
     return () => document.removeEventListener('keydown', onEscape);
   }, [roadmapModalOpen]);
 
+  const closeRoadmapSectionModal = () => {
+    setRoadmapSectionModalOpen(false);
+    setRoadmapSectionEmail('');
+    setRoadmapSectionDot('');
+    setRoadmapSectionError(null);
+  };
+
+  useEffect(() => {
+    if (!roadmapSectionModalOpen) return;
+    const onEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') closeRoadmapSectionModal();
+    };
+    document.addEventListener('keydown', onEscape);
+    return () => document.removeEventListener('keydown', onEscape);
+  }, [roadmapSectionModalOpen]);
+
+  useEffect(() => {
+    if (!roadmapSectionToast) return;
+    const t = setTimeout(() => setRoadmapSectionToast(null), 5000);
+    return () => clearTimeout(t);
+  }, [roadmapSectionToast]);
+
+  const handleRoadmapSectionSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setRoadmapSectionError(null);
+    setRoadmapSectionSubmitting(true);
+    try {
+      const res = await fetch('/api/roadmap-leads', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: roadmapSectionEmail.trim(),
+          dotNumber: roadmapSectionDot.trim() || undefined,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setRoadmapSectionError(data?.error ?? 'Something went wrong.');
+        return;
+      }
+      const email = roadmapSectionEmail.trim();
+      const dotNumber = roadmapSectionDot.trim() || '';
+      try {
+        await fetch('/api/notifications/new-lead', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, dotNumber, featureInterest: 'Compliance Roadmap' }),
+        });
+      } catch {
+        // Lead already saved; email alert is best-effort
+      }
+      closeRoadmapSectionModal();
+      setRoadmapSectionToast("You're on the list, Jason! We'll notify you when the satellite link is active.");
+      setRoadmapSectionEmail('');
+      setRoadmapSectionDot('');
+    } catch {
+      setRoadmapSectionError('Network error. Try again.');
+    } finally {
+      setRoadmapSectionSubmitting(false);
+    }
+  };
+
   const handleRoadmapSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setRoadmapError(null);
@@ -183,6 +252,17 @@ export function LandingPage({ isAuthenticated = false, navbarRole = null }: Land
       if (!res.ok) {
         setRoadmapError(data?.error ?? 'Something went wrong.');
         return;
+      }
+      const email = roadmapEmail.trim();
+      const dotNumber = roadmapDot.trim() || '';
+      try {
+        await fetch('/api/notifications/new-lead', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, dotNumber, featureInterest: 'Compliance Alpha' }),
+        });
+      } catch {
+        // Lead already saved; email alert is best-effort
       }
       setRoadmapSuccess(true);
       setRoadmapEmail('');
@@ -764,6 +844,77 @@ export function LandingPage({ isAuthenticated = false, navbarRole = null }: Land
       {/* Features: glassmorphism cards */}
       <FeaturesSection />
 
+      {/* Compliance Roadmap — The Future of Fleet Compliance */}
+      <section className="relative py-24 px-4 overflow-hidden">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_0%,rgba(245,158,11,0.08),transparent)] pointer-events-none" aria-hidden />
+        <div className="relative max-w-5xl mx-auto">
+          <motion.h2
+            initial={{ opacity: 0, y: 16 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.2 }}
+            className="text-3xl sm:text-4xl font-bold text-amber-500 text-center mb-2"
+          >
+            The Future of Fleet Compliance
+          </motion.h2>
+          <motion.p
+            initial={{ opacity: 0, y: 12 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.2 }}
+            className="text-soft-cloud/60 text-center mb-12"
+          >
+            Revolutionizing the back-office so you can focus on the road.
+          </motion.p>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.15 }}
+            transition={{ duration: 0.5 }}
+            className="grid grid-cols-1 md:grid-cols-3 gap-6"
+          >
+            {[
+              {
+                title: 'One-Click Federal Authority',
+                text: 'Instant 50-state process agent coverage. Stay legal and avoid the $1,000+ paperwork trap.',
+                Icon: ShieldCheck,
+              },
+              {
+                title: 'Biennial Updates on Autopilot',
+                text: 'We use your real-time fleet activity to pre-fill your census data. Never face a Deactivated status again.',
+                Icon: CalendarClock,
+              },
+              {
+                title: 'Quarterly IFTA Prep',
+                text: 'Stop the spreadsheets. Automatically calculate state-by-state mileage directly from your Samsara GPS data.',
+                Icon: Gauge,
+              },
+            ].map(({ title, text, Icon }) => (
+              <div
+                key={title}
+                className="relative rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md p-6"
+              >
+                <span className="absolute top-3 right-3 rounded-md bg-amber-500 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-midnight-ink">
+                  COMING SOON
+                </span>
+                <div className="flex items-center gap-3 mb-3 pr-20">
+                  <div className="p-2 rounded-lg bg-amber-500/20 border border-amber-500/30">
+                    <Icon className="size-5 text-amber-500" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-soft-cloud">{title}</h3>
+                </div>
+                <p className="text-sm text-soft-cloud/70 mb-6">{text}</p>
+                <button
+                  type="button"
+                  onClick={() => setRoadmapSectionModalOpen(true)}
+                  className="w-full py-2.5 rounded-xl border border-amber-500/40 bg-amber-500/10 text-amber-500 text-sm font-medium hover:bg-amber-500/20 hover:border-amber-500/50 transition-colors"
+                >
+                  Join Waitlist
+                </button>
+              </div>
+            ))}
+          </motion.div>
+        </div>
+      </section>
+
       <PricingSection />
 
       <CTASection isAuthenticated={isAuthenticated} navbarRole={navbarRole} />
@@ -916,6 +1067,112 @@ export function LandingPage({ isAuthenticated = false, navbarRole = null }: Land
                     </div>
                   </form>
                 )}
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Compliance Roadmap section — success toast */}
+      <AnimatePresence>
+        {roadmapSectionToast && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="fixed top-4 left-1/2 -translate-x-1/2 z-[110] max-w-md px-4"
+          >
+            <div className="rounded-xl border border-amber-500/30 bg-midnight-ink/95 backdrop-blur-md px-5 py-4 shadow-lg shadow-amber-500/10 text-amber-500 text-center text-sm font-medium">
+              {roadmapSectionToast}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Compliance Roadmap section — Join Waitlist modal */}
+      <AnimatePresence>
+        {roadmapSectionModalOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-md"
+              onClick={closeRoadmapSectionModal}
+              aria-hidden
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.96 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.96 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+              className="fixed left-1/2 top-1/2 z-[101] w-full max-w-md -translate-x-1/2 -translate-y-1/2 px-4"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="roadmap-section-modal-title"
+            >
+              <div className="rounded-2xl border border-white/10 bg-midnight-ink/95 backdrop-blur-xl shadow-2xl p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 id="roadmap-section-modal-title" className="text-lg font-semibold text-soft-cloud">
+                    Join the Waitlist
+                  </h3>
+                  <button
+                    type="button"
+                    onClick={closeRoadmapSectionModal}
+                    className="rounded-full p-2 text-soft-cloud/70 hover:text-amber-500 hover:bg-white/10"
+                    aria-label="Close"
+                  >
+                    <X className="size-5" />
+                  </button>
+                </div>
+                <form onSubmit={handleRoadmapSectionSubmit} className="space-y-4">
+                  <div>
+                    <label htmlFor="roadmap-section-email" className="block text-sm font-medium text-soft-cloud/80 mb-1">
+                      Email *
+                    </label>
+                    <input
+                      id="roadmap-section-email"
+                      type="email"
+                      required
+                      value={roadmapSectionEmail}
+                      onChange={(e) => setRoadmapSectionEmail(e.target.value)}
+                      placeholder="you@company.com"
+                      className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/20 text-soft-cloud placeholder-soft-cloud/40 focus:outline-none focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/40"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="roadmap-section-dot" className="block text-sm font-medium text-soft-cloud/80 mb-1">
+                      DOT Number
+                    </label>
+                    <input
+                      id="roadmap-section-dot"
+                      type="text"
+                      value={roadmapSectionDot}
+                      onChange={(e) => setRoadmapSectionDot(e.target.value)}
+                      placeholder="e.g. 1234567"
+                      className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/20 text-soft-cloud placeholder-soft-cloud/40 focus:outline-none focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/40"
+                    />
+                  </div>
+                  {roadmapSectionError && (
+                    <p className="text-sm text-red-400">{roadmapSectionError}</p>
+                  )}
+                  <div className="flex gap-3 pt-2">
+                    <button
+                      type="button"
+                      onClick={closeRoadmapSectionModal}
+                      className="flex-1 py-2.5 rounded-xl border border-white/20 text-soft-cloud/80 hover:bg-white/5"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={roadmapSectionSubmitting}
+                      className="flex-1 py-2.5 rounded-xl bg-amber-500 text-midnight-ink font-medium hover:bg-amber-400 disabled:opacity-60"
+                    >
+                      {roadmapSectionSubmitting ? 'Submitting…' : 'Submit'}
+                    </button>
+                  </div>
+                </form>
               </div>
             </motion.div>
           </>
