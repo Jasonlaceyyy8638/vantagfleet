@@ -3,7 +3,7 @@
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { Navbar } from '@/components/Navbar';
 import { PricingSection } from '@/components/PricingSection';
 import { FileCheck, Users, Truck, Shield, ArrowRight, Plug, Quote, MapPin } from 'lucide-react';
@@ -14,8 +14,9 @@ const glassCardClass =
 
 type LandingPageProps = { isAuthenticated?: boolean; navbarRole?: NavbarRole | null };
 
-// Hero video: Supabase first; fallback to Mixkit if Supabase fails (CORS, 403, etc.)
+// Hero video: local/public first, then Supabase, then Mixkit (browser tries sources in order)
 const HERO_VIDEO_SOURCES = [
+  '/videos/hero-truck.mp4',
   'https://dmejysrnxvpjenutdypx.supabase.co/storage/v1/object/public/hero-assets/hero-truck.mp4',
   'https://assets.mixkit.co/videos/preview/mixkit-highway-traffic-at-night-with-long-exposure-4010-large.mp4',
 ];
@@ -23,14 +24,6 @@ const HERO_VIDEO_SOURCES = [
 export function LandingPage({ isAuthenticated = false, navbarRole = null }: LandingPageProps) {
   const searchParams = useSearchParams();
   const heroVideoRef = useRef<HTMLVideoElement>(null);
-  const [mounted, setMounted] = useState(false);
-  const [heroVideoSrc, setHeroVideoSrc] = useState(HERO_VIDEO_SOURCES[0]);
-  const [heroSourceIndex, setHeroSourceIndex] = useState(0);
-  const heroVideoRetriedRef = useRef(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   useEffect(() => {
     const code = searchParams.get('code');
@@ -42,24 +35,7 @@ export function LandingPage({ isAuthenticated = false, navbarRole = null }: Land
     }
   }, [searchParams]);
 
-  const onHeroVideoError = () => {
-    if (!heroVideoSrc) return; // ignore during retry (src briefly cleared)
-    // Retry Supabase once (transient load), then fall back to Mixkit
-    if (heroSourceIndex === 0 && !heroVideoRetriedRef.current) {
-      heroVideoRetriedRef.current = true;
-      setHeroVideoSrc('');
-      setTimeout(() => setHeroVideoSrc(HERO_VIDEO_SOURCES[0]), 400);
-      return;
-    }
-    const next = heroSourceIndex + 1;
-    if (next < HERO_VIDEO_SOURCES.length) {
-      setHeroSourceIndex(next);
-      setHeroVideoSrc(HERO_VIDEO_SOURCES[next]);
-    }
-  };
-
   useEffect(() => {
-    if (!mounted) return;
     const video = heroVideoRef.current;
     if (!video) return;
     const play = () => video.play().catch(() => {});
@@ -70,7 +46,7 @@ export function LandingPage({ isAuthenticated = false, navbarRole = null }: Land
       video.removeEventListener('loadeddata', play);
       video.removeEventListener('canplay', play);
     };
-  }, [mounted, heroVideoSrc]);
+  }, []);
 
   return (
     <div className="min-h-screen bg-midnight-ink">
@@ -84,21 +60,26 @@ export function LandingPage({ isAuthenticated = false, navbarRole = null }: Land
             className="absolute inset-0 bg-gradient-to-b from-midnight-ink via-midnight-ink to-cyber-amber/20"
             aria-hidden
           />
-          {mounted && (
-            <video
-              key={heroVideoSrc}
-              ref={heroVideoRef}
-              src={heroVideoSrc}
-              autoPlay
-              muted
-              loop
-              playsInline
-              preload="auto"
-              onError={onHeroVideoError}
-              style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
-              className="min-h-full min-w-full z-[1]"
-            />
-          )}
+          <video
+            ref={heroVideoRef}
+            autoPlay
+            muted
+            loop
+            playsInline
+            preload="auto"
+            style={{
+              position: 'absolute',
+              inset: 0,
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+            }}
+            className="min-h-full min-w-full z-[1]"
+          >
+            {HERO_VIDEO_SOURCES.map((src) => (
+              <source key={src} src={src} type="video/mp4" />
+            ))}
+          </video>
           <div className="absolute inset-0 bg-black/50 z-[2]" aria-hidden />
         </div>
 
