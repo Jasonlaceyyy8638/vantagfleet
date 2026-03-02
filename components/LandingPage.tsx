@@ -14,14 +14,9 @@ const glassCardClass =
 
 type LandingPageProps = { isAuthenticated?: boolean; navbarRole?: NavbarRole | null };
 
-// Hero video: default to Supabase Storage so it works without env var on Netlify
-const SUPABASE_HERO_VIDEO =
-  'https://dmejysrnxvpjenutdypx.supabase.co/storage/v1/object/public/hero-assets/hero-truck.mp4';
-const HERO_VIDEO_URL =
-  typeof process.env.NEXT_PUBLIC_HERO_VIDEO_URL === 'string' && process.env.NEXT_PUBLIC_HERO_VIDEO_URL
-    ? process.env.NEXT_PUBLIC_HERO_VIDEO_URL
-    : SUPABASE_HERO_VIDEO;
-const HERO_VIDEO_FALLBACKS = [
+// Hero video: Supabase first; fallback to Mixkit if Supabase fails (CORS, 403, etc.)
+const HERO_VIDEO_SOURCES = [
+  'https://dmejysrnxvpjenutdypx.supabase.co/storage/v1/object/public/hero-assets/hero-truck.mp4',
   'https://assets.mixkit.co/videos/preview/mixkit-highway-traffic-at-night-with-long-exposure-4010-large.mp4',
 ];
 
@@ -29,6 +24,8 @@ export function LandingPage({ isAuthenticated = false, navbarRole = null }: Land
   const searchParams = useSearchParams();
   const heroVideoRef = useRef<HTMLVideoElement>(null);
   const [mounted, setMounted] = useState(false);
+  const [heroVideoSrc, setHeroVideoSrc] = useState(HERO_VIDEO_SOURCES[0]);
+  const [heroSourceIndex, setHeroSourceIndex] = useState(0);
 
   useEffect(() => {
     setMounted(true);
@@ -44,6 +41,14 @@ export function LandingPage({ isAuthenticated = false, navbarRole = null }: Land
     }
   }, [searchParams]);
 
+  const onHeroVideoError = () => {
+    const next = heroSourceIndex + 1;
+    if (next < HERO_VIDEO_SOURCES.length) {
+      setHeroSourceIndex(next);
+      setHeroVideoSrc(HERO_VIDEO_SOURCES[next]);
+    }
+  };
+
   useEffect(() => {
     if (!mounted) return;
     const video = heroVideoRef.current;
@@ -56,7 +61,7 @@ export function LandingPage({ isAuthenticated = false, navbarRole = null }: Land
       video.removeEventListener('loadeddata', play);
       video.removeEventListener('canplay', play);
     };
-  }, [mounted]);
+  }, [mounted, heroVideoSrc]);
 
   return (
     <div className="min-h-screen bg-midnight-ink">
@@ -72,20 +77,18 @@ export function LandingPage({ isAuthenticated = false, navbarRole = null }: Land
           />
           {mounted && (
             <video
+              key={heroVideoSrc}
               ref={heroVideoRef}
+              src={heroVideoSrc}
               autoPlay
               muted
               loop
               playsInline
               preload="auto"
+              onError={onHeroVideoError}
               style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
               className="min-h-full min-w-full z-[1]"
-            >
-              <source src={HERO_VIDEO_URL} type="video/mp4" />
-              {HERO_VIDEO_FALLBACKS.map((src) => (
-                <source key={src} src={src} type="video/mp4" />
-              ))}
-            </video>
+            />
           )}
           <div className="absolute inset-0 bg-black/50 z-[2]" aria-hidden />
         </div>
