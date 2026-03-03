@@ -49,14 +49,16 @@ export async function POST(request: NextRequest) {
       subscriptionData.trial_period_days = 30;
     }
 
+    const tierLabel = isPro ? 'Pro' : 'Solo';
     const session = await stripe.checkout.sessions.create({
       mode: 'subscription',
       line_items: [{ price: priceId, quantity: 1 }],
-      success_url: `${baseUrl}/dashboard?status=success`,
+      success_url: `${baseUrl}/pricing/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${baseUrl}/pricing`,
       payment_method_collection: 'always',
       metadata: {
         business_name: 'VantagFleet',
+        tier: tierLabel,
       },
       subscription_data: subscriptionData,
       branding_settings: {

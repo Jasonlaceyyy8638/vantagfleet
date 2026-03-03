@@ -32,7 +32,7 @@ export async function middleware(request: NextRequest) {
   const { response, user, isAdmin, isSuperAdmin } = await updateSession(request, pathname);
 
   // Allow public paths and auth callback without requiring user
-  if (isPublic || pathname === '/' || pathname === '/pricing' || pathname === '/privacy' || pathname === '/terms' || pathname === '/contact' || pathname === '/download' || pathname.startsWith('/releases') || pathname.startsWith('/roadside/view')) {
+  if (isPublic || pathname === '/' || pathname.startsWith('/pricing') || pathname === '/privacy' || pathname === '/terms' || pathname === '/contact' || pathname === '/download' || pathname.startsWith('/releases') || pathname.startsWith('/roadside/view')) {
     return response;
   }
 
