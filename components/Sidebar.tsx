@@ -24,6 +24,7 @@ import {
   FileStack,
   FolderOpen,
   Upload,
+  Fuel,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 
@@ -32,6 +33,7 @@ const nav = [
   { href: '/drivers', label: 'Drivers', icon: Users },
   { href: '/vehicles', label: 'Vehicles', icon: Truck },
   { href: '/loads', label: 'Loads', icon: DollarSign },
+  { href: '/dashboard/ifta', label: 'IFTA', icon: Fuel },
   { href: '/compliance', label: 'Compliance', icon: FileCheck },
   { href: '/documents', label: 'New Hire Documents', icon: FileStack },
   { href: '/regulatory', label: 'Regulatory', icon: ShieldCheck },
