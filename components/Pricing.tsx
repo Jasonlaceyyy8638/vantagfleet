@@ -1,14 +1,8 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import { Check, Loader2, Mail } from 'lucide-react';
-
-function trialEndDate(): string {
-  const d = new Date();
-  d.setDate(d.getDate() + 30);
-  return d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
-}
 
 const SOLO_POINTS: { text: string; icon?: 'mail' }[] = [
   { text: 'Roadside Shield Mobile Folder' },
@@ -27,7 +21,6 @@ const PRO_POINTS = [
 export function Pricing() {
   const [billing, setBilling] = useState<'annual' | 'monthly'>('annual');
   const [loadingTier, setLoadingTier] = useState<string | null>(null);
-  const cancelBeforeDate = useMemo(() => trialEndDate(), []);
 
   const handleCheckout = async (tierId: 'starter' | 'pro') => {
     setLoadingTier(tierId);
@@ -127,10 +120,7 @@ export function Pricing() {
             <span className="text-soft-cloud/60">/ month</span>
           </div>
           <p className="mt-2 text-xs text-soft-cloud/70">
-            30-day free trial. You will be notified via email 3 days before your trial ends.
-          </p>
-          <p className="mt-1 text-xs text-soft-cloud/60">
-            Then $199/mo. Cancel anytime before {cancelBeforeDate}.
+            30-day free trial. Start today for $0.00. We will email you a reminder 3 days before your trial ends.
           </p>
           <ul className="mt-6 space-y-3 flex-1 text-sm text-soft-cloud/90">
             {PRO_POINTS.map((point, i) => (
