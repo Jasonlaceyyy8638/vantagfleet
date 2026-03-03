@@ -68,9 +68,6 @@ export async function POST(request: NextRequest) {
           url: logoUrl,
         },
       },
-      invoice_creation: {
-        enabled: true,
-      },
     } as Stripe.Checkout.SessionCreateParams);
 
     return NextResponse.json({ url: session.url });
