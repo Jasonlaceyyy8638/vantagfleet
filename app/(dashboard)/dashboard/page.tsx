@@ -42,6 +42,7 @@ export default async function DashboardPage() {
     );
   }
 
+  const { data: { user } } = await supabase.auth.getUser();
   const driverIds = (await supabase.from('drivers').select('id').eq('org_id', orgId)).data?.map((d) => d.id) ?? [];
 
   const [
@@ -50,6 +51,7 @@ export default async function DashboardPage() {
     { data: complianceDocs },
     { data: orgRow },
     { data: driverDocs },
+    { data: profileRow },
   ] = await Promise.all([
     supabase.from('drivers').select('id, name, med_card_expiry').eq('org_id', orgId),
     supabase.from('vehicles').select('id, unit_number, annual_inspection_due').eq('org_id', orgId),
@@ -61,8 +63,12 @@ export default async function DashboardPage() {
     driverIds.length > 0
       ? supabase.from('driver_documents').select('document_type').in('driver_id', driverIds)
       : { data: [] },
+    user
+      ? supabase.from('profiles').select('ifta_enabled').eq('user_id', user.id).eq('org_id', orgId).single()
+      : { data: null },
   ]);
 
+  const iftaEnabled = (profileRow as { ifta_enabled?: boolean } | null)?.ifta_enabled ?? false;
   const tier = (orgRow as { tier?: string | null } | null)?.tier ?? null;
   const featuresRaw = (orgRow as { features?: unknown } | null)?.features;
   const featuresList = Array.isArray(featuresRaw) ? featuresRaw : [];
@@ -234,6 +240,30 @@ export default async function DashboardPage() {
           className="mt-2"
         />
       </section>
+
+      {/* IFTA: Upload Fuel Receipts (when add-on purchased) */}
+      {iftaEnabled && (
+        <section className="mb-8 rounded-xl bg-card border border-[#30363d] p-5">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <h2 className="font-semibold text-cloud-dancer flex items-center gap-2">
+                <FileStack className="size-5 text-cyber-amber" />
+                IFTA Fuel Receipts
+              </h2>
+              <p className="text-sm text-cloud-dancer/70 mt-1">
+                Upload fuel receipts for your quarterly IFTA prep.
+              </p>
+            </div>
+            <Link
+              href="/documents"
+              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-cyber-amber text-midnight-ink font-semibold hover:bg-cyber-amber/90 transition-colors shrink-0"
+            >
+              <FileStack className="size-4" />
+              Upload Fuel Receipts
+            </Link>
+          </div>
+        </section>
+      )}
 
       {/* Compliance Power-Ups — MCS-150 & BOC-3 waitlist */}
       <CompliancePowerUps />

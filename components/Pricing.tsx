@@ -41,6 +41,22 @@ export function Pricing() {
     }
   };
 
+  const handleIftaCheckout = async () => {
+    setLoadingTier('ifta');
+    try {
+      const res = await fetch('/api/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'ifta' }),
+      });
+      const data = await res.json();
+      if (data.url) window.location.href = data.url;
+      else if (data.error) alert(data.error);
+    } finally {
+      setLoadingTier(null);
+    }
+  };
+
   return (
     <div className="max-w-5xl mx-auto">
       {/* Two cards */}
@@ -175,12 +191,15 @@ export function Pricing() {
           <div className="rounded-xl border border-white/10 bg-white/5 p-5 flex flex-col items-center text-center">
             <p className="font-bold text-soft-cloud">Quarterly IFTA Prep</p>
             <p className="text-2xl font-bold text-cyber-amber mt-1">$49/qtr</p>
-            <Link
-              href="/contact"
-              className="mt-4 w-full py-2.5 rounded-lg border border-cyber-amber/50 text-cyber-amber text-sm font-medium hover:bg-cyber-amber/10 flex items-center justify-center"
+            <button
+              type="button"
+              onClick={handleIftaCheckout}
+              disabled={!!loadingTier}
+              className="mt-4 w-full py-2.5 rounded-lg border border-cyber-amber/50 text-cyber-amber text-sm font-medium hover:bg-cyber-amber/10 flex items-center justify-center gap-2 disabled:opacity-60"
             >
+              {loadingTier === 'ifta' ? <Loader2 className="size-4 animate-spin" /> : null}
               Get started
-            </Link>
+            </button>
           </div>
         </div>
       </section>
