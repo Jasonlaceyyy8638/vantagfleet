@@ -3,97 +3,24 @@ import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { cookies } from 'next/headers';
 import { isAdmin, getDashboardOrgId, isSuperAdmin, IMPERSONATE_COOKIE } from '@/lib/admin';
-import { getMotiveToken } from '@/lib/motive-sync-core';
-const MOTIVE_API_BASE = 'https://api.gomotive.com/v1';
-
-export type FleetMapLocation = {
-  id: string;
-  lat: number;
-  lng: number;
-  vehicleName: string;
-  driverName: string;
-  speed: number | null;
-  status: 'Moving' | 'Stationary';
-  eta?: string | null;
-  orgId?: string;
-  orgName?: string;
-};
-
-/** Normalize Motive vehicle_locations response into FleetMapLocation[]. */
-function normalizeMotiveLocations(
-  data: unknown,
-  orgId: string,
-  orgName?: string
-): FleetMapLocation[] {
-  const out: FleetMapLocation[] = [];
-  let list: Array<Record<string, unknown>> = [];
-
-  if (data && typeof data === 'object') {
-    const d = data as Record<string, unknown>;
-    if (Array.isArray(d.vehicle_locations)) list = d.vehicle_locations as Array<Record<string, unknown>>;
-    else if (Array.isArray(d.vehicles)) list = d.vehicles as Array<Record<string, unknown>>;
-    else if (Array.isArray(d.data)) list = d.data as Array<Record<string, unknown>>;
-  }
-
-  for (const v of list) {
-    const lat = typeof v.latitude === 'number' ? v.latitude : typeof (v as { lat?: number }).lat === 'number' ? (v as { lat: number }).lat : null;
-    const lng = typeof v.longitude === 'number' ? v.longitude : typeof (v as { lon?: number }).lon === 'number' ? (v as { lon: number }).lon : null;
-    if (lat == null || lng == null) continue;
-
-    const id = String((v as { id?: number }).id ?? (v as { vehicle_id?: string }).vehicle_id ?? `${lat}-${lng}`);
-    const vehicleName = String((v as { number?: string }).number ?? (v as { vehicle_name?: string }).vehicle_name ?? (v as { name?: string }).name ?? 'Vehicle');
-    const rawSpeed = (v as { speed?: number }).speed;
-    const speed = typeof rawSpeed === 'number' ? rawSpeed : null;
-    const rawMoving = (v as { moving?: boolean }).moving;
-    const moving =
-      typeof rawMoving === 'boolean'
-        ? rawMoving
-        : (v as { status?: string }).status === 'moving' || (speed != null && speed > 0);
-    const status: 'Moving' | 'Stationary' = moving ? 'Moving' : 'Stationary';
-
-    let driverName = '—';
-    const driver = (v as { current_driver?: Record<string, unknown> }).current_driver ?? (v as { driver?: Record<string, unknown> }).driver;
-    if (driver && typeof driver === 'object') {
-      const first = (driver as { first_name?: string }).first_name ?? '';
-      const last = (driver as { last_name?: string }).last_name ?? '';
-      driverName = [first, last].filter(Boolean).join(' ') || (driver as { name?: string }).name as string || '—';
-    }
-
-    let eta: string | null = null;
-    const rawEta = (v as { eta?: string }).eta ?? (v as { estimated_arrival?: string }).estimated_arrival ?? (v as { estimated_arrival_time?: string }).estimated_arrival_time;
-    if (typeof rawEta === 'string' && rawEta) eta = rawEta;
-
-    out.push({
-      id: `${orgId}-${id}`,
-      lat,
-      lng,
-      vehicleName,
-      driverName,
-      speed,
-      status,
-      ...(eta != null ? { eta } : {}),
-      ...(orgName ? { orgId, orgName } : {}),
-    });
-  }
-  return out;
-}
+import { getVehicleLocations, type FleetMapLocation } from '@/lib/motive';
 
 async function fetchLocationsForOrg(orgId: string, orgName?: string): Promise<FleetMapLocation[]> {
-  const token = await getMotiveToken(orgId);
-  if (!token) return [];
-
-  const res = await fetch(`${MOTIVE_API_BASE}/vehicle_locations`, {
-    headers: { Authorization: `Bearer ${token}` },
-    cache: 'no-store',
-  });
-  if (!res.ok) return [];
-  const data = await res.json().catch(() => ({}));
-  return normalizeMotiveLocations(data, orgId, orgName);
+  const result = await getVehicleLocations(orgId);
+  if (Array.isArray(result)) {
+    return result.map((loc) => ({
+      ...loc,
+      id: `${orgId}-${loc.id}`,
+      ...(orgName ? { orgId, orgName } : {}),
+    }));
+  }
+  return [];
 }
 
 /**
  * GET /api/motive/locations
- * Returns vehicle locations for the current user's org (carrier) or all Motive-connected orgs (admin).
+ * Returns live GPS for the current org (or all Motive-connected orgs for admin).
+ * Uses MOTIVE_API_KEY when set, otherwise OAuth token from Integrations.
  */
 export async function GET(request: NextRequest) {
   const supabase = await createClient();
@@ -142,3 +69,5 @@ export async function GET(request: NextRequest) {
   const locations = await fetchLocationsForOrg(orgId);
   return NextResponse.json({ locations });
 }
+
+export type { FleetMapLocation };

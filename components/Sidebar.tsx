@@ -25,11 +25,13 @@ import {
   FolderOpen,
   Upload,
   Fuel,
+  Building2,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 
 const nav = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/dashboard/enterprise', label: 'Enterprise Overview', icon: Building2 },
   { href: '/drivers', label: 'Drivers', icon: Users },
   { href: '/vehicles', label: 'Vehicles', icon: Truck },
   { href: '/loads', label: 'Loads', icon: DollarSign },
@@ -54,6 +56,7 @@ export function Sidebar({
   showAdminLink = false,
   showAdminGearInTauri = false,
   isDriverOnly = false,
+  isDispatcher = false,
   showBetaRibbon = false,
 }: {
   organizations: Organization[];
@@ -61,12 +64,17 @@ export function Sidebar({
   showAdminLink?: boolean;
   showAdminGearInTauri?: boolean;
   isDriverOnly?: boolean;
+  isDispatcher?: boolean;
   showBetaRibbon?: boolean;
 }) {
   const pathname = usePathname();
   const [isTauri, setIsTauri] = useState(false);
   const [adminGearOpen, setAdminGearOpen] = useState(false);
   const adminGearRef = useRef<HTMLDivElement>(null);
+
+  const navFiltered = isDispatcher
+    ? nav.filter((item) => item.href !== '/settings' && item.href !== '/dashboard/enterprise')
+    : nav;
 
   useEffect(() => {
     if (!adminGearOpen) return;
@@ -124,7 +132,7 @@ export function Sidebar({
         </div>
       )}
       <nav className="flex-1 p-3 space-y-0.5">
-        {(isDriverOnly ? driverNav : nav).map((item) => {
+        {(isDriverOnly ? driverNav : navFiltered).map((item) => {
           const isActive = pathname === item.href;
           const Icon = item.icon;
           return (

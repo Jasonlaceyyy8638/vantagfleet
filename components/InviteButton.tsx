@@ -4,17 +4,24 @@ import { createInviteLink } from '@/app/actions/org';
 import { useState } from 'react';
 import { UserPlus, Copy, Check } from 'lucide-react';
 
-export function InviteButton({ orgId }: { orgId: string }) {
+export function InviteButton({
+  orgId,
+  showDispatcherOption = false,
+}: {
+  orgId: string;
+  showDispatcherOption?: boolean;
+}) {
   const [link, setLink] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState('');
+  const [inviteRole, setInviteRole] = useState<'Driver' | 'Dispatcher'>('Driver');
 
   const handleGenerate = async () => {
     setLoading(true);
     setError('');
     setLink(null);
-    const result = await createInviteLink(orgId);
+    const result = await createInviteLink(orgId, inviteRole);
     setLoading(false);
     if (result.error) setError(result.error);
     else if (result.link) setLink(result.link);
@@ -35,14 +42,33 @@ export function InviteButton({ orgId }: { orgId: string }) {
       </div>
       <p className="text-sm text-cloud-dancer/70 mb-4">
         Generate a link for employees to join this organization.
+        {showDispatcherOption && ' Enterprise: invite as Dispatcher for limited access.'}
       </p>
+      {showDispatcherOption && (
+        <div className="flex gap-2 mb-4">
+          <button
+            type="button"
+            onClick={() => setInviteRole('Driver')}
+            className={`px-3 py-1.5 rounded-lg text-sm font-medium ${inviteRole === 'Driver' ? 'bg-cyber-amber/30 text-cyber-amber border border-cyber-amber/50' : 'bg-deep-ink border border-[#30363d] text-cloud-dancer/70 hover:text-cloud-dancer'}`}
+          >
+            Driver
+          </button>
+          <button
+            type="button"
+            onClick={() => setInviteRole('Dispatcher')}
+            className={`px-3 py-1.5 rounded-lg text-sm font-medium ${inviteRole === 'Dispatcher' ? 'bg-cyber-amber/30 text-cyber-amber border border-cyber-amber/50' : 'bg-deep-ink border border-[#30363d] text-cloud-dancer/70 hover:text-cloud-dancer'}`}
+          >
+            Dispatcher (limited)
+          </button>
+        </div>
+      )}
       <button
         type="button"
         onClick={handleGenerate}
         disabled={loading}
         className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-cyber-amber hover:bg-cyber-amber/90 disabled:opacity-50 text-deep-ink text-sm font-medium"
       >
-        {loading ? 'Generating…' : 'Invite'}
+        {loading ? 'Generating…' : showDispatcherOption && inviteRole === 'Dispatcher' ? 'Invite as Dispatcher' : 'Invite'}
       </button>
       {error && <p className="mt-2 text-sm text-red-400">{error}</p>}
       {link && (

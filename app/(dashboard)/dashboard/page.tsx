@@ -66,11 +66,12 @@ export default async function DashboardPage() {
       ? supabase.from('driver_documents').select('document_type').in('driver_id', driverIds)
       : { data: [] },
     user
-      ? supabase.from('profiles').select('ifta_enabled, is_beta_tester, beta_expires_at, subscription_status').eq('user_id', user.id).eq('org_id', orgId).single()
+      ? supabase.from('profiles').select('role, ifta_enabled, is_beta_tester, beta_expires_at, subscription_status').eq('user_id', user.id).eq('org_id', orgId).single()
       : { data: null },
   ]);
 
-  const profileData = profileRow as { ifta_enabled?: boolean; is_beta_tester?: boolean; beta_expires_at?: string | null; subscription_status?: string | null } | null;
+  const profileData = profileRow as { role?: string; ifta_enabled?: boolean; is_beta_tester?: boolean; beta_expires_at?: string | null; subscription_status?: string | null } | null;
+  const canInvite = profileData?.role !== 'Dispatcher';
   const orgData = orgRow as { tier?: string | null; features?: unknown; subscription_status?: string | null } | null;
   const iftaEnabled = hasFullAccess(profileData, orgData);
   const tier = (orgRow as { tier?: string | null } | null)?.tier ?? null;
@@ -395,9 +396,11 @@ export default async function DashboardPage() {
         </div>
       </section>
 
-      <section className="mt-8">
-        <InviteButton orgId={orgId} />
-      </section>
+      {canInvite && (
+        <section className="mt-8">
+          <InviteButton orgId={orgId} showDispatcherOption={tier === 'Enterprise' || tier === 'enterprise'} />
+        </section>
+      )}
 
       <div className="mt-6 flex flex-wrap gap-3">
         <Link

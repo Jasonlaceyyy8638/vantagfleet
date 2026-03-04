@@ -13,7 +13,10 @@ export async function setCurrentOrg(orgId: string) {
   redirect('/dashboard');
 }
 
-export async function createInviteLink(orgId: string): Promise<{ link: string; error?: string }> {
+export async function createInviteLink(
+  orgId: string,
+  role: 'Driver' | 'Dispatcher' = 'Driver'
+): Promise<{ link: string; error?: string }> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { link: '', error: 'Not authenticated' };
@@ -22,6 +25,7 @@ export async function createInviteLink(orgId: string): Promise<{ link: string; e
     org_id: orgId,
     token,
     created_by: user.id,
+    invite_role: role,
   });
   if (error) return { link: '', error: error.message };
   const base = process.env.NEXT_PUBLIC_APP_URL || (typeof window !== 'undefined' ? window.location.origin : '');
@@ -35,6 +39,8 @@ export async function acceptInvite(token: string): Promise<{ error?: string }> {
   const { data: inviteRows } = await supabase.rpc('get_invite_by_token', { invite_token: token });
   const row = Array.isArray(inviteRows) ? inviteRows[0] : inviteRows;
   if (!row?.org_id) return { error: 'Invalid or expired invite' };
+  const inviteRole = (row as { invite_role?: string }).invite_role;
+  const profileRole = inviteRole === 'Dispatcher' ? 'Dispatcher' : 'Driver';
   let admin;
   try {
     admin = createAdminClient();
@@ -44,7 +50,7 @@ export async function acceptInvite(token: string): Promise<{ error?: string }> {
   const { error } = await admin.from('profiles').insert({
     user_id: user.id,
     org_id: row.org_id,
-    role: 'Driver',
+    role: profileRole,
     full_name: null,
   });
   if (error) return { error: error.message };

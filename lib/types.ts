@@ -1,4 +1,4 @@
-export type AppRole = 'Owner' | 'Safety_Manager' | 'Driver';
+export type AppRole = 'Owner' | 'Safety_Manager' | 'Driver' | 'Dispatcher';
 
 export type OrgStatus = 'active' | 'suspended' | 'trial';
 

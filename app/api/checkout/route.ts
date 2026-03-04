@@ -15,9 +15,12 @@ export async function POST(request: NextRequest) {
   const logoUrl = `${baseUrl}/logo.svg`;
 
   const PRICE_IDS: Record<string, string> = {
-    starter_annual: process.env.STRIPE_STARTER_ANNUAL_PRICE_ID || process.env.STRIPE_STARTER_PRICE_ID || '',
-    starter_monthly: process.env.STRIPE_STARTER_MONTHLY_PRICE_ID || '',
-    pro: process.env.STRIPE_PRO_PRICE_ID || '',
+    starter_annual: process.env.STRIPE_STARTER_ANNUAL_PRICE_ID || process.env.STRIPE_STARTER_PRICE_ID || process.env.STRIPE_SOLO_PRO_ANNUAL_PRICE_ID || '',
+    starter_monthly: process.env.STRIPE_STARTER_MONTHLY_PRICE_ID || process.env.STRIPE_SOLO_PRO_MONTHLY_PRICE_ID || '',
+    pro: process.env.STRIPE_PRO_PRICE_ID || process.env.STRIPE_FLEET_MASTER_MONTHLY_PRICE_ID || '',
+    pro_annual: process.env.STRIPE_FLEET_MASTER_ANNUAL_PRICE_ID || process.env.STRIPE_PRO_ANNUAL_PRICE_ID || '',
+    enterprise_monthly: process.env.STRIPE_ENTERPRISE_MONTHLY_PRICE_ID || '',
+    enterprise_annual: process.env.STRIPE_ENTERPRISE_ANNUAL_PRICE_ID || '',
     ifta: process.env.STRIPE_IFTA_PRICE_ID || '',
   };
 
@@ -74,28 +77,32 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ url: session.url });
     }
 
-    // Subscription tiers
+    // Subscription tiers: solo_pro, fleet_master, enterprise (billing: monthly | annual)
     const billing = body?.billing as string | undefined;
-    const key =
-      tier === 'starter'
-        ? (billing === 'monthly' ? 'starter_monthly' : 'starter_annual')
-        : tier === 'pro'
-          ? 'pro'
-          : null;
+    const isAnnual = billing === 'annual';
+    let key: string | null = null;
+    if (tier === 'starter' || tier === 'solo_pro') {
+      key = isAnnual ? 'starter_annual' : 'starter_monthly';
+    } else if (tier === 'pro' || tier === 'fleet_master') {
+      key = isAnnual ? 'pro_annual' : 'pro';
+    } else if (tier === 'enterprise') {
+      key = isAnnual ? 'enterprise_annual' : 'enterprise_monthly';
+    }
     const priceId = (key && PRICE_IDS[key]) || (tier?.startsWith('price_') ? tier : null);
 
     if (!priceId) {
       return NextResponse.json(
         {
           error:
-            'Invalid tier or billing. Use tier "starter" (with billing "annual" or "monthly") or "pro", or type "ifta".',
+            'Invalid tier or billing. Use tier "solo_pro", "fleet_master", or "enterprise" with billing "annual" or "monthly".',
         },
         { status: 400 }
       );
     }
 
-    const isPro = key === 'pro';
-    const tierLabel = isPro ? 'Pro' : 'Solo';
+    const isPro = key === 'pro' || key === 'pro_annual';
+    const isEnterprise = key === 'enterprise_monthly' || key === 'enterprise_annual';
+    const tierLabel = isEnterprise ? 'Enterprise' : isPro ? 'Fleet Master' : 'Solo Pro';
     const subscriptionData: Stripe.Checkout.SessionCreateParams['subscription_data'] = {
       metadata: { business_name: 'VantagFleet', tier: tierLabel },
     };

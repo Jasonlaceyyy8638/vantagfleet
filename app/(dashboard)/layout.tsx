@@ -101,6 +101,7 @@ export default async function DashboardLayout({
   const showAdminLink = await isAdmin(supabase);
   const currentProfile = (profiles ?? []).find((p) => p.org_id === currentOrgId);
   const isDriverOnly = currentProfile?.role === 'Driver';
+  const isDispatcher = currentProfile?.role === 'Dispatcher';
   const profileForAccess = profileRow as { is_beta_tester?: boolean; beta_expires_at?: string | null; ifta_enabled?: boolean; subscription_status?: string | null } | null;
   const orgForAccess = orgRow as { subscription_status?: string | null } | null;
   const fullAccess = hasFullAccess(profileForAccess, orgForAccess);
@@ -120,6 +121,7 @@ export default async function DashboardLayout({
         currentOrgId={currentOrgId}
         showAdminLink={showAdminLink}
         isDriverOnly={isDriverOnly}
+        isDispatcher={isDispatcher}
         showBetaRibbon={showBetaRibbonFlag}
       />
       <main className="flex-1 overflow-auto flex flex-col">

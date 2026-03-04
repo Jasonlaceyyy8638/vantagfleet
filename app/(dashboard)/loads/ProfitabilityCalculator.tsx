@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Cell } from 'recharts';
+import { Truck } from 'lucide-react';
 
 const HIGH_PROFIT_THRESHOLD = 2; // $/mile above this = high profit
 
@@ -31,6 +32,8 @@ export function ProfitabilityCalculator({
   const [totalMiles, setTotalMiles] = useState(String(defaultTotalMiles));
   const [deadheadMiles, setDeadheadMiles] = useState(String(defaultDeadhead));
   const [fuelCost, setFuelCost] = useState(String(defaultFuelCost));
+  const [motiveLoading, setMotiveLoading] = useState(false);
+  const [motiveError, setMotiveError] = useState<string | null>(null);
 
   const r = Number(revenue) || 0;
   const miles = Number(totalMiles) || 0;
@@ -40,6 +43,26 @@ export function ProfitabilityCalculator({
   const profitPerMile = getProfitPerMile(r, miles, fuel);
   const isHighProfit = profitPerMile !== null && profitPerMile >= HIGH_PROFIT_THRESHOLD;
   const label = profitPerMile === null ? '—' : isHighProfit ? 'High Profit' : 'Low Profit';
+
+  const handleFillFromMotive = async () => {
+    setMotiveError(null);
+    setMotiveLoading(true);
+    try {
+      const res = await fetch('/api/motive/miles');
+      const data = await res.json().catch(() => ({}));
+      if (data.totalMiles != null && typeof data.totalMiles === 'number') {
+        setTotalMiles(String(Math.round(data.totalMiles)));
+      } else if (data.error) {
+        setMotiveError(data.error);
+      } else {
+        setMotiveError('No miles data from Motive.');
+      }
+    } catch {
+      setMotiveError('Failed to fetch Motive miles.');
+    } finally {
+      setMotiveLoading(false);
+    }
+  };
 
   const chartData =
     profitPerMile !== null
@@ -63,15 +86,27 @@ export function ProfitabilityCalculator({
           />
         </div>
         <div>
-          <label className="block text-xs font-medium text-soft-cloud/70 mb-1">Total Miles</label>
+          <div className="flex items-center justify-between gap-2 mb-1">
+            <label className="block text-xs font-medium text-soft-cloud/70">Total Miles</label>
+            <button
+              type="button"
+              onClick={handleFillFromMotive}
+              disabled={motiveLoading}
+              className="inline-flex items-center gap-1 text-xs font-medium text-cyber-amber hover:underline disabled:opacity-50"
+            >
+              <Truck className="size-3" />
+              {motiveLoading ? 'Loading…' : 'Fill from Motive'}
+            </button>
+          </div>
           <input
             type="number"
             min="0"
             step="0.1"
             value={totalMiles}
-            onChange={(e) => setTotalMiles(e.target.value)}
+            onChange={(e) => { setTotalMiles(e.target.value); setMotiveError(null); }}
             className="w-full px-3 py-2 rounded-lg bg-midnight-ink border border-white/10 text-soft-cloud text-sm"
           />
+          {motiveError && <p className="mt-1 text-xs text-amber-400">{motiveError}</p>}
         </div>
         <div>
           <label className="block text-xs font-medium text-soft-cloud/70 mb-1">Deadhead Miles</label>

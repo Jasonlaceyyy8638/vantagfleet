@@ -6,8 +6,8 @@ export default function PricingPage() {
     <div className="min-h-screen bg-midnight-ink text-soft-cloud">
       <div className="p-6 md:p-10">
         <div className="max-w-4xl mx-auto text-center mb-10">
-          <h1 className="text-3xl font-bold text-soft-cloud">Solo Guard & Compliance Pro</h1>
-          <p className="text-soft-cloud/70 mt-2">Two plans. One dashboard. Choose what fits your fleet.</p>
+          <h1 className="text-3xl font-bold text-soft-cloud">Solo Pro, Fleet Master & Enterprise</h1>
+          <p className="text-soft-cloud/70 mt-2">One dashboard. Choose what fits your fleet.</p>
           <p className="text-soft-cloud/60 text-sm mt-2">
             Your card will not be charged until the end of your 30-day trial.
           </p>
