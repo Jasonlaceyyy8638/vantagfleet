@@ -156,10 +156,10 @@ export async function getEnterpriseOverview(): Promise<EnterpriseOverviewData | 
     else if (isExpiringWithinDays(dateStr, COMPLIANCE_WARN_DAYS)) complianceHealth = 'red';
   };
 
-  (driversFull ?? []).forEach((d) => check((d as { med_card_expiry?: string | null }).med_card_expiry));
-  (vehicles ?? []).forEach((v) => check((v as { annual_inspection_due?: string | null }).annual_inspection_due));
-  (complianceDocs ?? []).forEach((c) => check((c as { expiry_date?: string | null }).expiry_date));
-  (driverDocs ?? []).forEach((d) => check((d as { expiry_date?: string | null }).expiry_date));
+  (driversFull ?? []).forEach((d) => check((d as { med_card_expiry?: string | null }).med_card_expiry ?? null));
+  (vehicles ?? []).forEach((v) => check((v as { annual_inspection_due?: string | null }).annual_inspection_due ?? null));
+  (complianceDocs ?? []).forEach((c) => check((c as { expiry_date?: string | null }).expiry_date ?? null));
+  (driverDocs ?? []).forEach((d) => check((d as { expiry_date?: string | null }).expiry_date ?? null));
 
   return {
     fleetStats: {
