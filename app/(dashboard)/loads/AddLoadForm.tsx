@@ -107,7 +107,7 @@ export function AddLoadForm({ orgId, hasMotive, drivers, vehicles }: Props) {
         vehicle_id: vehicleId || null,
         revenue_cents: Math.round(Number(revenueCents || 0) * 100),
         deadhead_miles: Number(deadheadMiles || 0),
-        loaded_miles: Number(loadedMiles || 0) || null,
+        loaded_miles: loadedMiles.trim() ? Number(loadedMiles) : undefined,
         fuel_cost_cents: Math.round(Number(fuelCostCents || 0) * 100),
         notes: notes.trim() || null,
         segments: segments
