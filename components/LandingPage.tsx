@@ -346,7 +346,7 @@ export function LandingPage({ isAuthenticated = false, navbarRole = null }: Land
   };
 
   return (
-    <div className="min-h-screen bg-midnight-ink overflow-x-hidden">
+    <div className="min-h-screen min-h-[100dvh] bg-midnight-ink overflow-x-hidden w-full max-w-[100vw]">
       <Navbar
         isAuthenticated={isAuthenticated}
         signupHref={betaOpen ? '/signup' : '/pricing'}
@@ -1131,12 +1131,12 @@ export function LandingPage({ isAuthenticated = false, navbarRole = null }: Land
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.96 }}
               transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-              className="fixed left-1/2 top-1/2 z-[101] w-full max-w-4xl -translate-x-1/2 -translate-y-1/2 px-4"
+              className="fixed inset-0 z-[101] flex items-center justify-center p-4 sm:p-5 overflow-y-auto"
               role="dialog"
               aria-modal="true"
               aria-label="Founder story video"
             >
-              <div className="relative rounded-2xl border-2 border-white/10 bg-midnight-ink/95 shadow-2xl overflow-hidden">
+              <div className="relative w-full max-w-[min(56rem,100vw-2rem)] mx-auto my-auto rounded-2xl border-2 border-white/10 bg-midnight-ink/95 shadow-2xl overflow-hidden shrink-0">
                 <button
                   type="button"
                   onClick={() => setStoryModalOpen(false)}
@@ -1190,12 +1190,12 @@ export function LandingPage({ isAuthenticated = false, navbarRole = null }: Land
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.96 }}
               transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-              className="fixed left-1/2 top-1/2 z-[101] w-full max-w-md -translate-x-1/2 -translate-y-1/2 px-4"
+              className="fixed inset-0 z-[101] flex items-center justify-center p-4 sm:p-5 overflow-y-auto"
               role="dialog"
               aria-modal="true"
               aria-labelledby="early-access-title"
             >
-              <div className="rounded-2xl border-2 border-amber-500/30 bg-midnight-ink/95 shadow-2xl shadow-amber-500/10 p-6">
+              <div className="w-full max-w-[min(28rem,100vw-2rem)] mx-auto my-auto rounded-2xl border-2 border-amber-500/30 bg-midnight-ink/95 shadow-2xl shadow-amber-500/10 p-4 sm:p-6 shrink-0">
                 <div className="flex items-center justify-between mb-4">
                   <h3 id="early-access-title" className="text-lg font-semibold text-soft-cloud">
                     Get Early Access — {earlyAccessModal === 'boc3' ? 'BOC-3' : earlyAccessModal === 'mcs150' ? 'MCS-150' : 'IFTA'}
@@ -1274,7 +1274,7 @@ export function LandingPage({ isAuthenticated = false, navbarRole = null }: Land
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            className="fixed top-4 left-1/2 -translate-x-1/2 z-[110] max-w-md px-4"
+            className="fixed top-4 left-4 right-4 sm:left-1/2 sm:right-auto sm:-translate-x-1/2 z-[110] max-w-md mx-auto sm:mx-0"
           >
             <div className="rounded-xl border border-amber-500/30 bg-midnight-ink/95 backdrop-blur-md px-5 py-4 shadow-lg shadow-amber-500/10 text-amber-500 text-center text-sm font-medium">
               {roadmapSectionToast}
@@ -1300,12 +1300,12 @@ export function LandingPage({ isAuthenticated = false, navbarRole = null }: Land
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.96 }}
               transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-              className="fixed left-1/2 top-1/2 z-[101] w-full max-w-md -translate-x-1/2 -translate-y-1/2 px-4"
+              className="fixed inset-0 z-[101] flex items-center justify-center p-4 sm:p-5 overflow-y-auto"
               role="dialog"
               aria-modal="true"
               aria-labelledby="roadmap-section-modal-title"
             >
-              <div className="rounded-2xl border border-white/10 bg-midnight-ink/95 backdrop-blur-xl shadow-2xl p-6">
+              <div className="w-full max-w-[min(28rem,100vw-2rem)] mx-auto my-auto rounded-2xl border border-white/10 bg-midnight-ink/95 backdrop-blur-xl shadow-2xl p-4 sm:p-6 shrink-0">
                 <div className="flex items-center justify-between mb-4">
                   <h3 id="roadmap-section-modal-title" className="text-lg font-semibold text-soft-cloud">
                     Join the Waitlist
@@ -1391,12 +1391,12 @@ export function LandingPage({ isAuthenticated = false, navbarRole = null }: Land
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.96 }}
               transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-              className="fixed left-1/2 top-1/2 z-[101] w-full max-w-md -translate-x-1/2 -translate-y-1/2 px-4"
+              className="fixed inset-0 z-[101] flex items-center justify-center p-4 sm:p-5 overflow-y-auto"
               role="dialog"
               aria-modal="true"
               aria-labelledby="roadmap-modal-title"
             >
-              <div className="rounded-2xl border border-white/10 bg-black/40 backdrop-blur-2xl shadow-[0_0_50px_-12px_rgba(255,191,0,0.2)] p-6">
+              <div className="w-full max-w-[min(28rem,100vw-2rem)] mx-auto my-auto rounded-2xl border border-white/10 bg-black/40 backdrop-blur-2xl shadow-[0_0_50px_-12px_rgba(255,191,0,0.2)] p-4 sm:p-6 shrink-0">
                 <div className="flex items-center justify-between mb-4">
                   <h3 id="roadmap-modal-title" className="text-lg font-semibold text-soft-cloud">
                     Join the Compliance Alpha
@@ -1489,12 +1489,12 @@ export function LandingPage({ isAuthenticated = false, navbarRole = null }: Land
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.96 }}
               transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-              className="fixed left-1/2 top-1/2 z-[101] w-full max-w-md -translate-x-1/2 -translate-y-1/2 px-4"
+              className="fixed inset-0 z-[101] flex items-center justify-center p-4 sm:p-5 overflow-y-auto"
               role="dialog"
               aria-modal="true"
               aria-labelledby="driver-app-notify-title"
             >
-              <div className="rounded-2xl border border-white/10 bg-black/40 backdrop-blur-2xl shadow-[0_0_50px_-12px_rgba(255,191,0,0.2)] p-6">
+              <div className="w-full max-w-[min(28rem,100vw-2rem)] mx-auto my-auto rounded-2xl border border-white/10 bg-black/40 backdrop-blur-2xl shadow-[0_0_50px_-12px_rgba(255,191,0,0.2)] p-4 sm:p-6 shrink-0">
                 <div className="flex items-center justify-between mb-4">
                   <h3 id="driver-app-notify-title" className="text-lg font-semibold text-soft-cloud">
                     Notify me when the Driver App launches

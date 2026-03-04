@@ -16,6 +16,27 @@ export type OrgForAccess = {
 };
 
 /**
+ * Org shape for Live Map access (tier: solo_pro | fleet_master | enterprise or display names).
+ */
+export type OrgForMapAccess = {
+  tier?: string | null;
+};
+
+/**
+ * Live Map access: true if profile.is_beta_tester OR subscription_tier is fleet_master ($199) or enterprise ($399).
+ * Returns false for Solo Pro ($29) tier.
+ */
+export function canSeeMap(
+  profile: ProfileForAccess | null | undefined,
+  org?: OrgForMapAccess | null
+): boolean {
+  if (!profile) return false;
+  if (profile.is_beta_tester === true) return true;
+  const tier = (org?.tier ?? '').toString().trim().toLowerCase().replace(/\s+/g, '_');
+  return tier === 'fleet_master' || tier === 'enterprise';
+}
+
+/**
  * Full access: true if
  * - profile.is_beta_tester === true AND (today < profile.beta_expires_at OR beta_expires_at is null),
  * - OR profile.subscription_status === 'active' (or org subscription is active).

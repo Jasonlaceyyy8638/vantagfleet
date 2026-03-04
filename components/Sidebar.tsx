@@ -26,11 +26,14 @@ import {
   Upload,
   Fuel,
   Building2,
+  MapPin,
+  Lock,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 
 const nav = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/dashboard/map', label: 'Live Map', icon: MapPin },
   { href: '/dashboard/enterprise', label: 'Enterprise Overview', icon: Building2 },
   { href: '/drivers', label: 'Drivers', icon: Users },
   { href: '/vehicles', label: 'Vehicles', icon: Truck },
@@ -58,6 +61,7 @@ export function Sidebar({
   isDriverOnly = false,
   isDispatcher = false,
   showBetaRibbon = false,
+  canSeeMap = true,
 }: {
   organizations: Organization[];
   currentOrgId: string | null;
@@ -66,15 +70,17 @@ export function Sidebar({
   isDriverOnly?: boolean;
   isDispatcher?: boolean;
   showBetaRibbon?: boolean;
+  canSeeMap?: boolean;
 }) {
   const pathname = usePathname();
   const [isTauri, setIsTauri] = useState(false);
   const [adminGearOpen, setAdminGearOpen] = useState(false);
   const adminGearRef = useRef<HTMLDivElement>(null);
 
-  const navFiltered = isDispatcher
+  let navFiltered = isDispatcher
     ? nav.filter((item) => item.href !== '/settings' && item.href !== '/dashboard/enterprise')
     : nav;
+  const showMapLock = !canSeeMap;
 
   useEffect(() => {
     if (!adminGearOpen) return;
@@ -133,8 +139,10 @@ export function Sidebar({
       )}
       <nav className="flex-1 p-3 space-y-0.5">
         {(isDriverOnly ? driverNav : navFiltered).map((item) => {
-          const isActive = pathname === item.href;
+          const isActive = pathname === item.href || (item.href.startsWith('/dashboard#') && pathname === '/dashboard');
           const Icon = item.icon;
+          const isMapLink = item.href === '/dashboard/map';
+          const showLock = isMapLink && showMapLock;
           return (
             <Link
               key={item.href}
@@ -147,6 +155,7 @@ export function Sidebar({
             >
               <Icon className="size-5 shrink-0" />
               {item.label}
+              {showLock && <Lock className="size-4 shrink-0 text-cyber-amber/80 ml-auto" aria-label="Upgrade to unlock" />}
             </Link>
           );
         })}

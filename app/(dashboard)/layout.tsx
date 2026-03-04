@@ -9,7 +9,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
 import { isAdmin, isSuperAdmin, getDashboardOrgId, IMPERSONATE_COOKIE } from '@/lib/admin';
-import { showBetaRibbon, hasFullAccess } from '@/lib/userHasAccess';
+import { showBetaRibbon, hasFullAccess, canSeeMap } from '@/lib/userHasAccess';
 
 /** VantagFleet admin owner: never show onboarding or DOT prompt; send to /admin. */
 const ADMIN_OWNER_ID = 'ae175e55-72b4-4441-9e3c-02ecd8225bf7';
@@ -93,7 +93,7 @@ export default async function DashboardLayout({
       .single(),
     supabase
       .from('organizations')
-      .select('subscription_status')
+      .select('subscription_status, tier')
       .eq('id', currentOrgId)
       .single(),
   ]);
@@ -103,9 +103,10 @@ export default async function DashboardLayout({
   const isDriverOnly = currentProfile?.role === 'Driver';
   const isDispatcher = currentProfile?.role === 'Dispatcher';
   const profileForAccess = profileRow as { is_beta_tester?: boolean; beta_expires_at?: string | null; ifta_enabled?: boolean; subscription_status?: string | null } | null;
-  const orgForAccess = orgRow as { subscription_status?: string | null } | null;
+  const orgForAccess = orgRow as { subscription_status?: string | null; tier?: string | null } | null;
   const fullAccess = hasFullAccess(profileForAccess, orgForAccess);
   const showBetaRibbonFlag = showBetaRibbon(profileForAccess, orgForAccess);
+  const mapAccess = canSeeMap(profileForAccess, orgForAccess);
 
   if (profileForAccess?.is_beta_tester && profileForAccess?.beta_expires_at && !fullAccess) {
     const expiresAt = new Date(profileForAccess.beta_expires_at);
@@ -123,6 +124,7 @@ export default async function DashboardLayout({
         isDriverOnly={isDriverOnly}
         isDispatcher={isDispatcher}
         showBetaRibbon={showBetaRibbonFlag}
+        canSeeMap={mapAccess}
       />
       <main className="flex-1 overflow-auto flex flex-col">
         <BetaCountdownBanner

@@ -77,7 +77,7 @@ export async function POST(request: NextRequest) {
       const customerId = typeof session.customer === 'string' ? session.customer : session.customer?.id;
       const orgId = metadata.org_id as string | undefined;
       const tier = (metadata.tier as string) || 'Pro';
-      const planLevel = tier === 'Solo' ? 'solo' : 'pro';
+      const planLevel = tier === 'Solo' || tier === 'Solo Pro' ? 'solo' : 'pro';
 
       if (orgId && customerId) {
         try {
@@ -88,6 +88,7 @@ export async function POST(request: NextRequest) {
               trial_active: true,
               plan_level: planLevel,
               subscription_status: 'trialing',
+              tier: tier || null,
             })
             .eq('id', orgId);
           if (error) {

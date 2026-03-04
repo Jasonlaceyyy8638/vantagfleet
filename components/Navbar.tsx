@@ -91,22 +91,22 @@ export function Navbar({
 
   return (
     <header
-      className="fixed top-0 left-0 right-0 z-[100] flex items-center justify-between px-4 sm:px-6 lg:px-8 py-3 sm:py-4 bg-midnight-ink/95 backdrop-blur-md border-b border-white/10 min-h-[3.5rem] sm:min-h-[4rem]"
-      style={{ pointerEvents: 'auto', paddingTop: 'max(0.75rem, env(safe-area-inset-top, 0px))' }}
+      className="fixed top-0 left-0 right-0 z-[100] flex items-center justify-between gap-2 px-3 sm:px-6 lg:px-8 py-3 sm:py-4 bg-midnight-ink/95 backdrop-blur-md border-b border-white/10 min-h-[3.5rem] sm:min-h-[4rem] min-w-0 max-w-[100vw]"
+      style={{ pointerEvents: 'auto', paddingTop: 'max(0.75rem, env(safe-area-inset-top, 0px))', paddingLeft: 'max(0.75rem, env(safe-area-inset-left, 0px))', paddingRight: 'max(0.75rem, env(safe-area-inset-right, 0px))' }}
     >
       <Link
         href="/"
-        className="flex items-center gap-2 shrink-0 text-soft-cloud hover:opacity-90"
+        className="flex items-center gap-2 shrink-0 min-w-0 text-soft-cloud hover:opacity-90"
         style={{ pointerEvents: 'auto' }}
       >
-        <Logo size={40} className="h-10 w-10" />
-        <span className="font-bold text-lg tracking-wide hidden sm:inline">
+        <Logo size={40} className="h-10 w-10 shrink-0" />
+        <span className="font-bold text-lg tracking-wide hidden sm:inline truncate">
           Vantag<span className="text-cyber-amber">Fleet</span>
         </span>
       </Link>
 
       <div
-        className="flex items-center gap-2 flex-wrap justify-end"
+        className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0 min-w-0 justify-end"
         style={{ pointerEvents: 'auto' }}
       >
         {!ready && (
@@ -116,7 +116,7 @@ export function Navbar({
           <>
             <Link
               href="/login"
-              className="glass-btn min-h-[44px] inline-flex items-center px-4 py-2.5 rounded-lg font-medium text-soft-cloud hover:text-soft-cloud transition-colors touch-manipulation"
+              className="glass-btn min-h-[44px] inline-flex items-center px-3 sm:px-4 py-2.5 rounded-lg font-medium text-sm sm:text-base text-soft-cloud hover:text-soft-cloud transition-colors touch-manipulation whitespace-nowrap"
             >
               Sign In
             </Link>
@@ -130,7 +130,7 @@ export function Navbar({
             )}
             <Link
               href={signupHref}
-              className="glass-btn min-h-[44px] inline-flex items-center px-4 sm:px-5 py-2.5 rounded-lg font-bold text-soft-cloud border-cyber-amber/30 hover:border-cyber-amber/50 hover:shadow-[0_0_20px_-4px_rgba(255,176,0,0.25)] transition-all touch-manipulation"
+              className="glass-btn min-h-[44px] inline-flex items-center px-3 sm:px-5 py-2.5 rounded-lg font-bold text-sm sm:text-base text-soft-cloud border-cyber-amber/30 hover:border-cyber-amber/50 hover:shadow-[0_0_20px_-4px_rgba(255,176,0,0.25)] transition-all touch-manipulation whitespace-nowrap"
             >
               {signupLabel}
             </Link>

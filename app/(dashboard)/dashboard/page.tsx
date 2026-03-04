@@ -21,13 +21,13 @@ import {
   FileStack,
 } from 'lucide-react';
 import { InviteButton } from '@/components/InviteButton';
-import { FleetMapDynamic } from '@/components/FleetMapDynamic';
 import { HealthCard } from '@/components/HealthCard';
 import { CompliancePowerUps } from './CompliancePowerUps';
 import { DashboardWelcomeBanner } from './DashboardWelcomeBanner';
+import { DashboardMapSection } from './DashboardMapSection';
 import { getDashboardOrgId } from '@/lib/admin';
 import { getEffectiveOrgFeatures } from '@/app/actions/admin';
-import { userHasAccess, hasFullAccess, getBetaDaysRemaining } from '@/lib/userHasAccess';
+import { userHasAccess, hasFullAccess, getBetaDaysRemaining, canSeeMap } from '@/lib/userHasAccess';
 import { BetaExpirationBanner } from '@/components/BetaExpirationBanner';
 
 const ALERT_DAYS = 30;
@@ -75,6 +75,7 @@ export default async function DashboardPage() {
   const orgData = orgRow as { tier?: string | null; features?: unknown; subscription_status?: string | null } | null;
   const iftaEnabled = hasFullAccess(profileData, orgData);
   const tier = (orgRow as { tier?: string | null } | null)?.tier ?? null;
+  const mapAccess = canSeeMap(profileData, orgData);
   const featuresRaw = (orgRow as { features?: unknown } | null)?.features;
   const featuresList = Array.isArray(featuresRaw) ? featuresRaw : [];
   const effectiveFeatures = await getEffectiveOrgFeatures(tier, featuresList);
@@ -238,16 +239,15 @@ export default async function DashboardPage() {
         </div>
       </div>
 
-      {/* Fleet Map — prominent live view from Motive sync */}
-      <section className="mb-8">
+      {/* Fleet Map — live view for Fleet Master/Enterprise (or beta); locked preview opens MapUpgradeModal for Solo Pro */}
+      <section className="mb-8" id="live-map">
         <div className="mb-3 flex items-center gap-2">
           <Truck className="size-5 text-cyber-amber" />
           <h2 className="font-semibold text-cloud-dancer">Live fleet map</h2>
         </div>
-        <FleetMapDynamic
-          accessToken={process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN ?? ''}
-          height="520px"
-          className="mt-2"
+        <DashboardMapSection
+          mapAccess={mapAccess}
+          mapboxToken={process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN ?? ''}
         />
       </section>
 
