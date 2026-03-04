@@ -947,8 +947,8 @@ export function LandingPage({ isAuthenticated = false, navbarRole = null }: Land
 
       <section className="py-16 px-4 border-t border-white/5">
         <div className="max-w-5xl mx-auto">
-          <h2 className="text-2xl font-bold text-soft-cloud text-center mb-2">Plans</h2>
-          <p className="text-soft-cloud/60 text-center mb-10">Choose the tier that fits your fleet.</p>
+          <h2 className="text-2xl font-bold text-soft-cloud text-center mb-2">Solo Guard & Compliance Pro</h2>
+          <p className="text-soft-cloud/60 text-center mb-10">Two plans. One dashboard. Choose what fits your fleet.</p>
           <Pricing />
         </div>
       </section>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import {
   Fuel,
@@ -9,9 +9,13 @@ import {
   Lock,
   Upload,
   Loader2,
+  CheckCircle2,
+  Download,
+  ImageIcon,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { uploadIftaReceipt } from '@/app/actions/ifta-upload';
+import { updateIftaReceipt, approveIftaReceipt } from '@/app/actions/ifta-receipts';
 
 type ReceiptRow = {
   id: string;
@@ -19,6 +23,7 @@ type ReceiptRow = {
   state: string | null;
   gallons: number | null;
   status: string;
+  file_url: string | null;
 };
 
 const QUARTERS = [
@@ -28,7 +33,28 @@ const QUARTERS = [
   { q: 4 as const, label: 'Q4 (Oct–Dec)' },
 ];
 
-const CURRENT_YEAR = 2026;
+const CREDIT_RATE = 0.12;
+
+function buildCsv(rows: ReceiptRow[]): string {
+  const header = 'Date,State,Gallons,Status\n';
+  const body = rows
+    .map(
+      (r) =>
+        `${r.receipt_date ?? ''},${r.state ?? ''},${r.gallons ?? ''},${r.status}`
+    )
+    .join('\n');
+  return header + body;
+}
+
+function downloadCsv(csv: string, filename: string) {
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
 
 export function IFTADashboardClient({
   iftaEnabled,
@@ -57,21 +83,39 @@ export function IFTADashboardClient({
     state: string;
     date?: string;
   } | null>(null);
+  const [editingCell, setEditingCell] = useState<{
+    id: string;
+    field: 'receipt_date' | 'state' | 'gallons';
+  } | null>(null);
+  const [editValue, setEditValue] = useState('');
+  const [approvingId, setApprovingId] = useState<string | null>(null);
+  const [updateError, setUpdateError] = useState<string | null>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
 
-  const totalGallons = receipts.reduce((sum, r) => sum + (r.gallons ?? 0), 0);
-  const estimatedTaxCredit = totalGallons > 0 ? (totalGallons * 0.12).toFixed(2) : '—';
+  const processedOnly = receipts.filter((r) => r.status === 'processed');
+  const quarterlyTotalGallons = processedOnly.reduce((sum, r) => sum + (r.gallons ?? 0), 0);
+  const totalFuelCredits = quarterlyTotalGallons * CREDIT_RATE;
+  const processedCount = processedOnly.length;
+  const verifiedReceipts = receipts.filter((r) => r.status === 'verified');
   const isScanning = scanningId !== null;
+
+  useEffect(() => {
+    if (editingCell && inputRef.current) {
+      inputRef.current.focus();
+      inputRef.current.select();
+    }
+  }, [editingCell]);
 
   const loadReceipts = useCallback(async (q: number, y: number) => {
     if (!profileId) return;
     const supabase = createClient();
     const { data } = await supabase
       .from('ifta_receipts')
-      .select('id, receipt_date, state, gallons, status')
+      .select('id, receipt_date, state, gallons, status, file_url')
       .eq('user_id', profileId)
       .eq('quarter', q)
       .eq('year', y)
-      .order('receipt_date', { ascending: false });
+      .order('receipt_date', { ascending: false, nullsFirst: false });
     setReceipts(
       (data ?? []).map((r) => ({
         id: r.id,
@@ -79,14 +123,84 @@ export function IFTADashboardClient({
         state: r.state,
         gallons: r.gallons != null ? Number(r.gallons) : null,
         status: r.status ?? 'pending',
+        file_url: r.file_url ?? null,
       }))
     );
   }, [profileId]);
 
   const handleQuarterChange = (q: 1 | 2 | 3 | 4) => {
     setQuarter(q);
+    setEditingCell(null);
     loadReceipts(q, year);
   };
+
+  const startEdit = (id: string, field: 'receipt_date' | 'state' | 'gallons', current: string | number | null) => {
+    setEditingCell({ id, field });
+    setEditValue(current != null ? String(current) : '');
+    setUpdateError(null);
+  };
+
+  const saveEdit = useCallback(async () => {
+    if (!editingCell || !profileId) return;
+    setUpdateError(null);
+    const receipt = receipts.find((r) => r.id === editingCell.id);
+    if (!receipt) {
+      setEditingCell(null);
+      return;
+    }
+    let payload: { receipt_date?: string | null; state?: string | null; gallons?: number | null } = {};
+    if (editingCell.field === 'receipt_date') {
+      const val = editValue.trim() || null;
+      payload.receipt_date = val;
+    } else if (editingCell.field === 'state') {
+      const val = editValue.trim().slice(0, 2).toUpperCase() || null;
+      payload.state = val;
+    } else {
+      const num = editValue.trim() === '' ? null : Number(editValue);
+      payload.gallons = num != null && !Number.isNaN(num) ? num : receipt.gallons;
+    }
+    const result = await updateIftaReceipt(profileId, editingCell.id, payload);
+    if (!result.ok) {
+      setUpdateError(result.error);
+      return;
+    }
+    setReceipts((prev) =>
+      prev.map((r) =>
+        r.id !== editingCell.id
+          ? r
+          : {
+              ...r,
+              ...(editingCell.field === 'receipt_date' && { receipt_date: payload.receipt_date ?? null }),
+              ...(editingCell.field === 'state' && { state: payload.state ?? null }),
+              ...(editingCell.field === 'gallons' && { gallons: payload.gallons ?? null }),
+            }
+      )
+    );
+    setEditingCell(null);
+  }, [editingCell, editValue, profileId, receipts]);
+
+  const handleApprove = useCallback(
+    async (receiptId: string) => {
+      if (!profileId) return;
+      setApprovingId(reiptId);
+      setUpdateError(null);
+      const result = await approveIftaReceipt(profileId, receiptId);
+      if (!result.ok) {
+        setUpdateError(result.error);
+      } else {
+        setReceipts((prev) =>
+          prev.map((r) => (r.id === receiptId ? { ...r, status: 'verified' } : r))
+        );
+      }
+      setApprovingId(null);
+    },
+    [profileId]
+  );
+
+  const handleExport = useCallback(() => {
+    const csv = buildCsv(verifiedReceipts);
+    downloadCsv(csv, `IFTA_Q${quarter}_${year}_Report.csv`);
+  }, [verifiedReceipts, quarter, year]);
 
   const handleFiles = useCallback(
     async (files: FileList | null) => {
@@ -112,6 +226,7 @@ export function IFTADashboardClient({
             state: null,
             gallons: null,
             status: 'pending',
+            file_url,
           },
           ...prev,
         ]);
@@ -150,7 +265,7 @@ export function IFTADashboardClient({
             });
           }
         } catch {
-          setScanError("Scan failed. Please enter the data manually.");
+          setScanError('Scan failed. Please enter the data manually.');
         }
         setScanningId(null);
       }
@@ -215,12 +330,49 @@ export function IFTADashboardClient({
           </div>
         </div>
 
-        {/* Stats Bar */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+        {/* Quarterly Totals — processed only */}
+        <section className="mb-6">
+          <h2 className="text-sm font-semibold text-soft-cloud/80 uppercase tracking-wider mb-3">
+            Quarterly Totals
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="rounded-xl border border-white/10 bg-card p-5">
+              <div className="flex items-center gap-2 text-soft-cloud/60 text-sm mb-1">
+                <FileText className="size-4 text-electric-teal" />
+                Total Fuel Credits
+              </div>
+              <p className="text-xl font-semibold text-electric-teal">
+                ${totalFuelCredits.toFixed(2)}
+              </p>
+              <p className="text-xs text-soft-cloud/50 mt-0.5">From processed receipts this quarter</p>
+            </div>
+            <div className="rounded-xl border border-white/10 bg-card p-5">
+              <div className="flex items-center gap-2 text-soft-cloud/60 text-sm mb-1">
+                <Fuel className="size-4 text-cyber-amber" />
+                Total Gallons
+              </div>
+              <p className="text-xl font-semibold text-soft-cloud">
+                {quarterlyTotalGallons.toFixed(1)}
+              </p>
+              <p className="text-xs text-soft-cloud/50 mt-0.5">Processed this quarter</p>
+            </div>
+            <div className="rounded-xl border border-white/10 bg-card p-5">
+              <div className="flex items-center gap-2 text-soft-cloud/60 text-sm mb-1">
+                <Route className="size-4 text-cyber-amber" />
+                Processed Receipts
+              </div>
+              <p className="text-xl font-semibold text-soft-cloud">{processedCount}</p>
+              <p className="text-xs text-soft-cloud/50 mt-0.5">With extracted data (not yet approved)</p>
+            </div>
+          </div>
+        </section>
+
+        {/* Total Miles (optional) + Export */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
           <div className="rounded-xl border border-white/10 bg-card p-5">
             <div className="flex items-center gap-2 text-soft-cloud/60 text-sm mb-1">
               <Route className="size-4 text-cyber-amber" />
-              Total Miles
+              Total Miles (optional)
             </div>
             <div className="flex items-center gap-2">
               <input
@@ -233,19 +385,19 @@ export function IFTADashboardClient({
               <span className="text-soft-cloud/50 text-sm">mi</span>
             </div>
           </div>
-          <div className="rounded-xl border border-white/10 bg-card p-5">
-            <div className="flex items-center gap-2 text-soft-cloud/60 text-sm mb-1">
-              <Fuel className="size-4 text-cyber-amber" />
-              Total Gallons
-            </div>
-            <p className="text-xl font-semibold text-soft-cloud">{totalGallons.toFixed(1)}</p>
-          </div>
-          <div className="rounded-xl border border-white/10 bg-card p-5">
-            <div className="flex items-center gap-2 text-soft-cloud/60 text-sm mb-1">
-              <FileText className="size-4 text-cyber-amber" />
-              Estimated Tax / Credit
-            </div>
-            <p className="text-xl font-semibold text-electric-teal">${estimatedTaxCredit}</p>
+          <div className="rounded-xl border border-white/10 bg-card p-5 flex flex-col justify-center">
+            <button
+              type="button"
+              onClick={handleExport}
+              disabled={verifiedReceipts.length === 0}
+              className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-electric-teal/50 bg-electric-teal/10 text-electric-teal font-medium hover:bg-electric-teal/20 disabled:opacity-50 disabled:pointer-events-none transition-colors"
+            >
+              <Download className="size-5" />
+              Export Q{quarter} Report
+            </button>
+            <p className="text-xs text-soft-cloud/50 mt-1.5">
+              CSV of verified receipts for this quarter
+            </p>
           </div>
         </div>
 
@@ -302,9 +454,14 @@ export function IFTADashboardClient({
               {scanError}
             </div>
           )}
+          {updateError && (
+            <div className="mx-4 mb-2 px-4 py-2 rounded-lg bg-red-500/20 border border-red-500/40 text-red-200 text-sm">
+              {updateError}
+            </div>
+          )}
 
           <div className="px-5 pb-5">
-            <h3 className="text-sm font-medium text-soft-cloud/70 mb-3">Uploaded Receipts</h3>
+            <h3 className="text-sm font-medium text-soft-cloud/70 mb-3">Receipt history</h3>
             {receipts.length === 0 ? (
               <p className="text-soft-cloud/50 text-sm py-4">No receipts for this quarter yet.</p>
             ) : (
@@ -312,36 +469,159 @@ export function IFTADashboardClient({
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="bg-midnight-ink/80 text-soft-cloud/70 text-left">
-                      <th className="px-4 py-3 font-medium">Date</th>
-                      <th className="px-4 py-3 font-medium">State</th>
-                      <th className="px-4 py-3 font-medium">Gallons</th>
-                      <th className="px-4 py-3 font-medium">Status</th>
+                      <th className="px-3 py-3 font-medium w-24">Preview</th>
+                      <th className="px-3 py-3 font-medium">Date</th>
+                      <th className="px-3 py-3 font-medium">State</th>
+                      <th className="px-3 py-3 font-medium">Gallons</th>
+                      <th className="px-3 py-3 font-medium">Status</th>
+                      <th className="px-3 py-3 font-medium text-right w-28">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
                     {receipts.map((r) => {
                       const isScanning = scanningId === r.id;
+                      const isEditing =
+                        editingCell?.id === r.id && editingCell?.field;
+                      const needsReview = r.status === 'pending' || r.status === 'processed';
                       return (
-                        <tr key={r.id} className="border-t border-white/5 text-soft-cloud/90">
-                          <td className="px-4 py-3">{r.receipt_date ?? '—'}</td>
-                          <td className="px-4 py-3">{r.state ?? '—'}</td>
-                          <td className="px-4 py-3">{r.gallons != null ? r.gallons.toFixed(1) : '—'}</td>
-                          <td className="px-4 py-3">
+                        <tr
+                          key={r.id}
+                          className="border-t border-white/5 text-soft-cloud/90 hover:bg-white/[0.02]"
+                        >
+                          <td className="px-3 py-2 align-middle">
+                            {r.file_url ? (
+                              <a
+                                href={r.file_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="block w-16 h-12 rounded-lg border border-white/10 bg-midnight-ink overflow-hidden focus:ring-2 focus:ring-cyber-amber focus:outline-none"
+                              >
+                                <img
+                                  src={r.file_url}
+                                  alt="Receipt"
+                                  className="w-full h-full object-cover"
+                                />
+                              </a>
+                            ) : (
+                              <div className="w-16 h-12 rounded-lg border border-white/10 bg-white/5 flex items-center justify-center">
+                                <ImageIcon className="size-5 text-soft-cloud/40" />
+                              </div>
+                            )}
+                          </td>
+                          <td className="px-3 py-2 align-middle">
+                            {isEditing && editingCell?.field === 'receipt_date' ? (
+                              <input
+                                ref={(el) => {
+                                  if (editingCell?.field === 'receipt_date') inputRef.current = el;
+                                }}
+                                type="text"
+                                value={editValue}
+                                onChange={(e) => setEditValue(e.target.value)}
+                                onBlur={saveEdit}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') saveEdit();
+                                  if (e.key === 'Escape') setEditingCell(null);
+                                }}
+                                placeholder="YYYY-MM-DD"
+                                className="w-32 bg-midnight-ink border border-cyber-amber/50 rounded px-2 py-1 text-soft-cloud focus:outline-none focus:ring-1 focus:ring-cyber-amber"
+                              />
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => startEdit(r.id, 'receipt_date', r.receipt_date)}
+                                className="text-left w-full min-w-[6rem] px-1 py-0.5 rounded hover:bg-white/10 focus:outline-none focus:ring-1 focus:ring-cyber-amber"
+                              >
+                                {r.receipt_date ?? '—'}
+                              </button>
+                            )}
+                          </td>
+                          <td className="px-3 py-2 align-middle">
+                            {isEditing && editingCell?.field === 'state' ? (
+                              <input
+                                ref={(el) => {
+                                  if (editingCell?.field === 'state') inputRef.current = el;
+                                }}
+                                type="text"
+                                value={editValue}
+                                onChange={(e) => setEditValue(e.target.value.slice(0, 2).toUpperCase())}
+                                onBlur={saveEdit}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') saveEdit();
+                                  if (e.key === 'Escape') setEditingCell(null);
+                                }}
+                                placeholder="XX"
+                                maxLength={2}
+                                className="w-14 bg-midnight-ink border border-cyber-amber/50 rounded px-2 py-1 text-soft-cloud uppercase focus:outline-none focus:ring-1 focus:ring-cyber-amber"
+                              />
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => startEdit(r.id, 'state', r.state)}
+                                className="text-left w-full min-w-[2.5rem] px-1 py-0.5 rounded hover:bg-white/10 focus:outline-none focus:ring-1 focus:ring-cyber-amber"
+                              >
+                                {r.state ?? '—'}
+                              </button>
+                            )}
+                          </td>
+                          <td className="px-3 py-2 align-middle">
+                            {isEditing && editingCell?.field === 'gallons' ? (
+                              <input
+                                ref={(el) => {
+                                  if (editingCell?.field === 'gallons') inputRef.current = el;
+                                }}
+                                type="number"
+                                step="0.1"
+                                value={editValue}
+                                onChange={(e) => setEditValue(e.target.value)}
+                                onBlur={saveEdit}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') saveEdit();
+                                  if (e.key === 'Escape') setEditingCell(null);
+                                }}
+                                className="w-20 bg-midnight-ink border border-cyber-amber/50 rounded px-2 py-1 text-soft-cloud focus:outline-none focus:ring-1 focus:ring-cyber-amber"
+                              />
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => startEdit(r.id, 'gallons', r.gallons)}
+                                className="text-left w-full min-w-[3rem] px-1 py-0.5 rounded hover:bg-white/10 focus:outline-none focus:ring-1 focus:ring-cyber-amber"
+                              >
+                                {r.gallons != null ? r.gallons.toFixed(1) : '—'}
+                              </button>
+                            )}
+                          </td>
+                          <td className="px-3 py-2 align-middle">
                             {isScanning ? (
                               <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium bg-cyber-amber/20 text-cyber-amber">
                                 <Loader2 className="size-3.5 animate-spin" />
                                 Scanning…
                               </span>
-                            ) : (
-                              <span
-                                className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${
-                                  r.status === 'processed'
-                                    ? 'bg-electric-teal/20 text-electric-teal'
-                                    : 'bg-cyber-amber/20 text-cyber-amber'
-                                }`}
-                              >
-                                {r.status === 'processed' ? 'Processed' : 'Pending'}
+                            ) : r.status === 'verified' ? (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-electric-teal/20 text-electric-teal">
+                                <CheckCircle2 className="size-3.5" />
+                                Verified
                               </span>
+                            ) : (
+                              <span className="inline-flex px-2 py-0.5 rounded text-xs font-medium bg-cyber-amber/20 text-cyber-amber">
+                                Needs Review
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-3 py-2 align-middle text-right">
+                            {r.status !== 'verified' && (r.status === 'processed' || r.status === 'pending') && (
+                              <button
+                                type="button"
+                                onClick={() => handleApprove(r.id)}
+                                disabled={!!approvingId}
+                                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-electric-teal/20 text-electric-teal text-xs font-medium hover:bg-electric-teal/30 disabled:opacity-50 transition-colors"
+                              >
+                                {approvingId === r.id ? (
+                                  <Loader2 className="size-3.5 animate-spin" />
+                                ) : (
+                                  <CheckCircle2 className="size-3.5" />
+                                )}
+                                Approve
+                              </button>
                             )}
                           </td>
                         </tr>

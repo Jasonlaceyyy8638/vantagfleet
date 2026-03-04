@@ -28,21 +28,22 @@ export default async function IFTADashboardPage() {
   const month = now.getMonth() + 1;
   const currentQuarter = Math.ceil(month / 3) as 1 | 2 | 3 | 4;
 
-  let initialReceipts: { id: string; receipt_date: string | null; state: string | null; gallons: number | null; status: string }[] = [];
+  let initialReceipts: { id: string; receipt_date: string | null; state: string | null; gallons: number | null; status: string; file_url: string | null }[] = [];
   if (iftaEnabled && profileId) {
     const { data } = await supabase
       .from('ifta_receipts')
-      .select('id, receipt_date, state, gallons, status')
+      .select('id, receipt_date, state, gallons, status, file_url')
       .eq('user_id', profileId)
       .eq('quarter', currentQuarter)
       .eq('year', year)
-      .order('receipt_date', { ascending: false });
+      .order('receipt_date', { ascending: false, nullsFirst: false });
     initialReceipts = (data ?? []).map((r) => ({
       id: r.id,
       receipt_date: r.receipt_date,
       state: r.state,
       gallons: r.gallons != null ? Number(r.gallons) : null,
       status: r.status ?? 'pending',
+      file_url: r.file_url ?? null,
     }));
   }
 
