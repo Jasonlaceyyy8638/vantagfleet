@@ -182,7 +182,7 @@ export function IFTADashboardClient({
   const handleApprove = useCallback(
     async (receiptId: string) => {
       if (!profileId) return;
-      setApprovingId(reiptId);
+      setApprovingId(receiptId);
       setUpdateError(null);
       const result = await approveIftaReceipt(profileId, receiptId);
       if (!result.ok) {
