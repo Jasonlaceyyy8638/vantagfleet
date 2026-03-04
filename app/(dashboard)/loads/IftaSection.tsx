@@ -22,7 +22,7 @@ export function IftaSection({ totalMiles, milesByState, quarterLabel }: Props) {
       <div>
         <p className="text-xs font-medium text-soft-cloud/60 uppercase tracking-wider mb-2">Miles by state</p>
         {milesByState.length === 0 ? (
-          <p className="text-sm text-soft-cloud/50">Add <code className="bg-midnight-ink px-1 rounded">state_code</code> to load records to see miles per state for IFTA reporting.</p>
+          <p className="text-sm text-soft-cloud/50">Add loads with an IFTA Mileage Breakdown (state + miles) above to see miles per state here.</p>
         ) : (
           <ul className="space-y-2">
             {milesByState.map(({ state_code, miles }) => (
