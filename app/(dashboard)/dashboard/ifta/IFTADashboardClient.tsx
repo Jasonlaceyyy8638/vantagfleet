@@ -6,7 +6,6 @@ import {
   Fuel,
   Route,
   FileText,
-  Lock,
   Upload,
   Loader2,
   CheckCircle2,
@@ -21,6 +20,7 @@ import { calculateIfta } from '@/lib/ifta-calculate';
 import { createClient } from '@/lib/supabase/client';
 import { uploadIftaReceipt } from '@/app/actions/ifta-upload';
 import { updateIftaReceipt, approveIftaReceipt } from '@/app/actions/ifta-receipts';
+import { UpgradeOverlay } from '@/components/UpgradeOverlay';
 
 type ReceiptRow = {
   id: string;
@@ -390,29 +390,7 @@ export function IFTADashboardClient({
     handleFiles(e.dataTransfer.files);
   };
 
-  if (!iftaEnabled) {
-    return (
-      <div className="min-h-screen bg-midnight-ink p-6 md:p-8 flex items-center justify-center">
-        <div className="max-w-md w-full rounded-2xl border border-white/10 bg-card p-8 text-center shadow-xl">
-          <div className="mx-auto w-14 h-14 rounded-full bg-cyber-amber/20 flex items-center justify-center mb-4">
-            <Lock className="size-8 text-cyber-amber" />
-          </div>
-          <h1 className="text-xl font-semibold text-soft-cloud mb-2">IFTA Dashboard Locked</h1>
-          <p className="text-soft-cloud/70 text-sm mb-6">
-            Unlock quarterly fuel tax reporting with the IFTA add-on. Upload receipts, track gallons by state, and get an estimated tax summary.
-          </p>
-          <Link
-            href="/pricing"
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-cyber-amber text-midnight-ink font-semibold hover:bg-cyber-amber/90 transition-colors"
-          >
-            Get IFTA Add-on
-          </Link>
-        </div>
-      </div>
-    );
-  }
-
-  return (
+  const content = (
     <div className="min-h-screen bg-midnight-ink p-6 md:p-8">
       <div className="max-w-5xl mx-auto">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
@@ -943,5 +921,11 @@ export function IFTADashboardClient({
         </div>
       )}
     </div>
+  );
+
+  return (
+    <UpgradeOverlay hasAccess={iftaEnabled} title="IFTA Scanner">
+      {content}
+    </UpgradeOverlay>
   );
 }

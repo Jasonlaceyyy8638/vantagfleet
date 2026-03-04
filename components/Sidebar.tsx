@@ -53,12 +53,14 @@ export function Sidebar({
   showAdminLink = false,
   showAdminGearInTauri = false,
   isDriverOnly = false,
+  showBetaRibbon = false,
 }: {
   organizations: Organization[];
   currentOrgId: string | null;
   showAdminLink?: boolean;
   showAdminGearInTauri?: boolean;
   isDriverOnly?: boolean;
+  showBetaRibbon?: boolean;
 }) {
   const pathname = usePathname();
   const [isTauri, setIsTauri] = useState(false);
@@ -93,7 +95,12 @@ export function Sidebar({
   };
 
   return (
-    <aside className="w-64 shrink-0 border-r border-border bg-midnight-ink/80 backdrop-blur-md flex flex-col">
+    <aside className="w-64 shrink-0 border-r border-border bg-midnight-ink/80 backdrop-blur-md flex flex-col relative">
+      {showBetaRibbon && (
+        <div className="absolute top-0 right-0 z-10 px-2 py-0.5 text-[10px] font-semibold tracking-wider text-midnight-ink bg-cyber-amber/90 rounded-bl-md shadow-sm">
+          BETA ACCESS
+        </div>
+      )}
       <div className="p-4 border-b border-border">
         <Link href="/dashboard" className="flex items-center gap-3">
           <Logo size={32} />

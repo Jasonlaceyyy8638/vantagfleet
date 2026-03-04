@@ -71,6 +71,44 @@ export function LandingPage({ isAuthenticated = false, navbarRole = null }: Land
   const [driverAppNotifySuccess, setDriverAppNotifySuccess] = useState(false);
   const [driverAppNotifyError, setDriverAppNotifyError] = useState<string | null>(null);
 
+  const [betaSpotsRemaining, setBetaSpotsRemaining] = useState<number | null>(null);
+  const [waitlistEmail, setWaitlistEmail] = useState('');
+  const [waitlistSubmitting, setWaitlistSubmitting] = useState(false);
+  const [waitlistSuccess, setWaitlistSuccess] = useState(false);
+  const [waitlistError, setWaitlistError] = useState<string | null>(null);
+  useEffect(() => {
+    fetch('/api/beta-spots')
+      .then((res) => res.json())
+      .then((data: { remaining?: number }) => setBetaSpotsRemaining(data?.remaining ?? 0))
+      .catch(() => setBetaSpotsRemaining(0));
+  }, []);
+
+  const handleWaitlistSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const email = waitlistEmail.trim();
+    if (!email) return;
+    setWaitlistError(null);
+    setWaitlistSubmitting(true);
+    try {
+      const res = await fetch('/api/waitlist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setWaitlistError(data?.error ?? 'Something went wrong.');
+        return;
+      }
+      setWaitlistSuccess(true);
+      setWaitlistEmail('');
+    } catch {
+      setWaitlistError('Network error. Try again.');
+    } finally {
+      setWaitlistSubmitting(false);
+    }
+  };
+
   useEffect(() => {
     const code = searchParams.get('code');
     if (code) {
@@ -341,6 +379,16 @@ export function LandingPage({ isAuthenticated = false, navbarRole = null }: Land
         </div>
 
         <div className="relative z-10 flex flex-col items-center justify-center px-4 text-center max-w-4xl mx-auto">
+          {betaSpotsRemaining != null && betaSpotsRemaining > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+              className="mb-4 inline-flex items-center gap-2 rounded-full border border-[#FFBF00]/50 bg-[#FFBF00]/15 px-4 py-2 text-sm font-semibold text-[#FFBF00]"
+            >
+              🎁 {betaSpotsRemaining} Free Beta Spot{betaSpotsRemaining === 1 ? '' : 's'} Left! (Paid access always available)
+            </motion.div>
+          )}
           <motion.h1
             initial={{ opacity: 0, y: 32 }}
             animate={{ opacity: 1, y: 0 }}
@@ -363,19 +411,54 @@ export function LandingPage({ isAuthenticated = false, navbarRole = null }: Land
               <div className="mt-10 w-full flex justify-center">
                 <HeroLoginCard redirectTo="/dashboard" />
               </div>
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.5, delay: 0.3 }}
-                className="mt-6 flex flex-wrap items-center justify-center gap-4"
-              >
-                <p className="text-sm text-soft-cloud/70">
-                  Don&apos;t have an account?{' '}
-                  <Link href="/signup" className="text-[#FFBF00] hover:underline font-medium">
-                    Get started free
-                  </Link>
-                </p>
-              </motion.div>
+              {betaSpotsRemaining === 0 ? (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.5, delay: 0.3 }}
+                  className="mt-6 w-full max-w-md mx-auto"
+                >
+                  <p className="text-sm text-soft-cloud/70 mb-3 text-center">Beta spots are full. Join the waitlist.</p>
+                  <form onSubmit={handleWaitlistSubmit} className="flex flex-col sm:flex-row gap-2">
+                    <input
+                      type="email"
+                      value={waitlistEmail}
+                      onChange={(e) => setWaitlistEmail(e.target.value)}
+                      placeholder="Enter your email"
+                      required
+                      disabled={waitlistSuccess}
+                      className="flex-1 px-4 py-3 rounded-xl bg-white/5 border border-white/20 text-white placeholder-white/40 focus:outline-none focus:border-[#FFBF00] focus:ring-1 focus:ring-[#FFBF00]/50 disabled:opacity-60"
+                    />
+                    <button
+                      type="submit"
+                      disabled={waitlistSubmitting || waitlistSuccess}
+                      className="px-6 py-3 rounded-xl bg-[#FFBF00] text-midnight-ink font-semibold hover:bg-[#FFBF00]/90 disabled:opacity-50 transition-colors shrink-0"
+                    >
+                      {waitlistSuccess ? 'On the list' : waitlistSubmitting ? 'Joining…' : 'Join Waitlist'}
+                    </button>
+                  </form>
+                  {waitlistSuccess && (
+                    <p className="mt-2 text-sm text-emerald-400 text-center">We&apos;ll be in touch.</p>
+                  )}
+                  {waitlistError && (
+                    <p className="mt-2 text-sm text-red-400 text-center">{waitlistError}</p>
+                  )}
+                </motion.div>
+              ) : (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.5, delay: 0.3 }}
+                  className="mt-6 flex flex-wrap items-center justify-center gap-4"
+                >
+                  <p className="text-sm text-soft-cloud/70">
+                    Don&apos;t have an account?{' '}
+                    <Link href="/signup" className="text-[#FFBF00] hover:underline font-medium">
+                      Get started free
+                    </Link>
+                  </p>
+                </motion.div>
+              )}
               <motion.a
                 href="mailto:info@vantagfleet.com"
                 initial={{ opacity: 0 }}

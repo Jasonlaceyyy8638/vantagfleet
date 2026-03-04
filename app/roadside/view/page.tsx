@@ -15,23 +15,37 @@ export default async function RoadsideViewPage({ searchParams }: Props) {
     <div className="min-h-screen bg-midnight-ink text-soft-cloud p-4 pb-8">
       <header className="border-b border-white/10 pb-4 mb-6">
         <h1 className="text-xl font-bold text-cyber-amber">ROADSIDE READY</h1>
-        <p className="text-soft-cloud/70 text-sm mt-1">Read-only document summary</p>
+        <p className="text-soft-cloud/70 text-sm mt-1">Read-only summary — use links below to jump to each section</p>
         {summary.org_name && (
           <p className="text-soft-cloud/80 font-medium mt-2">{summary.org_name}</p>
         )}
+        <nav className="flex flex-wrap gap-2 mt-3 text-sm">
+          <a href="#eld" className="px-3 py-1.5 rounded-lg bg-cyber-amber/20 text-cyber-amber font-medium hover:bg-cyber-amber/30">
+            ELD / Logs
+          </a>
+          <a href="#insurance" className="px-3 py-1.5 rounded-lg bg-cyber-amber/20 text-cyber-amber font-medium hover:bg-cyber-amber/30">
+            Insurance / Permits
+          </a>
+          <a href="#maintenance" className="px-3 py-1.5 rounded-lg bg-cyber-amber/20 text-cyber-amber font-medium hover:bg-cyber-amber/30">
+            Recent Maintenance
+          </a>
+        </nav>
       </header>
 
       <div className="space-y-6 max-w-lg mx-auto">
-        {/* ELD Status */}
-        <section className="rounded-xl bg-card border border-white/10 p-4">
-          <h2 className="font-semibold text-cyber-amber mb-2">ELD Status</h2>
+        {/* ELD Status — officer sees logs summary */}
+        <section id="eld" className="scroll-mt-4 rounded-xl bg-card border border-white/10 p-4">
+          <h2 className="font-semibold text-cyber-amber mb-2">ELD Status &amp; Logs</h2>
           <p className="text-soft-cloud/90 text-sm">
             {summary.eld_status?.message ?? summary.eld_status?.status ?? 'Compliant — ELD and hours available in cab.'}
           </p>
+          <p className="text-soft-cloud/60 text-xs mt-2">
+            Previous 8-day logs and current day logs are maintained on the driver’s ELD device in the cab. This summary confirms ELD status; physical device or carrier-provided log export can be requested if needed.
+          </p>
         </section>
 
-        {/* Insurance / Permits */}
-        <section className="rounded-xl bg-card border border-white/10 p-4">
+        {/* Insurance / Permits — documents summary */}
+        <section id="insurance" className="scroll-mt-4 rounded-xl bg-card border border-white/10 p-4">
           <h2 className="font-semibold text-cyber-amber mb-2">Insurance / Permits</h2>
           {summary.insurance_permits && summary.insurance_permits.length > 0 ? (
             <ul className="space-y-1 text-sm text-soft-cloud/90">
@@ -43,12 +57,15 @@ export default async function RoadsideViewPage({ searchParams }: Props) {
               ))}
             </ul>
           ) : (
-            <p className="text-soft-cloud/70 text-sm">No documents on file for this view.</p>
+            <p className="text-soft-cloud/70 text-sm">No documents on file for this carrier in this summary.</p>
           )}
+          <p className="text-soft-cloud/60 text-xs mt-2">
+            Full document copies (e.g. COI, permits) can be requested from the driver or carrier.
+          </p>
         </section>
 
         {/* Recent Maintenance */}
-        <section className="rounded-xl bg-card border border-white/10 p-4">
+        <section id="maintenance" className="scroll-mt-4 rounded-xl bg-card border border-white/10 p-4">
           <h2 className="font-semibold text-cyber-amber mb-2">Recent Maintenance</h2>
           {summary.recent_maintenance && summary.recent_maintenance.length > 0 ? (
             <ul className="space-y-2 text-sm text-soft-cloud/90">
@@ -60,7 +77,7 @@ export default async function RoadsideViewPage({ searchParams }: Props) {
               ))}
             </ul>
           ) : (
-            <p className="text-soft-cloud/70 text-sm">No recent maintenance records for this view.</p>
+            <p className="text-soft-cloud/70 text-sm">No recent maintenance records in this summary.</p>
           )}
         </section>
       </div>

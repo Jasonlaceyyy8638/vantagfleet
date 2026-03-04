@@ -37,3 +37,37 @@ export async function getRoadsideSummary(token: string): Promise<RoadsideSummary
   if (error || data?.error) return data as RoadsideSummary ?? { error: 'invalid_or_expired' };
   return data as RoadsideSummary;
 }
+
+/** Same summary shape for the logged-in org (driver view before generating QR). */
+export async function getRoadsideSummaryForOrg(orgId: string): Promise<RoadsideSummary | null> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
+
+  const { data: profile } = await supabase.from('profiles').select('org_id').eq('user_id', user.id).eq('org_id', orgId).single();
+  const { data: member } = await supabase.from('organization_members').select('org_id').eq('user_id', user.id).eq('org_id', orgId).single();
+  if (!profile && !member) return null;
+
+  const { data: org } = await supabase.from('organizations').select('name').eq('id', orgId).single();
+  const { data: docs } = await supabase
+    .from('compliance_docs')
+    .select('doc_type, expiry_date')
+    .eq('org_id', orgId)
+    .limit(20);
+  const { data: maintenance } = await supabase
+    .from('vehicle_maintenance_logs')
+    .select('log_date, description')
+    .eq('org_id', orgId)
+    .order('log_date', { ascending: false })
+    .limit(10);
+
+  const insurance_permits = (docs ?? []).map((d) => ({ type: d.doc_type, expiry: d.expiry_date }));
+  const recent_maintenance = (maintenance ?? []).map((m) => ({ date: m.log_date, description: m.description }));
+
+  return {
+    org_name: org?.name ?? undefined,
+    eld_status: { status: 'Compliant', message: 'ELD status and hours available in cab.' },
+    insurance_permits,
+    recent_maintenance,
+  };
+}

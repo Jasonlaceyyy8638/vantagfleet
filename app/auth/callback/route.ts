@@ -12,8 +12,24 @@ export async function GET(request: Request) {
     const supabase = await createClient();
     const { data: { user }, error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error && user) {
-      const destination = user.id === ADMIN_OWNER_ID ? '/admin' : redirectTo;
-      return NextResponse.redirect(`${origin}${destination}`);
+      if (user.id === ADMIN_OWNER_ID) {
+        return NextResponse.redirect(`${origin}/admin`);
+      }
+      // Beta vs paid: send non-beta users to pricing when they were heading to dashboard.
+      if (redirectTo === '/dashboard') {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('is_beta_tester')
+          .eq('user_id', user.id)
+          .not('org_id', 'is', null)
+          .limit(1)
+          .single();
+        const isBeta = (profile as { is_beta_tester?: boolean } | null)?.is_beta_tester === true;
+        if (!isBeta) {
+          return NextResponse.redirect(`${origin}/pricing`);
+        }
+      }
+      return NextResponse.redirect(`${origin}${redirectTo}`);
     }
   }
 

@@ -45,16 +45,24 @@ export async function POST(request: NextRequest) {
       if (!orgId) {
         return NextResponse.json({ error: 'Select an organization first.' }, { status: 400 });
       }
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('is_beta_tester')
+        .eq('user_id', user.id)
+        .eq('org_id', orgId)
+        .single();
+      const isBeta = (profile as { is_beta_tester?: boolean } | null)?.is_beta_tester === true;
       const session = await stripe.checkout.sessions.create({
         mode: 'payment',
         line_items: [{ price: iftaPriceId, quantity: 1 }],
-        success_url: `${baseUrl}/pricing/success?session_id={CHECKOUT_SESSION_ID}`,
+        success_url: isBeta ? `${baseUrl}/dashboard/success` : `${baseUrl}/pricing/success?session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: `${baseUrl}/pricing`,
         metadata: {
           type: 'IFTA',
           user_id: user.id,
           org_id: orgId,
         },
+        discounts: isBeta ? [{ coupon: 'beta-tester-20' }] : [],
         branding_settings: {
           display_name: 'VantagFleet',
           button_color: '#00F5D4',
@@ -96,12 +104,22 @@ export async function POST(request: NextRequest) {
 
     // Optional: link subscription to org when user is logged in (for webhook to set stripe_customer_id / trial_active)
     let orgId: string | undefined;
+    let isBeta = false;
     try {
       const supabase = await createClient();
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         const cookieStore = await cookies();
         orgId = await getDashboardOrgId(supabase, cookieStore) ?? undefined;
+        if (orgId) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('is_beta_tester')
+            .eq('user_id', user.id)
+            .eq('org_id', orgId)
+            .single();
+          isBeta = (profile as { is_beta_tester?: boolean } | null)?.is_beta_tester === true;
+        }
       }
     } catch {
       // ignore; checkout continues without org link
@@ -110,7 +128,7 @@ export async function POST(request: NextRequest) {
     const session = await stripe.checkout.sessions.create({
       mode: 'subscription',
       line_items: [{ price: priceId, quantity: 1 }],
-      success_url: `${baseUrl}/pricing/success?session_id={CHECKOUT_SESSION_ID}`,
+      success_url: isBeta ? `${baseUrl}/dashboard/success` : `${baseUrl}/pricing/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${baseUrl}/pricing`,
       payment_method_collection: 'always',
       metadata: {
@@ -119,6 +137,7 @@ export async function POST(request: NextRequest) {
         ...(orgId && { org_id: orgId }),
       },
       subscription_data: subscriptionData,
+      discounts: isBeta ? [{ coupon: 'beta-tester-20' }] : [],
       branding_settings: {
         display_name: 'VantagFleet',
         button_color: '#00F5D4',

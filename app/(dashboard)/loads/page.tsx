@@ -1,5 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { cookies } from 'next/headers';
+import { hasFullAccess } from '@/lib/userHasAccess';
+import { UpgradeOverlay } from '@/components/UpgradeOverlay';
 import { ProfitabilityCalculator } from './ProfitabilityCalculator';
 import { IftaSection } from './IftaSection';
 import { AddLoadForm } from './AddLoadForm';
@@ -29,6 +31,7 @@ export default async function LoadsPage() {
     );
   }
 
+  const { data: { user } } = await supabase.auth.getUser();
   const { start: qStart, end: qEnd, label: quarterLabel } = getQuarterRange();
 
   const [
@@ -36,6 +39,8 @@ export default async function LoadsPage() {
     { data: drivers },
     { data: vehicles },
     { data: motiveIntegration },
+    { data: profile },
+    { data: org },
   ] = await Promise.all([
     supabase
       .from('loads')
@@ -51,7 +56,20 @@ export default async function LoadsPage() {
       .eq('org_id', orgId)
       .eq('provider', 'motive')
       .maybeSingle(),
+    user
+      ? supabase
+          .from('profiles')
+          .select('is_beta_tester, beta_expires_at, ifta_enabled')
+          .eq('user_id', user.id)
+          .eq('org_id', orgId)
+          .single()
+      : { data: null },
+    supabase.from('organizations').select('subscription_status').eq('id', orgId).single(),
   ]);
+
+  const profileData = profile as { is_beta_tester?: boolean; beta_expires_at?: string | null; ifta_enabled?: boolean } | null;
+  const orgData = org as { subscription_status?: string | null } | null;
+  const hasAccess = hasFullAccess(profileData, orgData);
 
   const loadIds = (loads ?? []).map((l) => l.id);
   let segmentList: { load_id: string; state_code: string; miles_driven: number }[] = [];
@@ -91,28 +109,30 @@ export default async function LoadsPage() {
   const hasMotive = !!motiveIntegration;
 
   return (
-    <div className="p-6 md:p-8 max-w-4xl">
-      <h1 className="text-2xl font-bold text-soft-cloud mb-2">Loads</h1>
-      <p className="text-soft-cloud/70 mb-8">
-        Add loads with IFTA mileage breakdown, profitability calculator, and quarterly IFTA summary.
-      </p>
+    <UpgradeOverlay hasAccess={hasAccess} title="Load Board & Profitability">
+      <div className="p-6 md:p-8 max-w-4xl">
+        <h1 className="text-2xl font-bold text-soft-cloud mb-2">Loads</h1>
+        <p className="text-soft-cloud/70 mb-8">
+          Add loads with IFTA mileage breakdown, profitability calculator, and quarterly IFTA summary.
+        </p>
 
-      <div className="space-y-8">
-        <AddLoadForm
-          orgId={orgId}
-          hasMotive={hasMotive}
-          drivers={drivers ?? []}
-          vehicles={vehicles ?? []}
-        />
+        <div className="space-y-8">
+          <AddLoadForm
+            orgId={orgId}
+            hasMotive={hasMotive}
+            drivers={drivers ?? []}
+            vehicles={vehicles ?? []}
+          />
 
-        <ProfitabilityCalculator />
+          <ProfitabilityCalculator />
 
-        <IftaSection
-          totalMiles={totalMiles}
-          milesByState={milesByState}
-          quarterLabel={quarterLabel}
-        />
+          <IftaSection
+            totalMiles={totalMiles}
+            milesByState={milesByState}
+            quarterLabel={quarterLabel}
+          />
+        </div>
       </div>
-    </div>
+    </UpgradeOverlay>
   );
 }

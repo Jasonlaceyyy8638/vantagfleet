@@ -1,7 +1,8 @@
-import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
 import { getDashboardOrgId } from '@/lib/admin';
+import { getRoadsideSummaryForOrg } from '@/app/actions/roadside';
+import { createClient } from '@/lib/supabase/server';
 import { RoadsideModeClient } from '@/app/roadside-mode/RoadsideModeClient';
 
 export default async function RoadsideModePage() {
@@ -14,10 +15,11 @@ export default async function RoadsideModePage() {
   if (!orgId) redirect('/dashboard');
 
   const appOrigin = process.env.NEXT_PUBLIC_APP_URL ?? 'https://vantagfleet.com';
+  const summary = await getRoadsideSummaryForOrg(orgId);
 
   return (
     <div className="p-6 md:p-8 max-w-2xl">
-      <RoadsideModeClient orgId={orgId} appOrigin={appOrigin} />
+      <RoadsideModeClient orgId={orgId} appOrigin={appOrigin} summary={summary} />
     </div>
   );
 }

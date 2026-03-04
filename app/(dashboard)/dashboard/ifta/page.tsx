@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server';
 import { cookies } from 'next/headers';
 import { getDashboardOrgId } from '@/lib/admin';
 import { redirect } from 'next/navigation';
+import { hasFullAccess } from '@/lib/userHasAccess';
 import { IFTADashboardClient } from './IFTADashboardClient';
 
 export default async function IFTADashboardPage() {
@@ -13,15 +14,23 @@ export default async function IFTADashboardPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('id, ifta_enabled')
-    .eq('user_id', user.id)
-    .eq('org_id', orgId)
-    .single();
+  const [
+    { data: profile },
+    { data: org },
+  ] = await Promise.all([
+    supabase
+      .from('profiles')
+      .select('id, ifta_enabled, is_beta_tester, beta_expires_at')
+      .eq('user_id', user.id)
+      .eq('org_id', orgId)
+      .single(),
+    supabase.from('organizations').select('subscription_status').eq('id', orgId).single(),
+  ]);
 
-  const iftaEnabled = (profile as { ifta_enabled?: boolean } | null)?.ifta_enabled ?? false;
-  const profileId = (profile as { id?: string } | null)?.id ?? null;
+  const profileData = profile as { id?: string; ifta_enabled?: boolean; is_beta_tester?: boolean; beta_expires_at?: string | null } | null;
+  const orgData = org as { subscription_status?: string | null } | null;
+  const hasAccess = hasFullAccess(profileData, orgData);
+  const profileId = profileData?.id ?? null;
 
   const now = new Date();
   const year = now.getFullYear();
@@ -29,7 +38,7 @@ export default async function IFTADashboardPage() {
   const currentQuarter = Math.ceil(month / 3) as 1 | 2 | 3 | 4;
 
   let initialReceipts: { id: string; receipt_date: string | null; state: string | null; gallons: number | null; status: string; file_url: string | null }[] = [];
-  if (iftaEnabled && profileId) {
+  if (hasAccess && profileId) {
     const { data } = await supabase
       .from('ifta_receipts')
       .select('id, receipt_date, state, gallons, status, file_url')
@@ -49,7 +58,7 @@ export default async function IFTADashboardPage() {
 
   return (
     <IFTADashboardClient
-      iftaEnabled={iftaEnabled}
+      iftaEnabled={hasAccess}
       profileId={profileId}
       orgId={orgId}
       currentQuarter={currentQuarter}

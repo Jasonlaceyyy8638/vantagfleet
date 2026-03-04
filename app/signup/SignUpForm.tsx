@@ -170,6 +170,21 @@ export function SignUpForm() {
         setMessage(profileError.message || 'Could not create profile.');
         return;
       }
+      // Beta vs paid: redirect beta testers to dashboard with welcome; others to pricing.
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('is_beta_tester')
+        .eq('user_id', user.id)
+        .eq('org_id', orgId)
+        .single();
+      const isBeta = (profile as { is_beta_tester?: boolean } | null)?.is_beta_tester === true;
+      if (isBeta) {
+        router.push('/dashboard?welcome=beta');
+      } else {
+        router.push('/pricing');
+      }
+      router.refresh();
+      return;
     }
     router.push('/dashboard');
     router.refresh();

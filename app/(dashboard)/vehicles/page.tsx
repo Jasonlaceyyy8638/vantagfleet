@@ -1,6 +1,8 @@
 import { createClient } from '@/lib/supabase/server';
 import { getDashboardOrgId } from '@/lib/admin';
 import { cookies } from 'next/headers';
+import { hasFullAccess } from '@/lib/userHasAccess';
+import { UpgradeOverlay } from '@/components/UpgradeOverlay';
 import { FleetClient } from '@/app/(dashboard)/dashboard/fleet/FleetClient';
 
 export default async function VehiclesPage() {
@@ -17,9 +19,12 @@ export default async function VehiclesPage() {
     );
   }
 
+  const { data: { user } } = await supabase.auth.getUser();
   const [
     { data: drivers },
     { data: vehicles },
+    { data: profile },
+    { data: org },
   ] = await Promise.all([
     supabase
       .from('drivers')
@@ -31,7 +36,20 @@ export default async function VehiclesPage() {
       .select('id, vin, plate, year, status')
       .eq('org_id', orgId)
       .order('vin'),
+    user
+      ? supabase
+          .from('profiles')
+          .select('is_beta_tester, beta_expires_at, ifta_enabled')
+          .eq('user_id', user.id)
+          .eq('org_id', orgId)
+          .single()
+      : { data: null },
+    supabase.from('organizations').select('subscription_status').eq('id', orgId).single(),
   ]);
+
+  const profileData = profile as { is_beta_tester?: boolean; beta_expires_at?: string | null; ifta_enabled?: boolean } | null;
+  const orgData = org as { subscription_status?: string | null } | null;
+  const hasAccess = hasFullAccess(profileData, orgData);
 
   const driverList = (drivers ?? []).map((d) => ({
     id: d.id,
@@ -53,19 +71,21 @@ export default async function VehiclesPage() {
   const archived = driverList.filter((d) => d.status === 'archived');
 
   return (
-    <div className="p-6 md:p-8 max-w-5xl">
-      <h1 className="text-2xl font-bold text-soft-cloud mb-2">Vehicles</h1>
-      <p className="text-soft-cloud/70 mb-6">
-        Add vehicles (with VIN decoder), assign drivers, and manage your fleet. Unassigned drivers appear in the Pool; archive or reactivate as needed.
-      </p>
-      <FleetClient
-        orgId={orgId}
-        drivers={driverList}
-        vehicles={vehicleList}
-        assignedDrivers={assigned}
-        poolDrivers={pool}
-        archivedDrivers={archived}
-      />
-    </div>
+    <UpgradeOverlay hasAccess={hasAccess} title="VIN Decoder & Fleet">
+      <div className="p-6 md:p-8 max-w-5xl">
+        <h1 className="text-2xl font-bold text-soft-cloud mb-2">Vehicles</h1>
+        <p className="text-soft-cloud/70 mb-6">
+          Add vehicles (with VIN decoder), assign drivers, and manage your fleet. Unassigned drivers appear in the Pool; archive or reactivate as needed.
+        </p>
+        <FleetClient
+          orgId={orgId}
+          drivers={driverList}
+          vehicles={vehicleList}
+          assignedDrivers={assigned}
+          poolDrivers={pool}
+          archivedDrivers={archived}
+        />
+      </div>
+    </UpgradeOverlay>
   );
 }

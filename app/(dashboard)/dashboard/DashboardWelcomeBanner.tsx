@@ -8,14 +8,18 @@ export function DashboardWelcomeBanner() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [show, setShow] = useState(false);
+  const [message, setMessage] = useState<'success' | 'beta' | null>(null);
 
   useEffect(() => {
     const status = searchParams.get('status');
-    if (status === 'success') {
+    const welcome = searchParams.get('welcome');
+    if (status === 'success' || welcome === 'beta') {
       setShow(true);
+      setMessage(welcome === 'beta' ? 'beta' : 'success');
       const url = new URL(window.location.href);
       url.searchParams.delete('status');
-      router.replace(url.pathname + url.search, { scroll: false });
+      url.searchParams.delete('welcome');
+      router.replace(url.pathname + (url.search || '?').replace(/^\?$/, ''), { scroll: false });
     }
   }, [searchParams, router]);
 
@@ -24,7 +28,9 @@ export function DashboardWelcomeBanner() {
   return (
     <div className="mb-6 rounded-xl border border-electric-teal/30 bg-electric-teal/10 px-4 py-3 flex items-center gap-3">
       <Sparkles className="size-5 text-electric-teal shrink-0" />
-      <p className="text-soft-cloud font-medium">Welcome! Your subscription is active.</p>
+      <p className="text-soft-cloud font-medium">
+        {message === 'beta' ? 'Welcome Beta Tester! You have free access to IFTA and fleet features.' : 'Welcome! Your subscription is active.'}
+      </p>
     </div>
   );
 }

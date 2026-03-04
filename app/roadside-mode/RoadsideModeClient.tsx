@@ -5,10 +5,11 @@ import { QRCodeSVG } from 'qrcode.react';
 import { createRoadsideToken } from '@/app/actions/roadside';
 import { Smartphone, FileCheck, Wrench, QrCode, X } from 'lucide-react';
 import Link from 'next/link';
+import type { RoadsideSummary } from '@/app/actions/roadside';
 
-type Props = { orgId: string; appOrigin: string };
+type Props = { orgId: string; appOrigin: string; summary: RoadsideSummary | null };
 
-export function RoadsideModeClient({ orgId, appOrigin }: Props) {
+export function RoadsideModeClient({ orgId, appOrigin, summary }: Props) {
   const [qrUrl, setQrUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -86,6 +87,54 @@ export function RoadsideModeClient({ orgId, appOrigin }: Props) {
             <p className="text-sm text-soft-cloud/70 mt-0.5">Inspection and repair records</p>
           </div>
         </a>
+
+        {/* Sections the cards scroll to */}
+        <div id="eld" className="scroll-mt-4 rounded-2xl bg-card border border-white/10 p-4 mt-2">
+          <h2 className="font-semibold text-cyber-amber mb-2 flex items-center gap-2">
+            <Smartphone className="size-5" />
+            ELD Status
+          </h2>
+          <p className="text-soft-cloud/90 text-sm">
+            {summary?.eld_status?.message ?? summary?.eld_status?.status ?? 'Compliant — ELD status and hours available in cab.'}
+          </p>
+          <p className="text-soft-cloud/50 text-xs mt-2">Previous 8-day logs and today’s logs are available in your ELD device in the cab.</p>
+        </div>
+        <div id="insurance" className="scroll-mt-4 rounded-2xl bg-card border border-white/10 p-4 mt-2">
+          <h2 className="font-semibold text-cyber-amber mb-2 flex items-center gap-2">
+            <FileCheck className="size-5" />
+            Insurance / Permits
+          </h2>
+          {summary?.insurance_permits && summary.insurance_permits.length > 0 ? (
+            <ul className="space-y-1 text-sm text-soft-cloud/90">
+              {summary.insurance_permits.map((item: { type: string; expiry: string | null }, i: number) => (
+                <li key={i}>
+                  {item.type}
+                  {item.expiry ? ` — expires ${item.expiry}` : ''}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-soft-cloud/70 text-sm">No documents on file. Upload in Compliance or New Hire Documents.</p>
+          )}
+        </div>
+        <div id="maintenance" className="scroll-mt-4 rounded-2xl bg-card border border-white/10 p-4 mt-2">
+          <h2 className="font-semibold text-cyber-amber mb-2 flex items-center gap-2">
+            <Wrench className="size-5" />
+            Recent Maintenance
+          </h2>
+          {summary?.recent_maintenance && summary.recent_maintenance.length > 0 ? (
+            <ul className="space-y-2 text-sm text-soft-cloud/90">
+              {summary.recent_maintenance.map((item: { date: string; description: string | null }, i: number) => (
+                <li key={i}>
+                  <span className="text-soft-cloud/70">{item.date}</span>
+                  {item.description ? ` — ${item.description}` : ''}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-soft-cloud/70 text-sm">No recent maintenance records. Add inspections in Vehicles.</p>
+          )}
+        </div>
 
         {/* QR generator button */}
         <div className="pt-4">

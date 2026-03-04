@@ -27,6 +27,8 @@ import { CompliancePowerUps } from './CompliancePowerUps';
 import { DashboardWelcomeBanner } from './DashboardWelcomeBanner';
 import { getDashboardOrgId } from '@/lib/admin';
 import { getEffectiveOrgFeatures } from '@/app/actions/admin';
+import { userHasAccess, hasFullAccess, getBetaDaysRemaining } from '@/lib/userHasAccess';
+import { BetaExpirationBanner } from '@/components/BetaExpirationBanner';
 
 const ALERT_DAYS = 30;
 
@@ -59,16 +61,18 @@ export default async function DashboardPage() {
       .from('compliance_docs')
       .select('id, doc_type, expiry_date, driver_id')
       .eq('org_id', orgId),
-    supabase.from('organizations').select('tier, features').eq('id', orgId).single(),
+    supabase.from('organizations').select('tier, features, subscription_status').eq('id', orgId).single(),
     driverIds.length > 0
       ? supabase.from('driver_documents').select('document_type').in('driver_id', driverIds)
       : { data: [] },
     user
-      ? supabase.from('profiles').select('ifta_enabled').eq('user_id', user.id).eq('org_id', orgId).single()
+      ? supabase.from('profiles').select('ifta_enabled, is_beta_tester, beta_expires_at, subscription_status').eq('user_id', user.id).eq('org_id', orgId).single()
       : { data: null },
   ]);
 
-  const iftaEnabled = (profileRow as { ifta_enabled?: boolean } | null)?.ifta_enabled ?? false;
+  const profileData = profileRow as { ifta_enabled?: boolean; is_beta_tester?: boolean; beta_expires_at?: string | null; subscription_status?: string | null } | null;
+  const orgData = orgRow as { tier?: string | null; features?: unknown; subscription_status?: string | null } | null;
+  const iftaEnabled = hasFullAccess(profileData, orgData);
   const tier = (orgRow as { tier?: string | null } | null)?.tier ?? null;
   const featuresRaw = (orgRow as { features?: unknown } | null)?.features;
   const featuresList = Array.isArray(featuresRaw) ? featuresRaw : [];
@@ -170,11 +174,16 @@ export default async function DashboardPage() {
         ? 'text-cyber-amber'
         : 'text-red-400';
 
+  const betaDaysRemaining = getBetaDaysRemaining(profileData);
+
   return (
     <div className="p-6 md:p-8 max-w-6xl">
       <Suspense fallback={null}>
         <DashboardWelcomeBanner />
       </Suspense>
+      {betaDaysRemaining != null && betaDaysRemaining > 0 && (
+        <BetaExpirationBanner daysRemaining={betaDaysRemaining} />
+      )}
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-8">
         <div>
           <h1 className="text-2xl font-bold text-cloud-dancer mb-2">Dashboard</h1>
