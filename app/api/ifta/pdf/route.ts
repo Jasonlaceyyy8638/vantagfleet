@@ -93,7 +93,11 @@ export async function GET(request: NextRequest) {
   );
 
   const filename = `IFTA_Q${quarter}_${year}_Return.pdf`;
-  const body = new Blob([pdfBytes], { type: 'application/pdf' });
+  const arrayBuffer = pdfBytes.buffer.slice(
+    pdfBytes.byteOffset,
+    pdfBytes.byteOffset + pdfBytes.byteLength
+  ) as ArrayBuffer;
+  const body = new Blob([arrayBuffer], { type: 'application/pdf' });
   return new NextResponse(body, {
     status: 200,
     headers: {
