@@ -121,7 +121,16 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const json = extractJson(raw);
+  let json: Record<string, unknown> | null = null;
+  try {
+    json = extractJson(raw);
+  } catch (parseErr) {
+    console.error('[ifta/scan] JSON parse failed for AI response:', parseErr);
+    return NextResponse.json(
+      { error: "We couldn't parse the receipt. Please enter the data manually." },
+      { status: 422 }
+    );
+  }
   if (!json) {
     return NextResponse.json(
       { error: "We couldn't parse the receipt. Please enter the data manually." },

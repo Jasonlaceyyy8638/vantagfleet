@@ -51,6 +51,7 @@ export default async function IFTADashboardPage() {
     <IFTADashboardClient
       iftaEnabled={iftaEnabled}
       profileId={profileId}
+      orgId={orgId}
       currentQuarter={currentQuarter}
       currentYear={year}
       initialReceipts={initialReceipts}

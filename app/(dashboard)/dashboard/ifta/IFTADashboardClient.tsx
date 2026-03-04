@@ -12,7 +12,12 @@ import {
   CheckCircle2,
   Download,
   ImageIcon,
+  BarChart3,
+  Plug,
+  AlertTriangle,
+  DollarSign,
 } from 'lucide-react';
+import { calculateIfta } from '@/lib/ifta-calculate';
 import { createClient } from '@/lib/supabase/client';
 import { uploadIftaReceipt } from '@/app/actions/ifta-upload';
 import { updateIftaReceipt, approveIftaReceipt } from '@/app/actions/ifta-receipts';
@@ -56,15 +61,19 @@ function downloadCsv(csv: string, filename: string) {
   URL.revokeObjectURL(url);
 }
 
+type StateMiles = { state_code: string; miles: number };
+
 export function IFTADashboardClient({
   iftaEnabled,
   profileId,
+  orgId,
   currentQuarter: initialQuarter,
   currentYear: initialYear,
   initialReceipts,
 }: {
   iftaEnabled: boolean;
   profileId: string | null;
+  orgId: string | null;
   currentQuarter: 1 | 2 | 3 | 4;
   currentYear: number;
   initialReceipts: ReceiptRow[];
@@ -92,12 +101,51 @@ export function IFTADashboardClient({
   const [updateError, setUpdateError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
 
+  const [motiveMilesByState, setMotiveMilesByState] = useState<StateMiles[]>([]);
+  const [motiveTotalMiles, setMotiveTotalMiles] = useState(0);
+  const [mileageError, setMileageError] = useState<string | null>(null);
+  const [mileageLoading, setMileageLoading] = useState(false);
+  const [pdfLoading, setPdfLoading] = useState(false);
+
   const processedOnly = receipts.filter((r) => r.status === 'processed');
   const quarterlyTotalGallons = processedOnly.reduce((sum, r) => sum + (r.gallons ?? 0), 0);
   const totalFuelCredits = quarterlyTotalGallons * CREDIT_RATE;
   const processedCount = processedOnly.length;
   const verifiedReceipts = receipts.filter((r) => r.status === 'verified');
   const isScanning = scanningId !== null;
+
+  const fuelByState = (() => {
+    const map: Record<string, number> = {};
+    processedOnly.forEach((r) => {
+      const state = r.state?.trim().toUpperCase().slice(0, 2);
+      if (!state) return;
+      map[state] = (map[state] ?? 0) + (r.gallons ?? 0);
+    });
+    return Object.entries(map).map(([state_code, gallons]) => ({ state_code, gallons }));
+  })();
+
+  const totalGallonsForMpg = quarterlyTotalGallons;
+  const milesForMpg = motiveTotalMiles > 0 ? motiveTotalMiles : (typeof totalMiles === 'number' ? totalMiles : 0);
+  const mpg = totalGallonsForMpg > 0 && milesForMpg > 0 ? milesForMpg / totalGallonsForMpg : 0;
+
+  const allStates = Array.from(
+    new Set([...motiveMilesByState.map((s) => s.state_code), ...fuelByState.map((s) => s.state_code)])
+  ).sort();
+
+  const mileageSummaryRows = allStates.map((state_code) => {
+    const motiveMiles = motiveMilesByState.find((s) => s.state_code === state_code)?.miles ?? 0;
+    const fuelGal = fuelByState.find((s) => s.state_code === state_code)?.gallons ?? 0;
+    const taxableFuelGal = mpg > 0 ? motiveMiles / mpg : 0;
+    const gap = fuelGal > 0 ? taxableFuelGal - fuelGal : null;
+    return { state_code, motiveMiles, fuelGal, taxableFuelGal, gap };
+  });
+
+  const iftaResult = calculateIfta(
+    motiveMilesByState,
+    fuelByState,
+    quarter,
+    year
+  );
 
   useEffect(() => {
     if (editingCell && inputRef.current) {
@@ -127,6 +175,38 @@ export function IFTADashboardClient({
       }))
     );
   }, [profileId]);
+
+  const loadMileage = useCallback(async (q: number, y: number) => {
+    setMileageLoading(true);
+    setMileageError(null);
+    try {
+      const res = await fetch(`/api/ifta/mileage?quarter=${q}&year=${y}`);
+      const data = await res.json().catch(() => ({}));
+      if (data.error) {
+        setMileageError(data.error);
+        setMotiveMilesByState([]);
+        setMotiveTotalMiles(0);
+      } else {
+        setMotiveMilesByState(data.milesByState ?? []);
+        setMotiveTotalMiles(Number(data.totalMiles) || 0);
+      }
+    } catch {
+      setMileageError('Failed to load Motive mileage.');
+      setMotiveMilesByState([]);
+      setMotiveTotalMiles(0);
+    } finally {
+      setMileageLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (iftaEnabled && orgId) loadMileage(quarter, year);
+    else {
+      setMotiveMilesByState([]);
+      setMotiveTotalMiles(0);
+      setMileageError(null);
+    }
+  }, [iftaEnabled, orgId, quarter, year, loadMileage]);
 
   const handleQuarterChange = (q: 1 | 2 | 3 | 4) => {
     setQuarter(q);
@@ -202,6 +282,29 @@ export function IFTADashboardClient({
     downloadCsv(csv, `IFTA_Q${quarter}_${year}_Report.csv`);
   }, [verifiedReceipts, quarter, year]);
 
+  const handleDownloadPdf = useCallback(async () => {
+    setPdfLoading(true);
+    try {
+      const res = await fetch(`/api/ifta/pdf?quarter=${quarter}&year=${year}`);
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        alert(err?.error ?? 'Failed to generate PDF.');
+        return;
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `IFTA_Q${quarter}_${year}_Return.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      alert('Failed to download PDF.');
+    } finally {
+      setPdfLoading(false);
+    }
+  }, [quarter, year]);
+
   const handleFiles = useCallback(
     async (files: FileList | null) => {
       if (!files?.length || !iftaEnabled || !profileId) return;
@@ -237,7 +340,14 @@ export function IFTADashboardClient({
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ receiptUrl: file_url }),
           });
-          const data = await res.json();
+          let data: { error?: string; gallons?: number; state?: string; date?: string };
+          try {
+            data = await res.json();
+          } catch {
+            setScanError("Invalid response from server. Please enter the data manually.");
+            setScanningId(null);
+            continue;
+          }
           if (!res.ok) {
             setScanError(data?.error ?? "We couldn't read this receipt. Please enter the data manually.");
             setScanningId(null);
@@ -367,8 +477,8 @@ export function IFTADashboardClient({
           </div>
         </section>
 
-        {/* Total Miles (optional) + Export */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+        {/* Total Miles (optional) + Export + PDF */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
           <div className="rounded-xl border border-white/10 bg-card p-5">
             <div className="flex items-center gap-2 text-soft-cloud/60 text-sm mb-1">
               <Route className="size-4 text-cyber-amber" />
@@ -399,7 +509,171 @@ export function IFTADashboardClient({
               CSV of verified receipts for this quarter
             </p>
           </div>
+          <div className="rounded-xl border border-white/10 bg-card p-5 flex flex-col justify-center">
+            <button
+              type="button"
+              onClick={handleDownloadPdf}
+              disabled={pdfLoading}
+              className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-white/30 bg-white/5 text-soft-cloud font-medium hover:bg-white/10 disabled:opacity-50 disabled:pointer-events-none transition-colors"
+            >
+              {pdfLoading ? <Loader2 className="size-5 animate-spin" /> : <FileText className="size-5" />}
+              Download Q{quarter} {year} Return (PDF)
+            </button>
+            <p className="text-xs text-soft-cloud/50 mt-1.5">
+              IFTA-100 style return with reconciled data and total balance due
+            </p>
+          </div>
         </div>
+
+        {/* Mileage Summary + Gap Analysis (Motive vs receipts) */}
+        <section className="rounded-xl border border-white/10 bg-card overflow-hidden mb-8">
+          <div className="px-5 py-4 border-b border-white/10 flex items-center justify-between flex-wrap gap-2">
+            <h2 className="font-semibold text-soft-cloud flex items-center gap-2">
+              <BarChart3 className="size-5 text-cyber-amber" />
+              Mileage Summary
+            </h2>
+            {orgId && (
+              <span className="text-xs text-soft-cloud/50 flex items-center gap-1">
+                <Plug className="size-3.5 text-electric-teal" />
+                Motive integration • Q{quarter} dates: {quarter === 1 ? 'Jan 1 – Mar 31' : quarter === 2 ? 'Apr 1 – Jun 30' : quarter === 3 ? 'Jul 1 – Sep 30' : 'Oct 1 – Dec 31'}
+              </span>
+            )}
+          </div>
+          <div className="p-5">
+            {!orgId ? (
+              <p className="text-sm text-soft-cloud/50">Select an organization to see Motive mileage.</p>
+            ) : mileageLoading ? (
+              <div className="flex items-center gap-2 py-6 text-soft-cloud/70">
+                <Loader2 className="size-5 animate-spin text-cyber-amber" />
+                Loading Motive mileage…
+              </div>
+            ) : mileageError ? (
+              <p className="text-sm text-cyber-amber/90 py-2">{mileageError}</p>
+            ) : (
+              <>
+                <p className="text-xs text-soft-cloud/50 mb-4">
+                  MPG = Total Miles ÷ Total Gallons. Taxable fuel per state = State Miles ÷ MPG. Compare Motive miles vs scanned receipt fuel by state.
+                </p>
+                <div className="overflow-x-auto rounded-lg border border-white/10">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="bg-midnight-ink/80 text-soft-cloud/70 text-left">
+                        <th className="px-3 py-2.5 font-medium">State</th>
+                        <th className="px-3 py-2.5 font-medium text-right">Motive Miles</th>
+                        <th className="px-3 py-2.5 font-medium text-right">Fuel (receipts) gal</th>
+                        <th className="px-3 py-2.5 font-medium text-right">Taxable fuel (gal)</th>
+                        <th className="px-3 py-2.5 font-medium text-right">Gap</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {mileageSummaryRows.length === 0 ? (
+                        <tr>
+                          <td colSpan={5} className="px-3 py-4 text-soft-cloud/50 text-center">
+                            No mileage or fuel data for this quarter. Connect Motive and add receipts.
+                          </td>
+                        </tr>
+                      ) : (
+                        mileageSummaryRows.map((row) => (
+                          <tr key={row.state_code} className="border-t border-white/5 text-soft-cloud/90">
+                            <td className="px-3 py-2 font-medium">{row.state_code}</td>
+                            <td className="px-3 py-2 text-right">{row.motiveMiles.toLocaleString('en-US', { maximumFractionDigits: 0 })}</td>
+                            <td className="px-3 py-2 text-right">{row.fuelGal.toFixed(1)}</td>
+                            <td className="px-3 py-2 text-right text-electric-teal">{row.taxableFuelGal.toFixed(1)}</td>
+                            <td className="px-3 py-2 text-right">
+                              {row.gap != null ? (
+                                <span className={row.gap >= 0 ? 'text-electric-teal/90' : 'text-cyber-amber/90'}>
+                                  {row.gap >= 0 ? '+' : ''}{row.gap.toFixed(1)}
+                                </span>
+                              ) : (
+                                '—'
+                              )}
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+                {mpg > 0 && (
+                  <p className="text-xs text-soft-cloud/50 mt-3">
+                    Fleet MPG this quarter: <span className="text-electric-teal font-medium">{mpg.toFixed(1)}</span> (Total Miles ÷ Total Gallons)
+                  </p>
+                )}
+              </>
+            )}
+          </div>
+        </section>
+
+        {/* Final Tax Liability (reconciler output) */}
+        <section className="rounded-xl border border-white/10 bg-card overflow-hidden mb-8">
+          <div className="px-5 py-4 border-b border-white/10">
+            <h2 className="font-semibold text-soft-cloud flex items-center gap-2">
+              <DollarSign className="size-5 text-electric-teal" />
+              Final Tax Liability
+            </h2>
+            <p className="text-xs text-soft-cloud/50 mt-1">
+              Net tax owed = (tax required from miles) − (tax already paid on receipts). 2026 Q1 diesel rates applied.
+            </p>
+          </div>
+          <div className="p-5">
+            <div className="overflow-x-auto rounded-lg border border-white/10">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-midnight-ink/80 text-soft-cloud/70 text-left">
+                    <th className="px-3 py-2.5 font-medium">State</th>
+                    <th className="px-3 py-2.5 font-medium text-right">Miles</th>
+                    <th className="px-3 py-2.5 font-medium text-right">Gallons</th>
+                    <th className="px-3 py-2.5 font-medium text-right">Net Owed / Refund</th>
+                    <th className="px-3 py-2.5 font-medium text-right w-24">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {iftaResult.rows.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="px-3 py-4 text-soft-cloud/50 text-center">
+                        No liability data. Connect Motive and add fuel receipts for this quarter.
+                      </td>
+                    </tr>
+                  ) : (
+                    iftaResult.rows.map((row) => (
+                      <tr
+                        key={row.state_code}
+                        className={`border-t border-white/5 text-soft-cloud/90 ${row.isAuditRisk ? 'bg-cyber-amber/5' : ''}`}
+                      >
+                        <td className="px-3 py-2 font-medium">{row.state_code}</td>
+                        <td className="px-3 py-2 text-right">{row.miles.toLocaleString('en-US', { maximumFractionDigits: 0 })}</td>
+                        <td className="px-3 py-2 text-right">{row.gallons.toFixed(1)}</td>
+                        <td className="px-3 py-2 text-right">
+                          <span className={row.netOwed > 0 ? 'text-cyber-amber' : row.netOwed < 0 ? 'text-electric-teal' : 'text-soft-cloud/70'}>
+                            {row.netOwed > 0 && `$${row.netOwed.toFixed(2)} owed`}
+                            {row.netOwed < 0 && `$${Math.abs(row.netOwed).toFixed(2)} refund`}
+                            {row.netOwed === 0 && '$0.00'}
+                          </span>
+                        </td>
+                        <td className="px-3 py-2 text-right">
+                          {row.isAuditRisk ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-cyber-amber/20 text-cyber-amber">
+                              <AlertTriangle className="size-3.5" />
+                              Audit Risk
+                            </span>
+                          ) : (
+                            '—'
+                          )}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+            {iftaResult.rows.some((r) => r.isAuditRisk) && (
+              <p className="text-xs text-cyber-amber/90 mt-3 flex items-center gap-1.5">
+                <AlertTriangle className="size-3.5 shrink-0" />
+                Audit Risk: state has mileage but no fuel receipts. Add receipts or confirm data to reduce audit exposure.
+              </p>
+            )}
+          </div>
+        </section>
 
         {/* Receipt Hub */}
         <section className="rounded-xl border border-white/10 bg-card overflow-hidden">
