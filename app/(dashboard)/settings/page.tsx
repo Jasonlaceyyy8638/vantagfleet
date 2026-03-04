@@ -15,16 +15,22 @@ export default async function SettingsPage() {
   let orgName = '';
   let usdotNumber: string | null = null;
   let authorityVerified = false;
+  let legalName: string | null = null;
+  let address: string | null = null;
+  let safetyRating: string | null = null;
   if (orgId) {
     const { data: org } = await supabase
       .from('organizations')
-      .select('name, usdot_number, stripe_customer_id, authority_verified')
+      .select('name, usdot_number, stripe_customer_id, authority_verified, legal_name, address, safety_rating')
       .eq('id', orgId)
       .single();
     stripeCustomerId = org?.stripe_customer_id ?? null;
     orgName = org?.name ?? '';
     usdotNumber = org?.usdot_number ?? null;
     authorityVerified = !!org?.authority_verified;
+    legalName = (org as { legal_name?: string | null })?.legal_name ?? null;
+    address = (org as { address?: string | null })?.address ?? null;
+    safetyRating = (org as { safety_rating?: string | null })?.safety_rating ?? null;
   }
 
   return (
@@ -36,9 +42,13 @@ export default async function SettingsPage() {
 
       {orgId && (
         <CarrierProfile
+          orgId={orgId}
           orgName={orgName}
           usdotNumber={usdotNumber}
           authorityVerified={authorityVerified}
+          legalName={legalName}
+          address={address}
+          safetyRating={safetyRating}
         />
       )}
 

@@ -1,19 +1,36 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { CheckCircle2, AlertCircle, FileWarning } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { CheckCircle2, AlertCircle, FileWarning, RefreshCw } from 'lucide-react';
+import { syncOrganizationFromFmcsa } from '@/app/actions/fmcsa';
 
 type Props = {
+  orgId: string;
   orgName: string;
   usdotNumber: string | null;
   authorityVerified: boolean;
+  legalName: string | null;
+  address: string | null;
+  safetyRating: string | null;
 };
 
 type DotStatus = { active: boolean } | null;
 
-export function CarrierProfile({ orgName, usdotNumber, authorityVerified }: Props) {
+export function CarrierProfile({
+  orgId,
+  orgName,
+  usdotNumber,
+  authorityVerified,
+  legalName,
+  address,
+  safetyRating,
+}: Props) {
+  const router = useRouter();
   const [dotStatus, setDotStatus] = useState<DotStatus>(null);
   const [dotLoading, setDotLoading] = useState(!!usdotNumber?.trim());
+  const [syncLoading, setSyncLoading] = useState(false);
+  const [syncError, setSyncError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!usdotNumber?.trim()) {
@@ -39,6 +56,22 @@ export function CarrierProfile({ orgName, usdotNumber, authorityVerified }: Prop
     };
   }, [usdotNumber]);
 
+  async function handleSyncFromFmcsa() {
+    if (!usdotNumber?.trim()) return;
+    setSyncError(null);
+    setSyncLoading(true);
+    try {
+      const result = await syncOrganizationFromFmcsa(orgId);
+      if (result.ok) {
+        router.refresh();
+      } else {
+        setSyncError(result.error);
+      }
+    } finally {
+      setSyncLoading(false);
+    }
+  }
+
   return (
     <div className="rounded-xl border border-white/10 bg-card p-6 mb-6">
       <h2 className="text-lg font-semibold text-soft-cloud mb-2">Carrier profile</h2>
@@ -51,10 +84,51 @@ export function CarrierProfile({ orgName, usdotNumber, authorityVerified }: Prop
           <span className="text-soft-cloud/60">Company</span>
           <p className="font-medium text-soft-cloud">{orgName}</p>
         </div>
-        {usdotNumber && (
+        {legalName != null && legalName.trim() !== '' && (
           <div>
-            <span className="text-soft-cloud/60">USDOT number</span>
-            <p className="font-medium text-soft-cloud">{usdotNumber}</p>
+            <span className="text-soft-cloud/60">Legal name (FMCSA)</span>
+            <p className="font-medium text-soft-cloud">{legalName}</p>
+          </div>
+        )}
+        {address && (
+          <div>
+            <span className="text-soft-cloud/60">Address</span>
+            <p className="font-medium text-soft-cloud whitespace-pre-line">{address}</p>
+          </div>
+        )}
+        {usdotNumber && (
+          <div className="flex items-center gap-2 flex-wrap">
+            <div>
+              <span className="text-soft-cloud/60">USDOT number</span>
+              <p className="font-medium text-soft-cloud">{usdotNumber}</p>
+            </div>
+            <button
+              type="button"
+              onClick={handleSyncFromFmcsa}
+              disabled={syncLoading}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-electric-teal/20 text-electric-teal px-3 py-1.5 text-sm font-medium hover:bg-electric-teal/30 disabled:opacity-50"
+            >
+              {syncLoading ? (
+                <>
+                  <RefreshCw className="size-3.5 animate-spin" />
+                  Syncing…
+                </>
+              ) : (
+                <>
+                  <RefreshCw className="size-3.5" />
+                  Sync from FMCSA
+                </>
+              )}
+            </button>
+          </div>
+        )}
+        {syncError && (
+          <p className="text-amber-400 text-sm">{syncError}</p>
+        )}
+        {safetyRating != null && (
+          <div>
+            <span className="text-soft-cloud/60">Safety rating</span>
+            <p className="font-medium text-soft-cloud">{safetyRating}</p>
           </div>
         )}
 
