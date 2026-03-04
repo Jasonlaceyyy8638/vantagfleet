@@ -414,7 +414,6 @@ export function LandingPage({ isAuthenticated = false, navbarRole = null }: Land
             ))}
           </video>
           <div className="absolute inset-0 bg-black/50 z-[2]" aria-hidden />
-        </div>
 
         <div className="relative z-10 flex flex-col items-center justify-center px-4 sm:px-6 text-center max-w-4xl mx-auto pb-8 pb-safe">
           <motion.h1
