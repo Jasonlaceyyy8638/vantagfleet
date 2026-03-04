@@ -32,7 +32,11 @@ const linkBase =
 const linkActive =
   'px-4 py-2.5 rounded-lg font-medium transition-colors shadow-[0_0_16px_-2px_rgba(255,176,0,0.4)] ring-1 ring-cyber-amber/60 bg-cyber-amber/20 text-cyber-amber';
 
-export function Navbar({ isAuthenticated: initialAuth = false }: { isAuthenticated?: boolean }) {
+export function Navbar({
+  isAuthenticated: initialAuth = false,
+  signupHref = '/signup',
+  signupLabel = 'Sign Up',
+}: { isAuthenticated?: boolean; signupHref?: string; signupLabel?: string }) {
   const pathname = usePathname();
   const router = useRouter();
   const [auth, setAuth] = useState(initialAuth);
@@ -125,10 +129,10 @@ export function Navbar({ isAuthenticated: initialAuth = false }: { isAuthenticat
               </Link>
             )}
             <Link
-              href="/signup"
+              href={signupHref}
               className="glass-btn px-5 py-2.5 rounded-lg font-bold text-soft-cloud border-cyber-amber/30 hover:border-cyber-amber/50 hover:shadow-[0_0_20px_-4px_rgba(255,176,0,0.25)] transition-all"
             >
-              Sign Up
+              {signupLabel}
             </Link>
           </>
         )}

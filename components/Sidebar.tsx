@@ -39,6 +39,7 @@ const nav = [
   { href: '/regulatory', label: 'Regulatory', icon: ShieldCheck },
   { href: '/dashboard/integrations', label: 'Integrations', icon: Plug },
   { href: '/roadside-mode', label: 'Roadside', icon: Smartphone },
+  { href: '/dashboard/feedback', label: 'Beta Feedback', icon: Headphones },
   { href: '/settings', label: 'Settings', icon: Settings },
 ];
 

@@ -15,7 +15,7 @@ export async function GET(request: Request) {
       if (user.id === ADMIN_OWNER_ID) {
         return NextResponse.redirect(`${origin}/admin`);
       }
-      // Beta vs paid: send non-beta users to pricing when they were heading to dashboard.
+      // Beta-to-paid: first 5 get is_beta_tester (handle_new_user); #6+ go to pricing after signup.
       if (redirectTo === '/dashboard') {
         const { data: profile } = await supabase
           .from('profiles')

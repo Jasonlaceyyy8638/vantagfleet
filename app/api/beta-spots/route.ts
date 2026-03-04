@@ -3,16 +3,17 @@ import { createAdminClient } from '@/lib/supabase/admin';
 
 const BETA_CAP = 5;
 
-/** Returns how many beta spots remain (first 5 users get is_beta_tester). Public, read-only. */
+/** Returns count of existing beta testers and how many spots remain. Public, read-only. */
 export async function GET() {
   const admin = createAdminClient();
   const { count, error } = await admin
     .from('profiles')
-    .select('*', { count: 'exact', head: true });
+    .select('*', { count: 'exact', head: true })
+    .eq('is_beta_tester', true);
   if (error) {
-    return NextResponse.json({ remaining: 0 }, { status: 200 });
+    return NextResponse.json({ betaCount: 0, remaining: BETA_CAP }, { status: 200 });
   }
-  const total = count ?? 0;
-  const remaining = Math.max(0, BETA_CAP - total);
-  return NextResponse.json({ remaining, total: Math.min(total, BETA_CAP) });
+  const betaCount = count ?? 0;
+  const remaining = Math.max(0, BETA_CAP - betaCount);
+  return NextResponse.json({ betaCount, remaining });
 }

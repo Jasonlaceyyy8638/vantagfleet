@@ -79,9 +79,11 @@ export function LandingPage({ isAuthenticated = false, navbarRole = null }: Land
   useEffect(() => {
     fetch('/api/beta-spots')
       .then((res) => res.json())
-      .then((data: { remaining?: number }) => setBetaSpotsRemaining(data?.remaining ?? 0))
-      .catch(() => setBetaSpotsRemaining(0));
+      .then((data: { remaining?: number }) => setBetaSpotsRemaining(data?.remaining ?? null))
+      .catch(() => setBetaSpotsRemaining(null));
   }, []);
+  const betaOpen = betaSpotsRemaining != null && betaSpotsRemaining > 0;
+  const betaFull = betaSpotsRemaining !== null && betaSpotsRemaining === 0;
 
   const handleWaitlistSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -345,7 +347,11 @@ export function LandingPage({ isAuthenticated = false, navbarRole = null }: Land
 
   return (
     <div className="min-h-screen bg-midnight-ink">
-      <Navbar isAuthenticated={isAuthenticated} />
+      <Navbar
+        isAuthenticated={isAuthenticated}
+        signupHref={betaOpen ? '/signup' : '/pricing'}
+        signupLabel={betaOpen ? 'Sign Up' : 'Start Your Fleet'}
+      />
 
       {/* Hero: video when it loads; gradient fallback so it's never plain black */}
       <section className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden bg-midnight-ink">
@@ -379,14 +385,14 @@ export function LandingPage({ isAuthenticated = false, navbarRole = null }: Land
         </div>
 
         <div className="relative z-10 flex flex-col items-center justify-center px-4 text-center max-w-4xl mx-auto">
-          {betaSpotsRemaining != null && betaSpotsRemaining > 0 && (
+          {betaOpen && (
             <motion.div
               initial={{ opacity: 0, y: -8 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5 }}
               className="mb-4 inline-flex items-center gap-2 rounded-full border border-[#FFBF00]/50 bg-[#FFBF00]/15 px-4 py-2 text-sm font-semibold text-[#FFBF00]"
             >
-              🎁 {betaSpotsRemaining} Free Beta Spot{betaSpotsRemaining === 1 ? '' : 's'} Left! (Paid access always available)
+              🔥 {betaSpotsRemaining} Beta Spot{betaSpotsRemaining === 1 ? '' : 's'} Remaining
             </motion.div>
           )}
           <motion.h1
@@ -408,57 +414,52 @@ export function LandingPage({ isAuthenticated = false, navbarRole = null }: Land
           </motion.p>
           {!isAuthenticated ? (
             <>
-              <div className="mt-10 w-full flex justify-center">
+              <div className="mt-10 w-full flex justify-center flex-col items-center gap-6">
+                {betaOpen ? (
+                  <Link
+                    href="/signup"
+                    className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-[#FFBF00] text-midnight-ink font-bold text-lg hover:bg-[#FFBF00]/90 transition-colors shadow-lg shadow-[#FFBF00]/20"
+                  >
+                    Claim Free Beta Spot
+                    <ArrowRight className="size-5" />
+                  </Link>
+                ) : (
+                  <Link
+                    href="/pricing"
+                    className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-[#FFBF00] text-midnight-ink font-bold text-lg hover:bg-[#FFBF00]/90 transition-colors shadow-lg shadow-[#FFBF00]/20"
+                  >
+                    Start Your Fleet
+                    <ArrowRight className="size-5" />
+                  </Link>
+                )}
                 <HeroLoginCard redirectTo="/dashboard" />
               </div>
-              {betaSpotsRemaining === 0 ? (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ duration: 0.5, delay: 0.3 }}
-                  className="mt-6 w-full max-w-md mx-auto"
-                >
-                  <p className="text-sm text-soft-cloud/70 mb-3 text-center">Beta spots are full. Join the waitlist.</p>
-                  <form onSubmit={handleWaitlistSubmit} className="flex flex-col sm:flex-row gap-2">
-                    <input
-                      type="email"
-                      value={waitlistEmail}
-                      onChange={(e) => setWaitlistEmail(e.target.value)}
-                      placeholder="Enter your email"
-                      required
-                      disabled={waitlistSuccess}
-                      className="flex-1 px-4 py-3 rounded-xl bg-white/5 border border-white/20 text-white placeholder-white/40 focus:outline-none focus:border-[#FFBF00] focus:ring-1 focus:ring-[#FFBF00]/50 disabled:opacity-60"
-                    />
-                    <button
-                      type="submit"
-                      disabled={waitlistSubmitting || waitlistSuccess}
-                      className="px-6 py-3 rounded-xl bg-[#FFBF00] text-midnight-ink font-semibold hover:bg-[#FFBF00]/90 disabled:opacity-50 transition-colors shrink-0"
-                    >
-                      {waitlistSuccess ? 'On the list' : waitlistSubmitting ? 'Joining…' : 'Join Waitlist'}
-                    </button>
-                  </form>
-                  {waitlistSuccess && (
-                    <p className="mt-2 text-sm text-emerald-400 text-center">We&apos;ll be in touch.</p>
-                  )}
-                  {waitlistError && (
-                    <p className="mt-2 text-sm text-red-400 text-center">{waitlistError}</p>
-                  )}
-                </motion.div>
-              ) : (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ duration: 0.5, delay: 0.3 }}
-                  className="mt-6 flex flex-wrap items-center justify-center gap-4"
-                >
-                  <p className="text-sm text-soft-cloud/70">
-                    Don&apos;t have an account?{' '}
-                    <Link href="/signup" className="text-[#FFBF00] hover:underline font-medium">
-                      Get started free
-                    </Link>
-                  </p>
-                </motion.div>
-              )}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.5, delay: 0.3 }}
+                className="mt-6 flex flex-wrap items-center justify-center gap-4"
+              >
+                <p className="text-sm text-soft-cloud/70">
+                  {betaOpen
+                    ? (
+                      <>
+                        Don&apos;t have an account?{' '}
+                        <Link href="/signup" className="text-[#FFBF00] hover:underline font-medium">
+                          Claim Free Beta Spot
+                        </Link>
+                      </>
+                    )
+                    : (
+                      <>
+                        Already have an account?{' '}
+                        <Link href="/login" className="text-[#FFBF00] hover:underline font-medium">
+                          Sign in
+                        </Link>
+                      </>
+                    )}
+                </p>
+              </motion.div>
               <motion.a
                 href="mailto:info@vantagfleet.com"
                 initial={{ opacity: 0 }}
@@ -1089,7 +1090,7 @@ export function LandingPage({ isAuthenticated = false, navbarRole = null }: Land
         </div>
       </section>
 
-      <CTASection isAuthenticated={isAuthenticated} navbarRole={navbarRole} />
+      <CTASection isAuthenticated={isAuthenticated} navbarRole={navbarRole} betaOpen={betaOpen} />
 
       {/* Founder story video modal */}
       <AnimatePresence>
@@ -1603,9 +1604,11 @@ function FeaturesSection() {
 function CTASection({
   isAuthenticated,
   navbarRole,
+  betaOpen,
 }: {
   isAuthenticated: boolean;
   navbarRole?: NavbarRole | null;
+  betaOpen: boolean;
 }) {
   return (
     <section className="relative py-28 px-4 bg-midnight-ink border-t border-white/10">
@@ -1632,7 +1635,9 @@ function CTASection({
                 ? navbarRole === 'ADMIN' || navbarRole === 'EMPLOYEE'
                   ? '/admin'
                   : '/dashboard'
-                : '/signup'
+                : betaOpen
+                  ? '/signup'
+                  : '/pricing'
             }
             className="inline-flex items-center gap-3 px-12 py-5 rounded-2xl bg-cyber-amber text-midnight-ink font-bold text-xl hover:bg-cyber-amber/90 transition-colors shadow-[0_0_60px_-8px_rgba(255,176,0,0.5)]"
           >
@@ -1640,7 +1645,9 @@ function CTASection({
               ? navbarRole === 'ADMIN' || navbarRole === 'EMPLOYEE'
                 ? 'Admin Console'
                 : 'Go to Dashboard'
-              : 'Get Started'}
+              : betaOpen
+                ? 'Claim Free Beta Spot'
+                : 'Start Your Fleet'}
             <ArrowRight className="size-6" />
           </Link>
         </motion.div>
