@@ -214,7 +214,7 @@ export function SignUpForm() {
         )}
       <form onSubmit={handleCompanySubmit} className="space-y-4">
         <div>
-          <label htmlFor="usdot" className="block text-sm font-medium text-cloud-dancer mb-1">
+          <label htmlFor="usdot" className="block text-sm font-medium text-soft-cloud/90 mb-1">
             USDOT number *
           </label>
           <div className="flex gap-2">
@@ -231,8 +231,8 @@ export function SignUpForm() {
               required
               animate={dotInputError ? { x: [0, -6, 6, -6, 6, 0] } : { x: 0 }}
               transition={{ duration: 0.4 }}
-              className={`flex-1 px-3 py-2 rounded-lg bg-deep-ink text-cloud-dancer placeholder-cloud-dancer/50 focus:outline-none focus:ring-2 focus:ring-transformative-teal border ${
-                dotInputError ? 'border-red-500' : 'border-[#30363d]'
+              className={`flex-1 px-4 py-3 rounded-xl bg-white/5 text-soft-cloud placeholder-soft-cloud/40 focus:outline-none focus:border-cyber-amber focus:ring-1 focus:ring-cyber-amber/50 border transition-colors ${
+                dotInputError ? 'border-red-500' : 'border-white/20'
               }`}
               placeholder="e.g. 1234567"
             />
@@ -285,7 +285,7 @@ export function SignUpForm() {
                   DOT on file (MCS-150)
                 </span>
               </p>
-              <p className="text-xs text-cloud-dancer/60">
+              <p className="text-xs text-soft-cloud/60">
                 Keep insurance (BMC-91) and process agents (BOC-3) current to operate legally.
               </p>
             </div>
@@ -296,14 +296,14 @@ export function SignUpForm() {
             const due = getMcs150DueFromDot(usdot);
             if (!due) return null;
             return (
-              <div className="mt-3 rounded-lg border border-amber-500/20 bg-amber-500/5 p-3 flex items-start gap-2">
+              <div className="mt-3 rounded-xl border border-amber-500/20 bg-amber-500/5 p-3 flex items-start gap-2">
                 <Shield className="size-4 text-amber-500 shrink-0 mt-0.5" />
                 <div>
-                  <p className="text-xs font-medium text-cloud-dancer/80 uppercase tracking-wider">Compliance Health</p>
-                  <p className="text-sm text-cloud-dancer font-medium mt-0.5">
+                  <p className="text-xs font-medium text-soft-cloud/80 uppercase tracking-wider">Compliance Health</p>
+                  <p className="text-sm text-soft-cloud font-medium mt-0.5">
                     Next filing due: {due.month} {due.year}
                   </p>
-                  <p className="text-xs text-cloud-dancer/50 mt-1">
+                  <p className="text-xs text-soft-cloud/50 mt-1">
                     MCS-150 biennial update · Based on your DOT number.
                   </p>
                 </div>
@@ -312,7 +312,7 @@ export function SignUpForm() {
           })()}
         </div>
         <div>
-          <label htmlFor="companyName" className="block text-sm font-medium text-cloud-dancer mb-1">
+          <label htmlFor="companyName" className="block text-sm font-medium text-soft-cloud/90 mb-1">
             Company name
           </label>
           <input
@@ -321,12 +321,12 @@ export function SignUpForm() {
             value={companyName}
             onChange={(e) => setCompanyName(e.target.value)}
             required
-            className={`w-full px-3 py-2 rounded-lg bg-deep-ink border text-cloud-dancer placeholder-cloud-dancer/50 focus:outline-none focus:ring-2 focus:ring-transformative-teal transition-all duration-200 ${
+            className={`w-full px-4 py-3 rounded-xl bg-white/5 border text-soft-cloud placeholder-soft-cloud/40 focus:outline-none focus:border-cyber-amber focus:ring-1 focus:ring-cyber-amber/50 transition-all duration-200 ${
               companyNameFlash
                 ? 'border-amber-500 shadow-[0_0_16px_rgba(245,158,11,0.4)]'
                 : dotVerified
                   ? 'border-green-500/50 shadow-[0_0_14px_rgba(34,197,94,0.35)]'
-                  : 'border-[#30363d]'
+                  : 'border-white/20'
             }`}
             placeholder="Acme Trucking LLC"
           />
@@ -335,7 +335,7 @@ export function SignUpForm() {
         <button
           type="submit"
           disabled={loading || !dotVerified}
-          className="w-full py-2.5 rounded-lg bg-cyber-amber hover:bg-cyber-amber/90 disabled:opacity-50 text-deep-ink font-medium"
+          className="w-full py-3 rounded-xl bg-cyber-amber hover:bg-cyber-amber/90 disabled:opacity-50 text-midnight-ink font-semibold transition-colors"
         >
           {loading ? 'Creating…' : 'Create Account'}
         </button>
@@ -346,9 +346,9 @@ export function SignUpForm() {
 
   return (
     <form onSubmit={handleAccountSubmit} className="space-y-4">
-      <p className="text-cloud-dancer/70 text-sm">Company: <span className="text-cloud-dancer">{companyName}</span></p>
+      <p className="text-soft-cloud/70 text-sm">Company: <span className="text-soft-cloud">{companyName}</span></p>
       <div>
-        <label htmlFor="fullName" className="block text-sm font-medium text-cloud-dancer mb-1">
+        <label htmlFor="fullName" className="block text-sm font-medium text-soft-cloud/90 mb-1">
           Full name
         </label>
         <input
@@ -356,12 +356,12 @@ export function SignUpForm() {
           type="text"
           value={fullName}
           onChange={(e) => setFullName(e.target.value)}
-          className="w-full px-3 py-2 rounded-lg bg-deep-ink border border-[#30363d] text-cloud-dancer placeholder-cloud-dancer/50 focus:outline-none focus:ring-2 focus:ring-transformative-teal"
+          className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/20 text-soft-cloud placeholder-soft-cloud/40 focus:outline-none focus:border-cyber-amber focus:ring-1 focus:ring-cyber-amber/50 transition-colors"
           placeholder="Your name"
         />
       </div>
       <div>
-        <label htmlFor="email" className="block text-sm font-medium text-cloud-dancer mb-1">
+        <label htmlFor="email" className="block text-sm font-medium text-soft-cloud/90 mb-1">
           Email
         </label>
         <input
@@ -370,12 +370,12 @@ export function SignUpForm() {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
-          className="w-full px-3 py-2 rounded-lg bg-deep-ink border border-[#30363d] text-cloud-dancer placeholder-cloud-dancer/50 focus:outline-none focus:ring-2 focus:ring-transformative-teal"
+          className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/20 text-soft-cloud placeholder-soft-cloud/40 focus:outline-none focus:border-cyber-amber focus:ring-1 focus:ring-cyber-amber/50 transition-colors"
           placeholder="you@company.com"
         />
       </div>
       <div>
-        <label htmlFor="password" className="block text-sm font-medium text-cloud-dancer mb-1">
+        <label htmlFor="password" className="block text-sm font-medium text-soft-cloud/90 mb-1">
           Password
         </label>
         <input
@@ -385,7 +385,7 @@ export function SignUpForm() {
           onChange={(e) => setPassword(e.target.value)}
           required
           minLength={6}
-          className="w-full px-3 py-2 rounded-lg bg-deep-ink border border-[#30363d] text-cloud-dancer placeholder-cloud-dancer/50 focus:outline-none focus:ring-2 focus:ring-transformative-teal"
+          className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/20 text-soft-cloud placeholder-soft-cloud/40 focus:outline-none focus:border-cyber-amber focus:ring-1 focus:ring-cyber-amber/50 transition-colors"
         />
       </div>
       {message && <p className="text-sm text-red-400">{message}</p>}
@@ -393,14 +393,14 @@ export function SignUpForm() {
         <button
           type="button"
           onClick={() => setStep('company')}
-          className="py-2.5 px-4 rounded-lg border border-[#30363d] text-cloud-dancer hover:bg-deep-ink"
+          className="py-3 px-4 rounded-xl border border-white/20 text-soft-cloud hover:bg-white/10 font-medium transition-colors"
         >
           Back
         </button>
         <button
           type="submit"
           disabled={loading}
-          className="flex-1 py-2.5 rounded-lg bg-cyber-amber hover:bg-cyber-amber/90 disabled:opacity-50 text-deep-ink font-medium"
+          className="flex-1 py-3 rounded-xl bg-cyber-amber hover:bg-cyber-amber/90 disabled:opacity-50 text-midnight-ink font-semibold transition-colors"
         >
           {loading ? 'Signing up…' : 'Sign up'}
         </button>

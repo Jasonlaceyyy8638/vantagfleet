@@ -60,7 +60,7 @@ export function HeroLoginCard({ redirectTo = '/dashboard' }: { redirectTo?: stri
               onChange={(e) => setEmail(e.target.value)}
               required
               placeholder="Email"
-              className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/20 text-white placeholder-white/40 focus:outline-none focus:border-[#FFBF00] focus:ring-1 focus:ring-[#FFBF00]/50 transition-colors"
+              className="w-full min-h-[48px] px-4 py-3 rounded-xl bg-white/5 border border-white/20 text-white placeholder-white/40 focus:outline-none focus:border-[#FFBF00] focus:ring-1 focus:ring-[#FFBF00]/50 transition-colors text-base touch-manipulation"
             />
           </div>
           <div>
@@ -74,7 +74,7 @@ export function HeroLoginCard({ redirectTo = '/dashboard' }: { redirectTo?: stri
               onChange={(e) => setPassword(e.target.value)}
               required
               placeholder="Password"
-              className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/20 text-white placeholder-white/40 focus:outline-none focus:border-[#FFBF00] focus:ring-1 focus:ring-[#FFBF00]/50 transition-colors"
+              className="w-full min-h-[48px] px-4 py-3 rounded-xl bg-white/5 border border-white/20 text-white placeholder-white/40 focus:outline-none focus:border-[#FFBF00] focus:ring-1 focus:ring-[#FFBF00]/50 transition-colors text-base touch-manipulation"
             />
           </div>
           {message && (
@@ -83,7 +83,7 @@ export function HeroLoginCard({ redirectTo = '/dashboard' }: { redirectTo?: stri
           <button
             type="submit"
             disabled={loading}
-            className="hero-amber-btn w-full py-3.5 rounded-xl font-semibold text-black bg-[#FFBF00] hover:bg-[#FFBF00]/95 disabled:opacity-50 transition-colors"
+            className="hero-amber-btn w-full min-h-[48px] py-3.5 rounded-xl font-semibold text-black text-base bg-[#FFBF00] hover:bg-[#FFBF00]/95 disabled:opacity-50 transition-colors touch-manipulation"
           >
             {loading ? 'Signing in…' : 'Sign in'}
           </button>

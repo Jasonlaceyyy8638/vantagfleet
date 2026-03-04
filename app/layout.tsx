@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { Footer } from '@/components/Footer';
 import { TauriUpdateNotifier } from '@/components/TauriUpdateNotifier';
@@ -6,6 +6,12 @@ import { TauriUpdateNotifier } from '@/components/TauriUpdateNotifier';
 export const metadata: Metadata = {
   title: 'Vantag Fleet — Compliance',
   description: 'Multi-tenant trucking compliance SaaS',
+};
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
 };
 
 export default function RootLayout({

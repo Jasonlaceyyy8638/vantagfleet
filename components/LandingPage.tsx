@@ -346,16 +346,48 @@ export function LandingPage({ isAuthenticated = false, navbarRole = null }: Land
   };
 
   return (
-    <div className="min-h-screen bg-midnight-ink">
+    <div className="min-h-screen bg-midnight-ink overflow-x-hidden">
       <Navbar
         isAuthenticated={isAuthenticated}
         signupHref={betaOpen ? '/signup' : '/pricing'}
         signupLabel={betaOpen ? 'Sign Up' : 'Start Your Fleet'}
       />
 
+      {/* Spacer so content starts below fixed navbar; safe-area for notches */}
+      <div
+        className="h-14 sm:h-16"
+        style={{ minHeight: 'calc(3.5rem + env(safe-area-inset-top, 0px))' }}
+        aria-hidden
+      />
+
+      {/* Sticky beta strip: sits below navbar, stays visible when scrolling */}
+      {betaOpen && (
+        <motion.div
+          initial={{ opacity: 0, y: -4 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+          className="sticky z-[99] w-full"
+          style={{ top: 'calc(3.5rem + env(safe-area-inset-top, 0px))' }}
+        >
+          <div className="flex justify-center items-center px-3 py-2.5 sm:py-3 bg-gradient-to-r from-amber-500 via-[#FFBF00] to-orange-400 shadow-[0_4px_20px_rgba(251,191,36,0.5),0_0_40px_rgba(251,191,36,0.15)] border-b border-amber-300/40">
+            <motion.span
+              animate={{ opacity: [1, 0.85, 1] }}
+              transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+              className="mr-1.5 text-lg sm:text-xl shrink-0"
+              aria-hidden
+            >
+              🔥
+            </motion.span>
+            <span className="text-sm sm:text-base font-bold text-black drop-shadow-sm tracking-tight">
+              <span className="tabular-nums">{betaSpotsRemaining}</span> Beta Spot{betaSpotsRemaining === 1 ? '' : 's'} Remaining
+            </span>
+            <span className="hidden sm:inline ml-2 text-black/90 text-sm font-semibold">— Claim yours free</span>
+          </div>
+        </motion.div>
+      )}
+
       {/* Hero: video when it loads; gradient fallback so it's never plain black */}
-      <section className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden bg-midnight-ink">
-        <div className="absolute inset-0 z-0">
+      <section className="relative min-h-[100dvh] sm:min-h-screen flex flex-col items-center justify-center overflow-hidden bg-midnight-ink">
           {/* Fallback: road/trucking vibe gradient when video is blocked or fails */}
           <div
             className="absolute inset-0 bg-gradient-to-b from-midnight-ink via-midnight-ink to-cyber-amber/20"
@@ -384,17 +416,7 @@ export function LandingPage({ isAuthenticated = false, navbarRole = null }: Land
           <div className="absolute inset-0 bg-black/50 z-[2]" aria-hidden />
         </div>
 
-        <div className="relative z-10 flex flex-col items-center justify-center px-4 text-center max-w-4xl mx-auto">
-          {betaOpen && (
-            <motion.div
-              initial={{ opacity: 0, y: -8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
-              className="mb-4 inline-flex items-center gap-2 rounded-full border border-[#FFBF00]/50 bg-[#FFBF00]/15 px-4 py-2 text-sm font-semibold text-[#FFBF00]"
-            >
-              🔥 {betaSpotsRemaining} Beta Spot{betaSpotsRemaining === 1 ? '' : 's'} Remaining
-            </motion.div>
-          )}
+        <div className="relative z-10 flex flex-col items-center justify-center px-4 sm:px-6 text-center max-w-4xl mx-auto pb-8 pb-safe">
           <motion.h1
             initial={{ opacity: 0, y: 32 }}
             animate={{ opacity: 1, y: 0 }}
@@ -418,18 +440,18 @@ export function LandingPage({ isAuthenticated = false, navbarRole = null }: Land
                 {betaOpen ? (
                   <Link
                     href="/signup"
-                    className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-[#FFBF00] text-midnight-ink font-bold text-lg hover:bg-[#FFBF00]/90 transition-colors shadow-lg shadow-[#FFBF00]/20"
+                    className="inline-flex items-center justify-center gap-2 min-h-[48px] sm:min-h-[52px] px-6 sm:px-8 py-4 rounded-xl bg-[#FFBF00] text-midnight-ink font-bold text-base sm:text-lg hover:bg-[#FFBF00]/90 active:scale-[0.98] transition-all shadow-lg shadow-[#FFBF00]/20 touch-manipulation"
                   >
                     Claim Free Beta Spot
-                    <ArrowRight className="size-5" />
+                    <ArrowRight className="size-5 shrink-0" />
                   </Link>
                 ) : (
                   <Link
                     href="/pricing"
-                    className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-[#FFBF00] text-midnight-ink font-bold text-lg hover:bg-[#FFBF00]/90 transition-colors shadow-lg shadow-[#FFBF00]/20"
+                    className="inline-flex items-center justify-center gap-2 min-h-[48px] sm:min-h-[52px] px-6 sm:px-8 py-4 rounded-xl bg-[#FFBF00] text-midnight-ink font-bold text-base sm:text-lg hover:bg-[#FFBF00]/90 active:scale-[0.98] transition-all shadow-lg shadow-[#FFBF00]/20 touch-manipulation"
                   >
                     Start Your Fleet
-                    <ArrowRight className="size-5" />
+                    <ArrowRight className="size-5 shrink-0" />
                   </Link>
                 )}
                 <HeroLoginCard redirectTo="/dashboard" />
@@ -465,7 +487,7 @@ export function LandingPage({ isAuthenticated = false, navbarRole = null }: Land
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ duration: 0.5, delay: 0.4 }}
-                className="mt-6 w-full max-w-md mx-auto block text-center backdrop-blur-2xl bg-black/40 border border-white/10 rounded-3xl py-4 px-6 shadow-[0_0_50px_-12px_rgba(255,191,0,0.25)] text-[#FFBF00] font-medium hover:bg-black/50 hover:border-[#FFBF00]/40 transition-colors"
+                className="mt-6 w-full max-w-md mx-auto block text-center backdrop-blur-2xl bg-black/40 border border-white/10 rounded-3xl min-h-[48px] flex items-center justify-center py-4 px-6 shadow-[0_0_50px_-12px_rgba(255,191,0,0.25)] text-[#FFBF00] font-medium hover:bg-black/50 hover:border-[#FFBF00]/40 transition-colors touch-manipulation"
               >
                 info@vantagfleet.com
               </motion.a>
@@ -1611,7 +1633,7 @@ function CTASection({
   betaOpen: boolean;
 }) {
   return (
-    <section className="relative py-28 px-4 bg-midnight-ink border-t border-white/10">
+    <section className="relative py-16 sm:py-24 md:py-28 px-4 sm:px-6 bg-midnight-ink border-t border-white/10">
       <motion.div
         className="max-w-4xl mx-auto text-center"
         initial={{ opacity: 0, y: 20 }}
@@ -1639,7 +1661,7 @@ function CTASection({
                   ? '/signup'
                   : '/pricing'
             }
-            className="inline-flex items-center gap-3 px-12 py-5 rounded-2xl bg-cyber-amber text-midnight-ink font-bold text-xl hover:bg-cyber-amber/90 transition-colors shadow-[0_0_60px_-8px_rgba(255,176,0,0.5)]"
+            className="inline-flex items-center justify-center gap-3 min-h-[48px] sm:min-h-[56px] px-6 sm:px-12 py-4 sm:py-5 rounded-2xl bg-cyber-amber text-midnight-ink font-bold text-lg sm:text-xl hover:bg-cyber-amber/90 active:scale-[0.98] transition-all shadow-[0_0_60px_-8px_rgba(255,176,0,0.5)] touch-manipulation"
           >
             {isAuthenticated
               ? navbarRole === 'ADMIN' || navbarRole === 'EMPLOYEE'

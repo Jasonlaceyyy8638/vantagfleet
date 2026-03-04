@@ -31,7 +31,7 @@ export function LoginForm({ redirectTo }: { redirectTo: string }) {
   return (
     <form onSubmit={handleSignIn} className="space-y-4">
       <div>
-        <label htmlFor="email" className="block text-sm font-medium text-cloud-dancer mb-1">
+        <label htmlFor="email" className="block text-sm font-medium text-soft-cloud/90 mb-1">
           Email
         </label>
         <input
@@ -40,12 +40,12 @@ export function LoginForm({ redirectTo }: { redirectTo: string }) {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
-          className="w-full px-3 py-2 rounded-lg bg-deep-ink border border-[#30363d] text-cloud-dancer placeholder-cloud-dancer/50 focus:outline-none focus:ring-2 focus:ring-transformative-teal"
+          className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/20 text-soft-cloud placeholder-soft-cloud/40 focus:outline-none focus:border-cyber-amber focus:ring-1 focus:ring-cyber-amber/50 transition-colors"
           placeholder="you@company.com"
         />
       </div>
       <div>
-        <label htmlFor="password" className="block text-sm font-medium text-cloud-dancer mb-1">
+        <label htmlFor="password" className="block text-sm font-medium text-soft-cloud/90 mb-1">
           Password
         </label>
         <input
@@ -54,14 +54,14 @@ export function LoginForm({ redirectTo }: { redirectTo: string }) {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
-          className="w-full px-3 py-2 rounded-lg bg-deep-ink border border-[#30363d] text-cloud-dancer placeholder-cloud-dancer/50 focus:outline-none focus:ring-2 focus:ring-transformative-teal"
+          className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/20 text-soft-cloud placeholder-soft-cloud/40 focus:outline-none focus:border-cyber-amber focus:ring-1 focus:ring-cyber-amber/50 transition-colors"
         />
       </div>
       {message && <p className="text-sm text-red-400">{message}</p>}
       <button
         type="submit"
         disabled={loading}
-        className="w-full py-2.5 rounded-lg bg-cyber-amber hover:bg-cyber-amber/90 disabled:opacity-50 text-deep-ink font-medium"
+        className="w-full py-3 rounded-xl bg-cyber-amber hover:bg-cyber-amber/90 disabled:opacity-50 text-midnight-ink font-semibold transition-colors"
       >
         {loading ? 'Signing in…' : 'Sign in'}
       </button>

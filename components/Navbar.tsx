@@ -91,8 +91,8 @@ export function Navbar({
 
   return (
     <header
-      className="fixed top-0 left-0 right-0 z-[100] flex items-center justify-between px-4 sm:px-6 lg:px-8 py-4 bg-midnight-ink/90 backdrop-blur-md border-b border-white/10"
-      style={{ pointerEvents: 'auto' }}
+      className="fixed top-0 left-0 right-0 z-[100] flex items-center justify-between px-4 sm:px-6 lg:px-8 py-3 sm:py-4 bg-midnight-ink/95 backdrop-blur-md border-b border-white/10 min-h-[3.5rem] sm:min-h-[4rem]"
+      style={{ pointerEvents: 'auto', paddingTop: 'max(0.75rem, env(safe-area-inset-top, 0px))' }}
     >
       <Link
         href="/"
@@ -116,21 +116,21 @@ export function Navbar({
           <>
             <Link
               href="/login"
-              className="glass-btn px-4 py-2.5 rounded-lg font-medium text-soft-cloud hover:text-soft-cloud transition-colors"
+              className="glass-btn min-h-[44px] inline-flex items-center px-4 py-2.5 rounded-lg font-medium text-soft-cloud hover:text-soft-cloud transition-colors touch-manipulation"
             >
               Sign In
             </Link>
             {!isTauri && (
               <Link
                 href="/download"
-                className="hidden md:inline-flex bg-amber-500 text-black px-4 py-2 rounded-md font-bold hover:bg-amber-600 transition-colors"
+                className="hidden md:inline-flex items-center min-h-[44px] bg-amber-500 text-black px-4 py-2 rounded-md font-bold hover:bg-amber-600 transition-colors"
               >
                 Download App
               </Link>
             )}
             <Link
               href={signupHref}
-              className="glass-btn px-5 py-2.5 rounded-lg font-bold text-soft-cloud border-cyber-amber/30 hover:border-cyber-amber/50 hover:shadow-[0_0_20px_-4px_rgba(255,176,0,0.25)] transition-all"
+              className="glass-btn min-h-[44px] inline-flex items-center px-4 sm:px-5 py-2.5 rounded-lg font-bold text-soft-cloud border-cyber-amber/30 hover:border-cyber-amber/50 hover:shadow-[0_0_20px_-4px_rgba(255,176,0,0.25)] transition-all touch-manipulation"
             >
               {signupLabel}
             </Link>

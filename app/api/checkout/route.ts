@@ -51,6 +51,7 @@ export async function POST(request: NextRequest) {
         .eq('user_id', user.id)
         .eq('org_id', orgId)
         .single();
+      // Only first 5 signups get is_beta_tester (DB trigger); 6th+ pay full price.
       const isBeta = (profile as { is_beta_tester?: boolean } | null)?.is_beta_tester === true;
       const session = await stripe.checkout.sessions.create({
         mode: 'payment',
