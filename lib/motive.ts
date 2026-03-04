@@ -110,7 +110,7 @@ export async function getVehicleLocations(orgId?: string): Promise<FleetMapLocat
     const lng = typeof v.longitude === 'number' ? v.longitude : (v as { lon?: number }).lon;
     if (lat == null || lng == null) continue;
 
-    const id = String((v as { vehicle_id?: string }).vehicle_id ?? (v as { id?: number }).id ?? `${lat}-${lng}`);
+    const id = String((v as { vehicle_id?: string }).vehicle_id ?? (v as { id?: string | number }).id ?? `${lat}-${lng}`);
     const vehicleName = String(
       (v as { number?: string }).number ?? (v as { vehicle_name?: string }).vehicle_name ?? (v as { name?: string }).name ?? 'Vehicle'
     );
