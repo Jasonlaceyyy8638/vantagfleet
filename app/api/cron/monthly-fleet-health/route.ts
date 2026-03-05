@@ -100,8 +100,8 @@ export async function GET(request: NextRequest) {
         html,
       });
 
-      if (result.ok) sent++;
-      else errors.push(`Org ${orgId}: ${result.error}`);
+      if ('ok' in result && result.ok) sent++;
+      else if ('error' in result) errors.push(`Org ${orgId}: ${result.error}`);
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       errors.push(`Org ${orgId}: ${msg}`);
