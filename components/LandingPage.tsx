@@ -850,7 +850,7 @@ export function LandingPage({ isAuthenticated = false, navbarRole = null }: Land
         </div>
       </section>
 
-      {/* Trust Bar — Motive, Motus, Samsara (Soon), Geotab (Soon) */}
+      {/* Trust Bar — Motive, Motus, Geotab, Samsara (Soon) */}
       <section className="relative py-16 px-4 border-y border-white/10 bg-white/[0.02]">
         <motion.p
           initial={{ opacity: 0, y: 12 }}
@@ -870,8 +870,8 @@ export function LandingPage({ isAuthenticated = false, navbarRole = null }: Land
           {[
             { name: 'Motive', soon: false },
             { name: 'Motus', soon: false },
+            { name: 'Geotab', soon: false },
             { name: 'Samsara', soon: true },
-            { name: 'Geotab', soon: true },
           ].map((partner, i) => (
             <div
               key={partner.name}
@@ -934,21 +934,24 @@ export function LandingPage({ isAuthenticated = false, navbarRole = null }: Land
                 Connect <ArrowRight className="size-4" />
               </span>
             </Link>
-            {/* Geotab — coming soon */}
-            <div className="rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-sm p-6 flex flex-col justify-between min-h-[180px] opacity-90">
+            {/* Geotab — connect */}
+            <Link
+              href={isAuthenticated ? '/dashboard/integrations' : '/signup'}
+              className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-sm p-6 flex flex-col justify-between min-h-[180px] hover:border-cyber-amber/40 hover:bg-white/[0.07] transition-all group"
+            >
               <div className="flex items-center gap-3 mb-3">
-                <div className="p-2 rounded-lg bg-cyber-amber/10" style={{ filter: 'grayscale(0.6)' }}>
-                  <Plug className="size-6 text-cyber-amber/70" />
+                <div className="p-2 rounded-lg bg-cyber-amber/20">
+                  <Plug className="size-6 text-cyber-amber" />
                 </div>
-                <div className="flex items-center gap-2">
-                  <h3 className="text-lg font-semibold text-soft-cloud/80">Geotab</h3>
-                  <span className="rounded bg-cyber-amber/20 px-2 py-0.5 text-[10px] font-semibold uppercase text-cyber-amber">
-                    Soon
-                  </span>
-                </div>
+                <h3 className="text-lg font-semibold text-soft-cloud">Geotab</h3>
               </div>
-              <p className="text-sm text-soft-cloud/50">Telematics and fleet data. Notify when ready.</p>
-            </div>
+              <p className="text-sm text-soft-cloud/60">
+                Connect with server, database, and credentials. Fleet and IFTA in one place.
+              </p>
+              <span className="mt-4 inline-flex items-center gap-1 text-cyber-amber text-sm font-medium group-hover:gap-2 transition-all">
+                Connect <ArrowRight className="size-4" />
+              </span>
+            </Link>
             {/* Samsara — coming soon */}
             <div className="rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-sm p-6 flex flex-col justify-between min-h-[180px] opacity-90">
               <div className="flex items-center gap-3 mb-3">

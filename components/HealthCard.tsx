@@ -189,7 +189,7 @@ export function HealthCard() {
                 Roadmap
               </p>
               <p className="text-xs text-soft-cloud/60">
-                Coming soon: Geotab, Samsara
+                Coming soon: Samsara
               </p>
             </div>
           </>
