@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
-import { isAdmin, getPlatformRole, isPlatformStaff } from '@/lib/admin';
+import { canAccessAdmin, isAdmin } from '@/lib/admin';
 import { redirect } from 'next/navigation';
 import { listVantagStaff } from '@/app/actions/admin-team';
 import { listSupportTickets } from '@/app/actions/support-tickets';
@@ -10,9 +10,8 @@ export const dynamic = 'force-dynamic';
 
 export default async function AdminTeamPage() {
   const supabase = await createClient();
-  const admin = await isAdmin(supabase);
-  const role = await getPlatformRole(supabase);
-  if (!admin && !isPlatformStaff(role)) redirect('/dashboard');
+  if (!(await canAccessAdmin(supabase))) redirect('/dashboard');
+  const canManageTeam = await isAdmin(supabase);
 
   let staff: Awaited<ReturnType<typeof listVantagStaff>> = [];
   let tickets: Awaited<ReturnType<typeof listSupportTickets>> = [];
@@ -34,6 +33,7 @@ export default async function AdminTeamPage() {
       initialStaff={staff}
       initialTickets={tickets}
       initialMotiveDrivers={motiveDrivers}
+      canManageTeam={canManageTeam}
     />
   );
 }

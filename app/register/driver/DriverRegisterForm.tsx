@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/client';
 import { acceptDriverInvite } from '@/app/actions/driver-invite';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { PasswordInput } from '@/components/PasswordInput';
 
 export function DriverRegisterForm({ token, email }: { token: string; email: string }) {
   const [password, setPassword] = useState('');
@@ -55,15 +56,14 @@ export function DriverRegisterForm({ token, email }: { token: string; email: str
         <label htmlFor="password" className="block text-xs font-medium text-cloud-dancer/70 mb-1">
           Password *
         </label>
-        <input
+        <PasswordInput
           id="password"
-          type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
           minLength={6}
-          className="w-full px-3 py-2 rounded-lg bg-deep-ink border border-[#30363d] text-cloud-dancer placeholder-cloud-dancer/50 focus:outline-none focus:ring-2 focus:ring-cyber-amber"
           placeholder="At least 6 characters"
+          className="w-full px-3 py-2 rounded-lg bg-deep-ink border border-[#30363d] text-cloud-dancer placeholder-cloud-dancer/50 focus:outline-none focus:ring-2 focus:ring-cyber-amber pr-12"
         />
       </div>
       {message && <p className="text-sm text-red-400">{message}</p>}

@@ -17,7 +17,7 @@ export async function setCurrentOrg(orgId: string) {
 
 export async function createInviteLink(
   orgId: string,
-  role: 'Driver' | 'Dispatcher' = 'Driver',
+  role: 'Driver' | 'Dispatcher' | 'Safety_Manager' | 'Driver_Manager' = 'Driver',
   email?: string | null
 ): Promise<{ link: string; error?: string }> {
   const supabase = await createClient();
@@ -40,7 +40,7 @@ export async function createInviteLink(
     const { data: org } = await supabase.from('organizations').select('name').eq('id', orgId).single();
     const companyName = (org as { name?: string } | null)?.name ?? 'your fleet';
 
-    if (role === 'Dispatcher') {
+    if (role === 'Dispatcher' || role === 'Safety_Manager' || role === 'Driver_Manager') {
       const { subject, text, html } = getDispatcherInviteEmail(link, companyName);
       await sendEmail({
         to: toEmail,
@@ -64,11 +64,11 @@ export async function createInviteLink(
   return { link };
 }
 
-/** Update a member's role (Owner only). Allowed: Driver, Dispatcher. Cannot demote the only Owner. */
+/** Update a member's role (Owner or Safety_Manager). Allowed: Owner, Safety_Manager, Driver_Manager, Dispatcher, Driver. Cannot demote the only Owner. */
 export async function updateMemberRole(
   orgId: string,
   profileId: string,
-  newRole: 'Owner' | 'Dispatcher' | 'Driver'
+  newRole: 'Owner' | 'Safety_Manager' | 'Driver_Manager' | 'Dispatcher' | 'Driver'
 ): Promise<{ error?: string }> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -80,7 +80,7 @@ export async function updateMemberRole(
     .eq('org_id', orgId)
     .single();
   const me = myProfile as { id?: string; role?: string } | null;
-  if (!me || (me.role !== 'Owner' && me.role !== 'Safety_Manager')) return { error: 'Only org owners can change roles' };
+  if (!me || (me.role !== 'Owner' && me.role !== 'Safety_Manager')) return { error: 'Only org owners or safety managers can change roles' };
   const admin = createAdminClient();
   const { data: target } = await admin.from('profiles').select('id, role').eq('id', profileId).eq('org_id', orgId).single();
   if (!target) return { error: 'Member not found' };
@@ -102,7 +102,7 @@ export async function acceptInvite(token: string): Promise<{ error?: string }> {
   const row = Array.isArray(inviteRows) ? inviteRows[0] : inviteRows;
   if (!row?.org_id) return { error: 'Invalid or expired invite' };
   const inviteRole = (row as { invite_role?: string }).invite_role;
-  const profileRole = inviteRole === 'Dispatcher' ? 'Dispatcher' : 'Driver';
+  const profileRole = ['Dispatcher', 'Safety_Manager', 'Driver_Manager'].includes(inviteRole ?? '') ? inviteRole! : 'Driver';
   let admin;
   try {
     admin = createAdminClient();
@@ -116,6 +116,6 @@ export async function acceptInvite(token: string): Promise<{ error?: string }> {
     full_name: null,
   });
   if (error) return { error: error.message };
-  if (profileRole === 'Dispatcher') redirect('/dashboard/map');
+  if (profileRole !== 'Driver') redirect('/dashboard');
   redirect('/mobile/fuel-upload');
 }

@@ -248,7 +248,7 @@ export default async function DashboardPage() {
         </div>
         <DashboardMapSection
           mapAccess={mapAccess}
-          mapboxToken={process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN ?? ''}
+          mapboxToken={(process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN ?? '').trim()}
         />
       </section>
 

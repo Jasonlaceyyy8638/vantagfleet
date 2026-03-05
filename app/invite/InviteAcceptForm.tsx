@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/client';
 import { acceptInvite } from '@/app/actions/org';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { PasswordInput } from '@/components/PasswordInput';
 
 export function InviteAcceptForm({ token, orgName }: { token: string; orgName: string }) {
   const [email, setEmail] = useState('');
@@ -79,14 +80,13 @@ export function InviteAcceptForm({ token, orgName }: { token: string; orgName: s
         <label htmlFor="password" className="block text-sm font-medium text-cloud-dancer mb-1">
           Password
         </label>
-        <input
+        <PasswordInput
           id="password"
-          type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
           minLength={isSignUp ? 6 : 1}
-          className="w-full px-3 py-2 rounded-lg bg-deep-ink border border-[#30363d] text-cloud-dancer placeholder-cloud-dancer/50 focus:outline-none focus:ring-2 focus:ring-transformative-teal"
+          className="w-full px-3 py-2 rounded-lg bg-deep-ink border border-[#30363d] text-cloud-dancer placeholder-cloud-dancer/50 focus:outline-none focus:ring-2 focus:ring-transformative-teal pr-12"
         />
       </div>
       {message && <p className="text-sm text-red-400">{message}</p>}

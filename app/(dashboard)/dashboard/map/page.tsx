@@ -44,22 +44,42 @@ export default async function DashboardMapPage() {
   const org = orgRow as { tier?: string | null } | null;
   const adminImpersonating = await isSuperAdminImpersonating(supabase, cookieStore);
   const mapAccess = adminImpersonating || canSeeMap(profile, org);
+  const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN?.trim() ?? '';
 
-  if (mapAccess) {
+  if (!mapAccess) {
+    return <MapUpgradeOverlay />;
+  }
+
+  if (!mapboxToken) {
     return (
       <div
-        className="w-full flex-1 min-h-0 rounded-xl overflow-hidden"
+        className="w-full flex-1 min-h-0 rounded-xl border border-white/10 bg-card flex flex-col items-center justify-center p-8"
         style={{ height: 'calc(100vh - 64px)', minHeight: 400 }}
       >
-        <FleetMapDynamic
-          accessToken={process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN ?? ''}
-          organizationId={orgId}
-          height="100%"
-          className="rounded-xl h-full"
-        />
+        <p className="text-soft-cloud/80 text-center max-w-md">
+          Live Map is not configured. Add a Mapbox access token in your deployment environment as <code className="bg-white/10 px-1.5 py-0.5 rounded text-cyber-amber">NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN</code> to show the map.
+        </p>
+        <p className="text-sm text-soft-cloud/60 mt-3">
+          Get a free token at{' '}
+          <a href="https://account.mapbox.com/access-tokens/" target="_blank" rel="noopener noreferrer" className="text-cyber-amber hover:underline">
+            mapbox.com
+          </a>.
+        </p>
       </div>
     );
   }
 
-  return <MapUpgradeOverlay />;
+  return (
+    <div
+      className="w-full flex-1 min-h-0 rounded-xl overflow-hidden"
+      style={{ height: 'calc(100vh - 64px)', minHeight: 400 }}
+    >
+      <FleetMapDynamic
+        accessToken={mapboxToken}
+        organizationId={orgId}
+        height="100%"
+        className="rounded-xl h-full"
+      />
+    </div>
+  );
 }

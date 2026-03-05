@@ -30,6 +30,7 @@ import {
   MapPin,
   Lock,
   MessageCircle,
+  Package,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { EMAIL_SUPPORT, EMAIL_INFO } from '@/lib/email-addresses';
@@ -37,6 +38,7 @@ import { SupportTicketModal } from '@/components/SupportTicketModal';
 
 const nav = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/dispatcher', label: 'Dispatcher Dashboard', icon: LayoutDashboard },
   { href: '/dashboard/map', label: 'Live Map', icon: MapPin },
   { href: '/dashboard/enterprise', label: 'Enterprise Overview', icon: Building2 },
   { href: '/drivers', label: 'Drivers', icon: Users },
@@ -48,23 +50,26 @@ const nav = [
   { href: '/regulatory', label: 'Regulatory', icon: ShieldCheck },
   { href: '/dashboard/integrations', label: 'Integrations', icon: Plug },
   { href: '/roadside-mode', label: 'Roadside', icon: Smartphone },
+  { href: '/trailers', label: 'Trailers', icon: Package },
   { href: '/dashboard/feedback', label: 'Beta Feedback', icon: Headphones },
   { href: '/settings', label: 'Settings', icon: Settings },
   { href: '/settings/team', label: 'Team', icon: UserPlus },
 ];
 
-/** Dispatcher sees Dispatcher Dashboard first, then these items. */
+/** Dispatcher (and Driver_Manager) see Dispatcher Dashboard first, then these items. */
 const dispatcherNav = [
   { href: '/dispatcher', label: 'Dispatcher Dashboard', icon: LayoutDashboard },
   { href: '/dashboard/map', label: 'Live Map', icon: MapPin },
   { href: '/dashboard/enterprise', label: 'Fleet Health', icon: Building2 },
   { href: '/roadside-mode', label: 'Roadside', icon: Smartphone },
+  { href: '/trailers', label: 'Trailers', icon: Package },
   { href: '/dashboard/feedback', label: 'Message Center', icon: MessageCircle },
 ];
 
+/** Drivers see only these; no Dispatch, no Trailers. */
 const driverNav = [
   { href: '/documents', label: 'My Uploads', icon: Upload },
-  { href: '/driver/roadside-shield', label: 'Roadside Folder', icon: FolderOpen },
+  { href: '/driver/roadside-shield', label: 'Roadside', icon: Smartphone },
 ];
 
 export function Sidebar({

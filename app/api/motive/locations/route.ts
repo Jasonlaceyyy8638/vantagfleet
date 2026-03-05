@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { cookies } from 'next/headers';
-import { isAdmin, getDashboardOrgId, isSuperAdmin, IMPERSONATE_COOKIE } from '@/lib/admin';
+import { isAdmin, getDashboardOrgId, canImpersonateCarrier, IMPERSONATE_COOKIE } from '@/lib/admin';
 import { getVehicleLocations, type FleetMapLocation } from '@/lib/motive';
 
 async function fetchLocationsForOrg(orgId: string, orgName?: string): Promise<FleetMapLocation[]> {
@@ -57,7 +57,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ locations: [] });
   }
 
-  const impersonating = cookieStore.get(IMPERSONATE_COOKIE)?.value === orgId && (await isSuperAdmin(supabase));
+  const impersonating = cookieStore.get(IMPERSONATE_COOKIE)?.value === orgId && (await canImpersonateCarrier(supabase));
   if (!impersonating) {
     const { data: profiles } = await supabase.from('profiles').select('org_id').eq('user_id', user.id);
     const orgIds = (profiles ?? []).map((p) => p.org_id).filter((id): id is string => id != null);

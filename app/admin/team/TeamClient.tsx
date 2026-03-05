@@ -5,6 +5,8 @@ import {
   listVantagStaff,
   addVantagStaffMember,
   removeVantagStaffMember,
+  resetUserPassword,
+  deleteUserFromSystem,
   type VantagStaffRow,
   type VantagStaffRole,
 } from '@/app/actions/admin-team';
@@ -15,13 +17,15 @@ import {
   type SupportTicketRow,
 } from '@/app/actions/support-tickets';
 import type { MotiveDriverRow } from '@/lib/admin-types';
-import { UserPlus, Loader2, Trash2, X, Users, Inbox, Send, Truck } from 'lucide-react';
+import { UserPlus, Loader2, Trash2, X, Users, Inbox, Send, Truck, Key, UserX } from 'lucide-react';
+import { PasswordInput } from '@/components/PasswordInput';
 
-const ROLES: { value: VantagStaffRole; label: string }[] = [
-  { value: 'Support', label: 'Support' },
+const ROLES: { value: VantagStaffRole; label: string; description?: string }[] = [
+  { value: 'Admin', label: 'Admin', description: 'Full access; can manage team, reset passwords, delete users, and view carrier dashboards.' },
+  { value: 'Support', label: 'Support', description: 'Full access to carrier dashboards (impersonate); support inbox and tickets.' },
+  { value: 'Billing', label: 'Billing', description: 'Billing and revenue only; no carrier impersonation.' },
   { value: 'Sales', label: 'Sales' },
   { value: 'Manager', label: 'Manager' },
-  { value: 'Admin', label: 'Admin' },
 ];
 
 const TICKET_STATUSES: { value: 'OPEN' | 'IN_PROGRESS' | 'RESOLVED'; label: string }[] = [
@@ -34,9 +38,10 @@ type Props = {
   initialStaff: VantagStaffRow[];
   initialTickets: SupportTicketRow[];
   initialMotiveDrivers?: MotiveDriverRow[];
+  canManageTeam?: boolean;
 };
 
-export function TeamClient({ initialStaff, initialTickets, initialMotiveDrivers = [] }: Props) {
+export function TeamClient({ initialStaff, initialTickets, initialMotiveDrivers = [], canManageTeam = false }: Props) {
   const [activeTab, setActiveTab] = useState<'team' | 'inbox'>('team');
   const [staff, setStaff] = useState<VantagStaffRow[]>(initialStaff);
   const [tickets, setTickets] = useState<SupportTicketRow[]>(initialTickets);
@@ -49,6 +54,10 @@ export function TeamClient({ initialStaff, initialTickets, initialMotiveDrivers 
   const [replyText, setReplyText] = useState<Record<string, string>>({});
   const [statusUpdating, setStatusUpdating] = useState<string | null>(null);
   const [replySubmitting, setReplySubmitting] = useState<string | null>(null);
+  const [resetPasswordUserId, setResetPasswordUserId] = useState<string | null>(null);
+  const [resetPasswordValue, setResetPasswordValue] = useState('');
+  const [resetPasswordLoading, setResetPasswordLoading] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,7 +66,7 @@ export function TeamClient({ initialStaff, initialTickets, initialMotiveDrivers 
     const result = await addVantagStaffMember(email, role);
     setLoading(false);
     if ('ok' in result && result.ok) {
-      setMessage({ type: 'success', text: 'Employee added. They can now sign in and access the admin area.' });
+      setMessage({ type: 'success', text: 'Team member added. If they did not have an account, a welcome email with a temporary password was sent.' });
       setEmail('');
       setRole('Support');
       setModalOpen(false);
@@ -68,8 +77,34 @@ export function TeamClient({ initialStaff, initialTickets, initialMotiveDrivers 
     }
   };
 
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!resetPasswordUserId || !resetPasswordValue.trim()) return;
+    setResetPasswordLoading(true);
+    setMessage(null);
+    const result = await resetUserPassword(resetPasswordUserId, resetPasswordValue);
+    setResetPasswordLoading(false);
+    if ('ok' in result && result.ok) {
+      setMessage({ type: 'success', text: 'Password updated.' });
+      setResetPasswordUserId(null);
+      setResetPasswordValue('');
+    } else setMessage({ type: 'error', text: result.error ?? 'Failed to reset password.' });
+  };
+
+  const handleDeleteUser = async (userId: string) => {
+    if (!confirm('Permanently delete this user from the system? This cannot be undone.')) return;
+    setDeleteLoading(true);
+    setMessage(null);
+    const result = await deleteUserFromSystem(userId);
+    setDeleteLoading(false);
+    if ('ok' in result && result.ok) {
+      setStaff((prev) => prev.filter((s) => s.user_id !== userId));
+      setMessage({ type: 'success', text: 'User removed from the system.' });
+    } else setMessage({ type: 'error', text: result.error ?? 'Failed to delete user.' });
+  };
+
   const handleRemove = async (userId: string) => {
-    if (!confirm('Remove this person from the team? They will no longer see the Admin area.')) return;
+    if (!confirm('Remove this person from the team? They will no longer have access to the admin area.')) return;
     const result = await removeVantagStaffMember(userId);
     if (result.error) {
       setMessage({ type: 'error', text: result.error });
@@ -142,7 +177,7 @@ export function TeamClient({ initialStaff, initialTickets, initialMotiveDrivers 
           className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-cyber-amber text-midnight-ink font-semibold hover:bg-cyber-amber/90 shadow-[0_0_20px_-4px_rgba(255,176,0,0.2)] transition-colors"
         >
           <UserPlus className="size-5" />
-          Add Employee
+          Add team member
         </button>
           )}
         </div>
@@ -171,7 +206,7 @@ export function TeamClient({ initialStaff, initialTickets, initialMotiveDrivers 
         {staff.length === 0 ? (
           <div className="p-8 text-center text-soft-cloud/60">
             <p className="text-sm">No team members yet.</p>
-            <p className="text-sm mt-1">Click &quot;Add Employee&quot; to add someone by email and assign a role.</p>
+            <p className="text-sm mt-1">Click &quot;Add team member&quot; to add by email. If they don&apos;t have an account, Admins can create one and send a welcome email with a temporary password.</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -180,7 +215,7 @@ export function TeamClient({ initialStaff, initialTickets, initialMotiveDrivers 
                 <tr className="border-b border-white/10 text-left text-soft-cloud/60 bg-white/5">
                   <th className="p-4 font-medium">Email</th>
                   <th className="p-4 font-medium">Role</th>
-                  <th className="p-4 w-20" />
+                  <th className="p-4 text-right font-medium">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -192,7 +227,28 @@ export function TeamClient({ initialStaff, initialTickets, initialMotiveDrivers 
                         {row.role}
                       </span>
                     </td>
-                    <td className="p-4">
+                    <td className="p-4 flex items-center justify-end gap-1">
+                      {canManageTeam && (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => { setResetPasswordUserId(row.user_id); setResetPasswordValue(''); setMessage(null); }}
+                            className="p-2 rounded-lg text-soft-cloud/50 hover:text-cyber-amber hover:bg-cyber-amber/10 transition-colors"
+                            title="Reset password"
+                          >
+                            <Key className="size-4" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteUser(row.user_id)}
+                            disabled={deleteLoading}
+                            className="p-2 rounded-lg text-soft-cloud/50 hover:text-red-400 hover:bg-red-400/10 transition-colors disabled:opacity-50"
+                            title="Delete from system"
+                          >
+                            <UserX className="size-4" />
+                          </button>
+                        </>
+                      )}
                       <button
                         type="button"
                         onClick={() => handleRemove(row.user_id)}
@@ -327,6 +383,40 @@ export function TeamClient({ initialStaff, initialTickets, initialMotiveDrivers 
       </section>
       )}
 
+      {resetPasswordUserId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-midnight-ink/90 backdrop-blur-sm">
+          <div className="absolute inset-0" onClick={() => { setResetPasswordUserId(null); setResetPasswordValue(''); }} aria-hidden />
+          <div className="relative w-full max-w-md rounded-xl border border-white/10 bg-card p-6 shadow-xl shadow-black/30 border-cyber-amber/20">
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="text-lg font-semibold text-soft-cloud">Reset password</h3>
+              <button type="button" onClick={() => { setResetPasswordUserId(null); setResetPasswordValue(''); }} className="p-2 rounded-lg text-soft-cloud/60 hover:text-soft-cloud hover:bg-white/10" aria-label="Close">
+                <X className="size-5" />
+              </button>
+            </div>
+            <p className="text-sm text-soft-cloud/70 mb-4">Set a new password (min 8 characters). The user will need to sign in with this password.</p>
+            <form onSubmit={handleResetPassword} className="space-y-4">
+              <PasswordInput
+                value={resetPasswordValue}
+                onChange={(e) => setResetPasswordValue(e.target.value)}
+                placeholder="New password"
+                minLength={8}
+                required
+                className="w-full px-3 py-2.5 rounded-lg bg-midnight-ink border border-white/10 text-soft-cloud placeholder-soft-cloud/50 focus:ring-2 focus:ring-cyber-amber pr-12"
+              />
+              <div className="flex gap-3">
+                <button type="button" onClick={() => { setResetPasswordUserId(null); setResetPasswordValue(''); }} className="flex-1 px-4 py-2.5 rounded-lg border border-white/20 text-soft-cloud hover:bg-white/5">
+                  Cancel
+                </button>
+                <button type="submit" disabled={resetPasswordLoading || resetPasswordValue.trim().length < 8} className="flex-1 inline-flex justify-center gap-2 px-4 py-2.5 rounded-xl bg-cyber-amber text-midnight-ink font-semibold hover:bg-cyber-amber/90 disabled:opacity-50">
+                  {resetPasswordLoading ? <Loader2 className="size-4 animate-spin" /> : null}
+                  Update password
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {modalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-midnight-ink/90 backdrop-blur-sm">
           <div
@@ -336,7 +426,7 @@ export function TeamClient({ initialStaff, initialTickets, initialMotiveDrivers 
           />
           <div className="relative w-full max-w-md rounded-xl border border-white/10 bg-card p-6 shadow-xl shadow-black/30 border-cyber-amber/20">
             <div className="flex items-center justify-between mb-5">
-              <h3 className="text-lg font-semibold text-soft-cloud">Add Employee</h3>
+              <h3 className="text-lg font-semibold text-soft-cloud">Add team member</h3>
               <button
                 type="button"
                 onClick={() => { setModalOpen(false); setMessage(null); }}
@@ -347,7 +437,7 @@ export function TeamClient({ initialStaff, initialTickets, initialMotiveDrivers 
               </button>
             </div>
             <p className="text-sm text-soft-cloud/70 mb-4">
-              They must have signed up at the app first. Enter their email and assign a role.
+              Enter email and role. If they don&apos;t have an account, Admins can create one and send a welcome email with a temporary password.
             </p>
             <form onSubmit={handleAdd} className="space-y-4">
               <div>
@@ -380,6 +470,9 @@ export function TeamClient({ initialStaff, initialTickets, initialMotiveDrivers 
                     </option>
                   ))}
                 </select>
+                {ROLES.find((r) => r.value === role)?.description && (
+                  <p className="text-xs text-soft-cloud/50 mt-1.5">{ROLES.find((r) => r.value === role)?.description}</p>
+                )}
               </div>
               {message && (
                 <p className={`text-sm ${message.type === 'success' ? 'text-electric-teal' : 'text-red-400'}`}>
@@ -400,7 +493,7 @@ export function TeamClient({ initialStaff, initialTickets, initialMotiveDrivers 
                   className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-cyber-amber text-midnight-ink font-semibold hover:bg-cyber-amber/90 disabled:opacity-60 transition-colors"
                 >
                   {loading ? <Loader2 className="size-4 animate-spin" /> : <UserPlus className="size-4" />}
-                  Add Employee
+                  Add team member
                 </button>
               </div>
             </form>

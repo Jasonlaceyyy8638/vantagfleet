@@ -1,13 +1,13 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 
-export type PlatformRole = 'ADMIN' | 'EMPLOYEE';
+export type PlatformRole = 'ADMIN' | 'EMPLOYEE' | 'SUPPORT' | 'BILLING';
 
 /**
  * Returns the current user's platform role if they are staff. Use with the user's Supabase client (RLS allows reading own row).
  */
 export async function getPlatformRole(
   supabase: SupabaseClient
-): Promise<PlatformRole | null> {
+): Promise<PlatformRole | 'super-admin' | null> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
 
@@ -17,25 +17,25 @@ export async function getPlatformRole(
     .eq('user_id', user.id)
     .single();
 
-  const role = data?.role as PlatformRole | null;
-  if (role === 'ADMIN' || role === 'EMPLOYEE') return role;
+  const role = data?.role as string | null;
+  if (role === 'ADMIN' || role === 'EMPLOYEE' || role === 'SUPPORT' || role === 'BILLING' || role === 'super-admin') return role as PlatformRole | 'super-admin';
   return null;
 }
 
-export function isPlatformStaff(role: PlatformRole | null): role is PlatformRole {
-  return role === 'ADMIN' || role === 'EMPLOYEE';
+export function isPlatformStaff(role: PlatformRole | 'super-admin' | null): boolean {
+  return role === 'ADMIN' || role === 'EMPLOYEE' || role === 'SUPPORT' || role === 'BILLING' || role === 'super-admin';
 }
 
 /**
- * Returns true only if the current user is staff (ADMIN or EMPLOYEE).
- * Checks platform_roles first, then public.users.role so CUSTOMER never sees admin.
+ * Returns true if the current user can access /admin (owner ID, platform staff, or users.role).
  */
 export async function canAccessAdmin(supabase: SupabaseClient): Promise<boolean> {
-  const role = await getPlatformRole(supabase);
-  if (isPlatformStaff(role)) return true;
-
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return false;
+  if (user.id === ADMIN_OWNER_ID) return true;
+
+  const role = await getPlatformRole(supabase);
+  if (isPlatformStaff(role)) return true;
 
   const { data: userRow } = await supabase
     .from('users')
@@ -44,7 +44,17 @@ export async function canAccessAdmin(supabase: SupabaseClient): Promise<boolean>
     .single();
 
   const r = userRow?.role as string | undefined;
-  return r === 'ADMIN' || r === 'EMPLOYEE' || r === 'SUPPORT';
+  return r === 'ADMIN' || r === 'EMPLOYEE' || r === 'SUPPORT' || r === 'BILLING';
+}
+
+/**
+ * Returns true if the current user can impersonate a carrier (view their dashboard with full access).
+ * Admin and Support have this; Billing does not.
+ */
+export async function canImpersonateCarrier(supabase: SupabaseClient): Promise<boolean> {
+  if (await isSuperAdmin(supabase)) return true;
+  const role = await getPlatformRole(supabase);
+  return role === 'ADMIN' || role === 'SUPPORT';
 }
 
 /**
@@ -93,8 +103,8 @@ const ORG_COOKIE = 'vantag-current-org-id';
 export const IMPERSONATE_COOKIE = 'impersonated_org_id';
 
 /**
- * True when the current user is a super-admin and viewing the dashboard as a carrier
- * (impersonated_org_id cookie is set). Use to grant full access without subscription checks.
+ * True when the current user is staff with impersonation (Admin or Support or super-admin) and
+ * viewing the dashboard as a carrier (impersonated_org_id cookie is set). Use to grant full access.
  */
 export async function isSuperAdminImpersonating(
   supabase: SupabaseClient,
@@ -102,20 +112,19 @@ export async function isSuperAdminImpersonating(
 ): Promise<boolean> {
   const impersonated = cookieStore.get(IMPERSONATE_COOKIE)?.value;
   if (!impersonated) return false;
-  return isSuperAdmin(supabase);
+  return canImpersonateCarrier(supabase);
 }
 
 /**
- * Returns the effective org ID for dashboard data: if user is super-admin and
- * impersonated_org_id cookie is set, use that; otherwise use the normal current-org cookie.
- * Use this in dashboard layout and pages so impersonation is respected.
+ * Returns the effective org ID for dashboard data: if staff is impersonating (Admin/Support/super-admin)
+ * and impersonated_org_id cookie is set, use that; otherwise use the normal current-org cookie.
  */
 export async function getDashboardOrgId(
   supabase: SupabaseClient,
   cookieStore: { get: (name: string) => { value: string } | undefined }
 ): Promise<string | null> {
   const impersonated = cookieStore.get(IMPERSONATE_COOKIE)?.value;
-  if (impersonated && (await isSuperAdmin(supabase))) {
+  if (impersonated && (await canImpersonateCarrier(supabase))) {
     return impersonated;
   }
   const { data: { user } } = await supabase.auth.getUser();
@@ -137,7 +146,7 @@ export const ADMIN_OWNER_ID = 'ae175e55-72b4-4441-9e3c-02ecd8225bf7';
 
 /**
  * Returns the current user's role for Navbar/redirect logic.
- * Owner ID always returns ADMIN. Then platform_roles, then public.users.role.
+ * Owner ID always returns ADMIN. Then platform_roles (ADMIN/SUPPORT/BILLING/EMPLOYEE map to staff).
  */
 export async function getNavbarRole(supabase: SupabaseClient): Promise<NavbarRole | null> {
   const { data: { user } } = await supabase.auth.getUser();
@@ -146,8 +155,8 @@ export async function getNavbarRole(supabase: SupabaseClient): Promise<NavbarRol
   if (user.id === ADMIN_OWNER_ID) return 'ADMIN';
 
   const platformRole = await getPlatformRole(supabase);
-  if (platformRole === 'ADMIN') return 'ADMIN';
-  if (platformRole === 'EMPLOYEE') return 'EMPLOYEE';
+  if (platformRole === 'ADMIN' || platformRole === 'super-admin') return 'ADMIN';
+  if (platformRole === 'SUPPORT' || platformRole === 'BILLING' || platformRole === 'EMPLOYEE') return 'EMPLOYEE';
 
   const { data: userRow } = await supabase
     .from('users')
@@ -157,6 +166,6 @@ export async function getNavbarRole(supabase: SupabaseClient): Promise<NavbarRol
 
   const r = (userRow?.role as string) ?? '';
   if (r === 'ADMIN') return 'ADMIN';
-  if (r === 'EMPLOYEE') return 'EMPLOYEE';
+  if (r === 'EMPLOYEE' || r === 'SUPPORT' || r === 'BILLING') return 'EMPLOYEE';
   return 'CUSTOMER';
 }

@@ -2,7 +2,9 @@
 
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { useState } from 'react';
+import { PasswordInput } from '@/components/PasswordInput';
 
 export function LoginForm({ redirectTo }: { redirectTo: string }) {
   const [email, setEmail] = useState('');
@@ -48,14 +50,18 @@ export function LoginForm({ redirectTo }: { redirectTo: string }) {
         <label htmlFor="password" className="block text-sm font-medium text-soft-cloud/90 mb-1">
           Password
         </label>
-        <input
+        <PasswordInput
           id="password"
-          type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
-          className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/20 text-soft-cloud placeholder-soft-cloud/40 focus:outline-none focus:border-cyber-amber focus:ring-1 focus:ring-cyber-amber/50 transition-colors"
+          autoComplete="current-password"
         />
+        <div className="mt-1.5 text-right">
+          <Link href="/forgot-password" className="text-sm text-cyber-amber hover:text-cyber-amber/90">
+            Forgot password?
+          </Link>
+        </div>
       </div>
       {message && <p className="text-sm text-red-400">{message}</p>}
       <button

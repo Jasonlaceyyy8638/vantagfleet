@@ -15,6 +15,8 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
+  // Don't intercept Mapbox — avoid cached 401/403 and ensure fresh token is used
+  if (event.request.url.includes('api.mapbox.com')) return;
   // Network-first; no offline cache required for Add to Home Screen
   event.respondWith(fetch(event.request));
 });

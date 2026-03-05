@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { CheckCircle2, X, Shield } from 'lucide-react';
+import { PasswordInput } from '@/components/PasswordInput';
 
 function getSupabaseClient() {
   return createClient();
@@ -378,14 +379,14 @@ export function SignUpForm() {
         <label htmlFor="password" className="block text-sm font-medium text-soft-cloud/90 mb-1">
           Password
         </label>
-        <input
+        <PasswordInput
           id="password"
-          type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
           minLength={6}
-          className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/20 text-soft-cloud placeholder-soft-cloud/40 focus:outline-none focus:border-cyber-amber focus:ring-1 focus:ring-cyber-amber/50 transition-colors"
+          autoComplete="new-password"
+          className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/20 text-soft-cloud placeholder-soft-cloud/40 focus:outline-none focus:border-cyber-amber focus:ring-1 focus:ring-cyber-amber/50 transition-colors pr-12"
         />
       </div>
       {message && <p className="text-sm text-red-400">{message}</p>}

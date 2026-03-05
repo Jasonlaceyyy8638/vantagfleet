@@ -33,6 +33,7 @@ export function AdminPageClient({
   initialStaff,
   powerupWaitlistCounts = { mcs150: 0, boc3: 0 },
   loadError,
+  canImpersonate = false,
 }: {
   initialProfiles: ProfileRow[];
   initialOrgs: OrgOption[];
@@ -43,6 +44,8 @@ export function AdminPageClient({
   initialStaff: StaffRow[];
   powerupWaitlistCounts?: { mcs150: number; boc3: number };
   loadError?: string | null;
+  /** Admin and Support can view carrier dashboard as that carrier; Billing cannot. */
+  canImpersonate?: boolean;
 }) {
   const [profiles, setProfiles] = useState<ProfileRow[]>(initialProfiles);
   const [orgs, setOrgs] = useState<OrgOption[]>(initialOrgs);
@@ -303,7 +306,7 @@ export function AdminPageClient({
         </div>
       </section>
 
-      {/* Carrier List — with View as (impersonation) for super-admin */}
+      {/* Carrier List — with View as (impersonation) for Admin and Support */}
       <section className="rounded-xl border border-white/10 bg-card overflow-hidden">
         <div className="border-b border-white/10 px-6 py-4 flex items-center gap-3">
           <div className="p-2 rounded-lg bg-cyber-amber/20">
@@ -311,7 +314,9 @@ export function AdminPageClient({
           </div>
           <div>
             <h2 className="font-semibold text-soft-cloud">Carrier List</h2>
-            <p className="text-sm text-soft-cloud/60">View dashboard as a carrier to see highest-tier features as they do.</p>
+            <p className="text-sm text-soft-cloud/60">
+              {canImpersonate ? 'View dashboard as a carrier (full access) for support.' : 'Carrier list. Admin and Support can view as carrier.'}
+            </p>
           </div>
         </div>
         <div className="overflow-x-auto">
@@ -381,32 +386,34 @@ export function AdminPageClient({
                     </td>
                     <td className="px-6 py-3">
                       <div className="flex flex-wrap items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={async () => {
-                            const w = typeof window !== 'undefined' ? (window as unknown as { __TAURI__?: unknown; __TAURI_INTERNAL__?: unknown }) : null;
-                            if (w && (w.__TAURI__ || w.__TAURI_INTERNAL__)) {
-                              const pin = window.prompt('Enter super-admin PIN to view as this carrier:');
-                              if (pin == null) return;
-                              try {
-                                const { invoke } = await import('@tauri-apps/api/core');
-                                const ok = await invoke<boolean>('verify_super_admin_pin', { pin });
-                                if (!ok) {
-                                  alert('Invalid PIN. Admin mode is protected.');
+                        {canImpersonate && (
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              const w = typeof window !== 'undefined' ? (window as unknown as { __TAURI__?: unknown; __TAURI_INTERNAL__?: unknown }) : null;
+                              if (w && (w.__TAURI__ || w.__TAURI_INTERNAL__)) {
+                                const pin = window.prompt('Enter admin PIN to view as this carrier:');
+                                if (pin == null) return;
+                                try {
+                                  const { invoke } = await import('@tauri-apps/api/core');
+                                  const ok = await invoke<boolean>('verify_super_admin_pin', { pin });
+                                  if (!ok) {
+                                    alert('Invalid PIN. Admin mode is protected.');
+                                    return;
+                                  }
+                                } catch {
+                                  alert('Could not verify PIN.');
                                   return;
                                 }
-                              } catch {
-                                alert('Could not verify PIN.');
-                                return;
                               }
-                            }
-                            document.cookie = `impersonated_org_id=${encodeURIComponent(c.id)}; path=/; max-age=3600`;
-                            window.location.href = '/dashboard';
-                          }}
-                          className="text-xs font-medium text-cyber-amber hover:text-cyber-amber/90 hover:underline"
-                        >
-                          View Dashboard as {c.name}
-                        </button>
+                              document.cookie = `impersonated_org_id=${encodeURIComponent(c.id)}; path=/; max-age=3600`;
+                              window.location.href = '/dashboard';
+                            }}
+                            className="text-xs font-medium text-cyber-amber hover:text-cyber-amber/90 hover:underline"
+                          >
+                            View Dashboard as {c.name}
+                          </button>
+                        )}
                         <div className="relative" ref={grantCreditOrgId === c.id ? grantCreditDropdownRef : undefined}>
                           <button
                             type="button"

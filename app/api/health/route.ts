@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { cookies } from 'next/headers';
-import { getDashboardOrgId, isSuperAdmin, IMPERSONATE_COOKIE } from '@/lib/admin';
+import { getDashboardOrgId, canImpersonateCarrier, IMPERSONATE_COOKIE } from '@/lib/admin';
 
 const MOTIVE_API_BASE = 'https://api.gomotive.com/v1';
 
@@ -13,6 +13,12 @@ type MotiveCredential = {
 };
 
 export async function GET() {
+  const safe = () =>
+    NextResponse.json(
+      { motive: 'error' as const, motus: 'pending' as const, lastSync: '', motiveError: 'disconnected' as const },
+      { status: 200 }
+    );
+  try {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) {
@@ -28,7 +34,7 @@ export async function GET() {
     );
   }
 
-  const impersonating = cookieStore.get(IMPERSONATE_COOKIE)?.value === orgId && (await isSuperAdmin(supabase));
+  const impersonating = cookieStore.get(IMPERSONATE_COOKIE)?.value === orgId && (await canImpersonateCarrier(supabase));
   if (!impersonating) {
     const { data: profiles } = await supabase
       .from('profiles')
@@ -108,4 +114,8 @@ export async function GET() {
     lastSync,
     ...(motiveError && { motiveError }),
   });
+  } catch (err) {
+    console.error('[GET /api/health]', err);
+    return safe();
+  }
 }

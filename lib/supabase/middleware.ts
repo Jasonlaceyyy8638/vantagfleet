@@ -32,20 +32,23 @@ export async function updateSession(
   let isStaff: boolean | undefined;
   let isAdmin: boolean | undefined;
   let isSuperAdmin: boolean | undefined;
+  let canImpersonate: boolean | undefined;
   if (user) {
     if (user.id === ADMIN_OWNER_ID) {
       isStaff = true;
       isAdmin = true;
       isSuperAdmin = true;
+      canImpersonate = true;
     } else {
       const { data: platform } = await supabase
         .from('platform_roles')
         .select('role')
         .eq('user_id', user.id)
         .single();
-      const platformRole = platform?.role;
+      const platformRole = platform?.role as string | undefined;
       isSuperAdmin = platformRole === 'super-admin';
-      isStaff = !!platformRole && (platformRole === 'ADMIN' || platformRole === 'EMPLOYEE' || platformRole === 'super-admin');
+      isStaff = !!platformRole && ['ADMIN', 'EMPLOYEE', 'super-admin', 'SUPPORT', 'BILLING'].includes(platformRole);
+      canImpersonate = platformRole === 'super-admin' || platformRole === 'ADMIN' || platformRole === 'SUPPORT';
       if (platformRole === 'ADMIN' || platformRole === 'super-admin') {
         isAdmin = true;
       } else {
@@ -59,5 +62,5 @@ export async function updateSession(
     }
   }
 
-  return { response, user: user ?? null, isStaff, isAdmin, isSuperAdmin };
+  return { response, user: user ?? null, isStaff, isAdmin, isSuperAdmin, canImpersonate };
 }

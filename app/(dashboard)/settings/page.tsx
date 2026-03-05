@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
+import Link from 'next/link';
 import { ManageSubscriptionButton } from './ManageSubscriptionButton';
 import { CopyUserId } from './CopyUserId';
 import { CarrierProfile } from './CarrierProfile';
@@ -76,6 +77,11 @@ export default async function SettingsPage() {
             Your user ID (use this in Supabase scripts to add yourself as admin, etc.):
           </p>
           <CopyUserId userId={user.id} />
+          <p className="text-sm text-soft-cloud/70 mt-4 pt-4 border-t border-white/10">
+            <Link href="/account/change-password" className="text-cyber-amber hover:underline">
+              Change password
+            </Link>
+          </p>
         </div>
       )}
 

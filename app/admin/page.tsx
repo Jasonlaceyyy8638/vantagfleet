@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
-import { isSuperAdmin } from '@/lib/admin';
+import { canAccessAdmin, canImpersonateCarrier } from '@/lib/admin';
 import { redirect } from 'next/navigation';
 import {
   listProfilesForAdmin,
@@ -19,8 +19,9 @@ const emptyStripeStats = { total_revenue: 0, active_subscriptions: 0 };
 
 export default async function AdminPage() {
   const supabase = await createClient();
-  const superAdmin = await isSuperAdmin(supabase);
-  if (!superAdmin) redirect('/');
+  const canAccess = await canAccessAdmin(supabase);
+  if (!canAccess) redirect('/');
+  const canImpersonate = await canImpersonateCarrier(supabase);
 
   let profiles: Awaited<ReturnType<typeof listProfilesForAdmin>> = [];
   let orgs: Awaited<ReturnType<typeof listOrganizationsForAdmin>> = [];
@@ -79,6 +80,7 @@ export default async function AdminPage() {
         initialStaff={staff}
         powerupWaitlistCounts={powerupWaitlist}
         loadError={loadError}
+        canImpersonate={canImpersonate}
       />
     </div>
   );

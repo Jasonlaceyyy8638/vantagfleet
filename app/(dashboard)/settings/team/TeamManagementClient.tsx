@@ -6,11 +6,14 @@ import type { TeamMember, PendingInvite } from './page';
 
 const ROLE_OPTIONS = [
   { value: 'Owner', label: 'Admin' },
+  { value: 'Safety_Manager', label: 'Safety Manager' },
+  { value: 'Driver_Manager', label: 'Driver Manager' },
   { value: 'Dispatcher', label: 'Dispatcher' },
   { value: 'Driver', label: 'Driver' },
 ] as const;
 
-type RoleValue = 'Owner' | 'Dispatcher' | 'Driver';
+type RoleValue = 'Owner' | 'Safety_Manager' | 'Driver_Manager' | 'Dispatcher' | 'Driver';
+type InviteRole = 'Driver' | 'Dispatcher' | 'Safety_Manager' | 'Driver_Manager';
 
 type Props = {
   orgId: string;
@@ -21,7 +24,7 @@ type Props = {
 
 export function TeamManagementClient({ orgId, members, pendingInvites, currentUserId }: Props) {
   const [email, setEmail] = useState('');
-  const [inviteRole, setInviteRole] = useState<'Driver' | 'Dispatcher'>('Driver');
+  const [inviteRole, setInviteRole] = useState<InviteRole>('Driver');
   const [inviteLoading, setInviteLoading] = useState(false);
   const [inviteError, setInviteError] = useState('');
   const [inviteLink, setInviteLink] = useState<string | null>(null);
@@ -83,15 +86,17 @@ export function TeamManagementClient({ orgId, members, pendingInvites, currentUs
               className="w-full px-3 py-2 rounded-lg bg-deep-ink border border-white/10 text-soft-cloud placeholder-soft-cloud/40"
             />
           </div>
-          <div className="w-36">
+          <div className="w-40">
             <label className="block text-sm font-medium text-soft-cloud/80 mb-1">Role</label>
             <select
               value={inviteRole}
-              onChange={(e) => setInviteRole(e.target.value as 'Driver' | 'Dispatcher')}
+              onChange={(e) => setInviteRole(e.target.value as InviteRole)}
               className="w-full px-3 py-2 rounded-lg bg-deep-ink border border-white/10 text-soft-cloud"
             >
               <option value="Driver">Driver</option>
               <option value="Dispatcher">Dispatcher</option>
+              <option value="Safety_Manager">Safety Manager</option>
+              <option value="Driver_Manager">Driver Manager</option>
             </select>
           </div>
           <button

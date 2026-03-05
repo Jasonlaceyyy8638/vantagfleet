@@ -8,7 +8,7 @@ import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
-import { isAdmin, isSuperAdmin, getDashboardOrgId, IMPERSONATE_COOKIE } from '@/lib/admin';
+import { isAdmin, canImpersonateCarrier, getDashboardOrgId, IMPERSONATE_COOKIE } from '@/lib/admin';
 import { showBetaRibbon, hasFullAccess, canSeeMap } from '@/lib/userHasAccess';
 
 /** VantagFleet admin owner: never show onboarding or DOT prompt; send to /admin. */
@@ -25,10 +25,10 @@ export default async function DashboardLayout({
 
   const cookieStore = await cookies();
   const impersonatedId = cookieStore.get(IMPERSONATE_COOKIE)?.value;
-  const superAdmin = await isSuperAdmin(supabase);
+  const staffCanImpersonate = await canImpersonateCarrier(supabase);
 
-  // Super-admin impersonating: stay on dashboard and use impersonated org; grant full carrier access
-  if (superAdmin && impersonatedId) {
+  // Admin or Support impersonating: stay on dashboard and use impersonated org; grant full carrier access
+  if (staffCanImpersonate && impersonatedId) {
     const currentOrgId = impersonatedId;
     const admin = createAdminClient();
     const [{ data: org }, { data: impProfile }] = await Promise.all([
@@ -40,7 +40,7 @@ export default async function DashboardLayout({
     const isFounderImpersonating = (impProfile as { is_founder?: boolean } | null)?.is_founder === true;
     return (
       <div className="flex min-h-screen flex-col">
-        <ImpersonationBar carrierName={org?.name ?? 'Unknown'} />
+        <ImpersonationBar carrierName={org?.name?.trim() || 'this carrier'} />
         <div className="flex flex-1 min-h-0 overflow-hidden">
           <Sidebar
             organizations={organizations}
@@ -60,10 +60,10 @@ export default async function DashboardLayout({
     );
   }
 
-  // Non-impersonating super-admin/admin: send to /admin
-  if (user.id === ADMIN_OWNER_ID) redirect('/admin');
+  // Other platform admins (not owner): send to /admin when not impersonating
   const userIsAdmin = await isAdmin(supabase);
-  if (userIsAdmin) redirect('/admin');
+  const isOwner = user.id === ADMIN_OWNER_ID;
+  if (!isOwner && userIsAdmin) redirect('/admin');
 
   const currentOrgId = await getDashboardOrgId(supabase, cookieStore);
   const { data: profiles } = await supabase
@@ -71,6 +71,7 @@ export default async function DashboardLayout({
     .select('org_id, role')
     .eq('user_id', user.id);
   if (!currentOrgId) {
+    if (isOwner) redirect('/admin');
     return <OrgSetup />;
   }
 
@@ -103,7 +104,7 @@ export default async function DashboardLayout({
   const showAdminLink = await isAdmin(supabase);
   const currentProfile = (profiles ?? []).find((p) => p.org_id === currentOrgId);
   const isDriverOnly = currentProfile?.role === 'Driver';
-  const isDispatcher = currentProfile?.role === 'Dispatcher';
+  const isDispatcher = currentProfile?.role === 'Dispatcher' || currentProfile?.role === 'Driver_Manager';
   const profileForAccess = profileRow as { is_beta_tester?: boolean; beta_expires_at?: string | null; ifta_enabled?: boolean; subscription_status?: string | null; is_founder?: boolean } | null;
   const orgForAccess = orgRow as { subscription_status?: string | null; tier?: string | null } | null;
   const fullAccess = hasFullAccess(profileForAccess, orgForAccess);

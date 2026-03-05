@@ -5,7 +5,7 @@ import { Map, Marker, Popup } from 'react-map-gl/mapbox';
 import type { Map as MapboxMap } from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 
-const MAPBOX_DARK = 'mapbox://styles/mapbox/dark-v11';
+const MAPBOX_STYLE = 'mapbox://styles/mapbox/dark-v11';
 const POLL_MS = 60 * 1000;
 const TRAFFIC_LAYER_ID = 'vantag-traffic-layer';
 const TRAFFIC_SOURCE_ID = 'vantag-traffic-source';
@@ -50,8 +50,41 @@ export function FleetMap({
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [mapLoadError, setMapLoadError] = useState<string | null>(null);
+  const [tokenRejected, setTokenRejected] = useState<boolean | null>(null);
+  const [retryKey, setRetryKey] = useState(0);
   const [trafficOn, setTrafficOn] = useState(false);
+  const [trafficUnavailable, setTrafficUnavailable] = useState(false);
   const mapRef = useRef<MapboxMap | null>(null);
+  const trafficAddedAtRef = useRef<number>(0);
+
+  useEffect(() => {
+    if (!accessToken) {
+      setTokenRejected(null);
+      return;
+    }
+    setTokenRejected(null);
+    const styleUrl = `https://api.mapbox.com/styles/v1/mapbox/dark-v11?access_token=${encodeURIComponent(accessToken)}`;
+    fetch(styleUrl)
+      .then((res) => {
+        if (res.status === 401 || res.status === 403) setTokenRejected(true);
+        else if (res.ok) setTokenRejected(false);
+        else setTokenRejected(true);
+      })
+      .catch(() => setTokenRejected(true));
+  }, [accessToken, retryKey]);
+
+  const handleMapError = useCallback((e: { error?: { message?: string; sourceId?: string } }) => {
+    const msg = e.error?.message ?? '';
+    const sourceId = e.error?.sourceId;
+    const isAuthError = msg.includes('401') || msg.includes('403') || msg.includes('Forbidden') || msg.toLowerCase().includes('unauthorized');
+    if (isAuthError && (sourceId === TRAFFIC_SOURCE_ID || (Date.now() - trafficAddedAtRef.current < 10000))) {
+      setTrafficUnavailable(true);
+      return;
+    }
+    if (isAuthError) setTokenRejected(true);
+    setMapLoadError(msg || 'Map failed to load');
+  }, []);
 
   const fetchLocations = useCallback(async () => {
     setLoading(true);
@@ -96,54 +129,58 @@ export function FleetMap({
   const handleMapLoad = useCallback((e: { target: MapboxMap }) => {
     const map = e.target;
     mapRef.current = map;
-    if (!map.getSource(TRAFFIC_SOURCE_ID)) {
-      map.addSource(TRAFFIC_SOURCE_ID, {
-        type: 'vector',
-        url: 'mapbox://mapbox.mapbox-traffic-v1',
-      });
-      try {
-        const beforeId = map.getLayer('road-label-primary') ? 'road-label-primary' : undefined;
-        map.addLayer(
-          {
-            id: TRAFFIC_LAYER_ID,
-            type: 'line',
-            source: TRAFFIC_SOURCE_ID,
-            'source-layer': 'traffic',
-            layout: {
-              'line-join': 'round',
-              'line-cap': 'round',
-            },
-            paint: {
-              'line-color': [
-                'match',
-                ['get', 'congestion'],
-                'heavy',
-                '#ef4444',
-                'severe',
-                '#dc2626',
-                'moderate',
-                '#eab308',
-                'low',
-                '#22c55e',
-                'rgba(0,0,0,0.1)',
-              ],
-              'line-width': 2,
-              'line-opacity': 0.8,
-            },
-          },
-          beforeId
-        );
-      } catch {
-        // Layer might already exist or style differs
-      }
-      map.setLayoutProperty(TRAFFIC_LAYER_ID, 'visibility', 'none');
-    }
-  }, []);
+    setMapLoadError(null);
+    map.on('error', handleMapError);
+    // Traffic layer is added only when user toggles "Live Traffic" ON (see useEffect below).
+    // Not adding it on load avoids 401 from mapbox.mapbox-traffic-v1, which often requires extra scope/plan.
+  }, [handleMapError]);
 
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !map.getLayer(TRAFFIC_LAYER_ID)) return;
-    map.setLayoutProperty(TRAFFIC_LAYER_ID, 'visibility', trafficOn ? 'visible' : 'none');
+    if (!map) return;
+    if (trafficOn) {
+      if (!map.getSource(TRAFFIC_SOURCE_ID)) {
+        trafficAddedAtRef.current = Date.now();
+        setTrafficUnavailable(false);
+        try {
+          map.addSource(TRAFFIC_SOURCE_ID, {
+            type: 'vector',
+            url: 'mapbox://mapbox.mapbox-traffic-v1',
+          });
+          const beforeId = map.getLayer('road-label-primary') ? 'road-label-primary' : undefined;
+          map.addLayer(
+            {
+              id: TRAFFIC_LAYER_ID,
+              type: 'line',
+              source: TRAFFIC_SOURCE_ID,
+              'source-layer': 'traffic',
+              layout: { 'line-join': 'round', 'line-cap': 'round' },
+              paint: {
+                'line-color': [
+                  'match', ['get', 'congestion'],
+                  'heavy', '#ef4444', 'severe', '#dc2626', 'moderate', '#eab308', 'low', '#22c55e',
+                  'rgba(0,0,0,0.1)',
+                ],
+                'line-width': 2,
+                'line-opacity': 0.8,
+              },
+            },
+            beforeId
+          );
+          map.setLayoutProperty(TRAFFIC_LAYER_ID, 'visibility', 'visible');
+        } catch {
+          setTrafficUnavailable(true);
+        }
+      } else {
+        if (map.getLayer(TRAFFIC_LAYER_ID)) {
+          map.setLayoutProperty(TRAFFIC_LAYER_ID, 'visibility', 'visible');
+        }
+      }
+    } else {
+      if (map.getLayer(TRAFFIC_LAYER_ID)) {
+        map.setLayoutProperty(TRAFFIC_LAYER_ID, 'visibility', 'none');
+      }
+    }
   }, [trafficOn]);
 
   const selected = locations.find((l) => l && l.id === selectedId);
@@ -192,8 +229,48 @@ export function FleetMap({
         </div>
       )}
 
+      {tokenRejected === true && (
+        <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-midnight-ink/95 p-6 text-center rounded-xl overflow-auto">
+          <p className="text-soft-cloud font-medium mb-2">Mapbox is rejecting your token (401)</p>
+          <p className="text-xs text-soft-cloud/60 mb-3">
+            Token in use: <code className="bg-white/10 px-1 rounded">{accessToken ? `${accessToken.slice(0, 7)}…${accessToken.slice(-4)}` : '(none)'}</code>
+            {accessToken?.startsWith('sk.') && (
+              <span className="block mt-1 text-amber-400">This is a secret token. The map must use a public token (pk.) in the browser.</span>
+            )}
+          </p>
+          <p className="text-sm text-soft-cloud/70 max-w-md mb-3">
+            In <a href="https://account.mapbox.com/access-tokens/" target="_blank" rel="noopener noreferrer" className="text-cyber-amber hover:underline">Mapbox → Access tokens</a>, use the <strong>Default public token</strong> (starts with <code className="bg-white/10 px-1 rounded">pk.</code>). Do not use a secret token (<code className="bg-white/10 px-1 rounded">sk.</code>) — it will always return 401 in the browser. Copy the public token into <code className="bg-white/10 px-1 rounded">.env.local</code> as <code className="bg-white/10 px-1 rounded">NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN=pk.eyJ...</code>, restart the dev server, then click Retry.
+          </p>
+          <button
+            type="button"
+            onClick={() => setRetryKey((k) => k + 1)}
+            className="px-4 py-2 rounded-lg bg-cyber-amber text-midnight-ink font-medium text-sm hover:opacity-90 mb-4"
+          >
+            Retry
+          </button>
+          <a
+            href="https://docs.mapbox.com/help/faq/what-is-the-difference-between-a-public-token-and-a-secret-token/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-cyber-amber hover:underline font-medium text-sm"
+          >
+            Public vs secret token (Mapbox) →
+          </a>
+        </div>
+      )}
+
+      {tokenRejected === false && mapLoadError && (
+        <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-midnight-ink/95 p-6 text-center rounded-xl">
+          <p className="text-soft-cloud font-medium mb-1">Map could not load</p>
+          <p className="text-sm text-soft-cloud/70 max-w-md">{mapLoadError}</p>
+        </div>
+      )}
+
+      {/* Don't render the Map when token is rejected to avoid repeated 403s */}
+      {tokenRejected === true ? null : (
+        <>
       {/* Live Traffic toggle */}
-      <div className="absolute top-3 right-3 z-20">
+      <div className="absolute top-3 right-3 z-20 flex flex-col items-end gap-1">
         <button
           type="button"
           onClick={() => setTrafficOn((v) => !v)}
@@ -205,6 +282,9 @@ export function FleetMap({
         >
           Live Traffic {trafficOn ? 'ON' : 'OFF'}
         </button>
+        {trafficUnavailable && (
+          <span className="text-xs text-amber-400/90 bg-midnight-ink/90 px-2 py-1 rounded">Traffic layer unavailable with this token</span>
+        )}
       </div>
 
       <Map
@@ -215,7 +295,7 @@ export function FleetMap({
           zoom: locations.length <= 1 ? 4 : 5,
         }}
         style={{ width: '100%', height: effectiveHeight, minHeight: 400 }}
-        mapStyle={MAPBOX_DARK}
+        mapStyle={MAPBOX_STYLE}
         onLoad={handleMapLoad}
       >
         {locations.filter((loc) => loc && loc.id && Number.isFinite(loc.lat) && Number.isFinite(loc.lng)).map((loc) => {
@@ -303,6 +383,8 @@ export function FleetMap({
           </Popup>
         )}
       </Map>
+        </>
+      )}
     </div>
   );
 }

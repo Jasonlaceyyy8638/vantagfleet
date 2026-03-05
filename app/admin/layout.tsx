@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
-import { getPlatformRole, isSuperAdmin } from '@/lib/admin';
+import { getPlatformRole, canAccessAdmin } from '@/lib/admin';
 import { redirect } from 'next/navigation';
 import { AdminSidebar } from './AdminSidebar';
 import { AdminHeader } from './AdminHeader';
@@ -11,8 +11,8 @@ export default async function AdminLayout({
   children: React.ReactNode;
 }) {
   const supabase = await createClient();
-  const superAdmin = await isSuperAdmin(supabase);
-  if (!superAdmin) redirect('/');
+  const canAccess = await canAccessAdmin(supabase);
+  if (!canAccess) redirect('/');
 
   const role = await getPlatformRole(supabase);
 

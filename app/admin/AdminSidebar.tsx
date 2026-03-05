@@ -11,6 +11,7 @@ import {
   DollarSign,
   FileCheck,
   MessageCircle,
+  Home,
 } from 'lucide-react';
 
 const adminNav = [
@@ -62,6 +63,13 @@ export function AdminSidebar({ role }: { role: string }) {
         })}
       </nav>
       <div className="p-3 border-t border-white/10 space-y-1">
+        <Link
+          href="/"
+          className="flex items-center gap-2 text-sm text-soft-cloud/70 hover:text-soft-cloud px-3 py-2 rounded-lg hover:bg-white/5"
+        >
+          <Home className="size-4" />
+          Home
+        </Link>
         <Link
           href="/admin"
           className="flex items-center gap-2 text-sm text-soft-cloud/70 hover:text-soft-cloud px-3 py-2 rounded-lg hover:bg-white/5"

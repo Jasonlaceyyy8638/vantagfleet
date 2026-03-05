@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Plus } from 'lucide-react';
+import { Plus, Package, FileText } from 'lucide-react';
 import Link from 'next/link';
 
 type Incident = {
@@ -18,15 +18,41 @@ type Incident = {
 
 type Vehicle = { id: string; unit_number?: string | null; vin?: string | null };
 
+type Driver = { id: string; name: string };
+
+type Trailer = { id: string; trailer_number: string; vin: string | null; plate_number: string | null; assigned_driver_id: string | null };
+
+type DriverIncident = {
+  id: string;
+  driver_id: string | null;
+  incident_type: string;
+  notes: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  created_at: string;
+};
+
 type Props = {
   orgId: string;
   initialIncidents: Incident[];
   vehicles: Vehicle[];
+  canManageRoadside?: boolean;
+  drivers?: Driver[];
+  trailers?: Trailer[];
+  driverIncidents?: DriverIncident[];
 };
 
 const STATUS_OPTIONS = ['Pending', 'Repairing', 'Resolved'] as const;
 
-export function RoadsideIncidentClient({ orgId, initialIncidents, vehicles }: Props) {
+export function RoadsideIncidentClient({
+  orgId,
+  initialIncidents,
+  vehicles,
+  canManageRoadside = false,
+  drivers = [],
+  trailers = [],
+  driverIncidents = [],
+}: Props) {
   const [incidents, setIncidents] = useState<Incident[]>(initialIncidents);
   const [loading, setLoading] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
@@ -37,6 +63,7 @@ export function RoadsideIncidentClient({ orgId, initialIncidents, vehicles }: Pr
   const [lat, setLat] = useState<string>('');
   const [lng, setLng] = useState<string>('');
   const [submitError, setSubmitError] = useState('');
+  const [selectedDriverId, setSelectedDriverId] = useState<string>('');
 
   const fetchIncidents = async () => {
     const res = await fetch('/api/breakdown-incidents');
@@ -109,8 +136,95 @@ export function RoadsideIncidentClient({ orgId, initialIncidents, vehicles }: Pr
     }
   };
 
+  const selectedDriver = selectedDriverId ? drivers.find((d) => d.id === selectedDriverId) : null;
+  const driverTrailers = selectedDriverId ? trailers.filter((t) => t.assigned_driver_id === selectedDriverId) : [];
+  const driverLogs = selectedDriverId ? driverIncidents.filter((i) => i.driver_id === selectedDriverId) : [];
+
   return (
     <div className="space-y-6">
+      {/* Driver & trailer overview: visible to everyone in the org */}
+      <div className="rounded-xl border border-white/10 bg-card p-4">
+        <h2 className="text-lg font-semibold text-soft-cloud mb-3">Driver & trailer overview</h2>
+        <p className="text-sm text-soft-cloud/70 mb-3">
+          Select a driver to see their assigned trailer and roadside reports. Driver view (DOT Inspection, Call Dispatch, Find Truck Stop, Report Incident):{' '}
+          <Link href="/driver/roadside-shield" className="text-cyber-amber hover:underline">
+            Open Driver Roadside
+          </Link>
+        </p>
+        {drivers.length === 0 ? (
+          <p className="text-sm text-soft-cloud/60">
+            No drivers in this organization yet. Add drivers from <Link href="/drivers" className="text-cyber-amber hover:underline">Drivers</Link> or connect an ELD in <Link href="/dashboard/integrations" className="text-cyber-amber hover:underline">Integrations</Link>, then assign trailers on the <Link href="/trailers" className="text-cyber-amber hover:underline">Trailers</Link> page.
+          </p>
+        ) : (
+          <>
+            <select
+              value={selectedDriverId}
+              onChange={(e) => setSelectedDriverId(e.target.value)}
+              className="w-full max-w-sm px-3 py-2 rounded-lg bg-deep-ink border border-white/10 text-soft-cloud"
+            >
+              <option value="">— Choose a driver —</option>
+              {drivers.map((d) => (
+                <option key={d.id} value={d.id}>
+                  {d.name}
+                </option>
+              ))}
+            </select>
+            {selectedDriver && (
+              <div className="mt-4 space-y-4">
+                <div>
+                  <h3 className="text-sm font-semibold text-cyber-amber flex items-center gap-2 mb-2">
+                    <Package className="size-4" />
+                    Trailer
+                  </h3>
+                  {driverTrailers.length === 0 ? (
+                    <p className="text-sm text-soft-cloud/60">No trailer assigned.</p>
+                  ) : (
+                    <ul className="space-y-1 text-sm text-soft-cloud/90">
+                      {driverTrailers.map((t) => (
+                        <li key={t.id}>
+                          {t.trailer_number}
+                          {t.plate_number ? ` · Plate ${t.plate_number}` : ''}
+                          {t.vin ? ` · VIN ${t.vin}` : ''}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-cyber-amber flex items-center gap-2 mb-2">
+                    <FileText className="size-4" />
+                    Driver logs (roadside reports)
+                  </h3>
+                  {driverLogs.length === 0 ? (
+                    <p className="text-sm text-soft-cloud/60">No roadside reports for this driver.</p>
+                  ) : (
+                    <ul className="space-y-2 text-sm">
+                      {driverLogs.map((log) => (
+                        <li key={log.id} className="rounded-lg border border-white/10 bg-white/5 p-3">
+                          <span className="font-medium text-soft-cloud">{log.incident_type}</span>
+                          <span className="text-soft-cloud/60 ml-2">{formatDate(log.created_at)}</span>
+                          {log.notes && <p className="text-soft-cloud/80 mt-1">{log.notes}</p>}
+                          {log.latitude != null && log.longitude != null && (
+                            <a
+                              href={`https://www.google.com/maps?q=${log.latitude},${log.longitude}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-cyber-amber hover:underline text-xs mt-1 inline-block"
+                            >
+                              View location
+                            </a>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+
       <div className="flex flex-wrap items-center justify-between gap-4">
         <h1 className="text-2xl font-bold text-soft-cloud">Incident Management</h1>
         <button
@@ -122,6 +236,9 @@ export function RoadsideIncidentClient({ orgId, initialIncidents, vehicles }: Pr
           Log New Incident
         </button>
       </div>
+      <p className="text-sm text-soft-cloud/70">
+        Log and manage fleet breakdowns. Use the section above to view a driver&apos;s trailer and roadside reports.
+      </p>
 
       <div className="rounded-xl border border-white/10 bg-card overflow-hidden">
         <h2 className="px-4 py-3 border-b border-white/10 text-lg font-semibold text-soft-cloud">

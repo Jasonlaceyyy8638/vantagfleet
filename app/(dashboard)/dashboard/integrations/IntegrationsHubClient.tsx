@@ -16,6 +16,7 @@ import Link from 'next/link';
 import { Plug, Loader2, Check, X, RefreshCw, CloudDownload, MapPin, FileBarChart, Lock } from 'lucide-react';
 import { ProviderBranding, getProviderBranding } from '@/components/ProviderBranding';
 import { SmartErrorAction } from '@/components/SmartErrorAction';
+import { PasswordInput } from '@/components/PasswordInput';
 
 const PROVIDERS: { id: IntegrationProvider; name: string; label: string; placeholder: string }[] = [
   { id: 'motive', name: 'Motive', label: 'Motive', placeholder: '' },
@@ -610,13 +611,12 @@ export function IntegrationsHubClient({ orgId, initialIntegrations, isEldLocked 
               </div>
               <div>
                 <label htmlFor="geotab-password" className="block text-sm font-medium text-soft-cloud/80 mb-1.5">Password</label>
-                <input
+                <PasswordInput
                   id="geotab-password"
-                  type="password"
                   value={geotabForm.password}
                   onChange={(e) => setGeotabForm((f) => ({ ...f, password: e.target.value }))}
                   placeholder="Your Geotab password"
-                  className="w-full px-3 py-2.5 rounded-lg bg-midnight-ink border border-white/10 text-soft-cloud placeholder-soft-cloud/50 focus:outline-none focus:ring-2 focus:ring-cyber-amber focus:border-cyber-amber/50"
+                  className="w-full px-3 py-2.5 rounded-lg bg-midnight-ink border border-white/10 text-soft-cloud placeholder-soft-cloud/50 focus:outline-none focus:ring-2 focus:ring-cyber-amber focus:border-cyber-amber/50 pr-12"
                 />
               </div>
               {geotabConnectError && (
@@ -680,13 +680,12 @@ export function IntegrationsHubClient({ orgId, initialIntegrations, isEldLocked 
                 <label htmlFor="integration-credential" className="block text-sm font-medium text-soft-cloud/80 mb-1.5">
                   API Key
                 </label>
-                <input
+                <PasswordInput
                   id="integration-credential"
-                  type="password"
                   value={credential}
                   onChange={(e) => setCredential(e.target.value)}
                   placeholder={modalProvider === 'fmcsa' ? 'Paste key from FMCSA portal' : 'Paste your API key'}
-                  className="w-full px-3 py-2.5 rounded-lg bg-midnight-ink border border-white/10 text-soft-cloud placeholder-soft-cloud/50 focus:outline-none focus:ring-2 focus:ring-cyber-amber focus:border-cyber-amber/50"
+                  className="w-full px-3 py-2.5 rounded-lg bg-midnight-ink border border-white/10 text-soft-cloud placeholder-soft-cloud/50 focus:outline-none focus:ring-2 focus:ring-cyber-amber focus:border-cyber-amber/50 pr-12"
                 />
               </div>
               {error && <p className="text-sm text-red-400">{error}</p>}

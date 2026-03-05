@@ -29,10 +29,10 @@ export async function middleware(request: NextRequest) {
   const isPublic = PUBLIC_PATHS.some((p) => pathname.startsWith(p));
 
   // Refresh Supabase session and get current user (and staff status for /admin)
-  const { response, user, isAdmin, isSuperAdmin } = await updateSession(request, pathname);
+  const { response, user, isAdmin, isSuperAdmin, isStaff } = await updateSession(request, pathname);
 
   // Allow public paths and auth callback without requiring user
-  if (isPublic || pathname === '/' || pathname.startsWith('/pricing') || pathname === '/privacy' || pathname === '/terms' || pathname === '/contact' || pathname === '/download' || pathname.startsWith('/releases') || pathname.startsWith('/roadside/view') || pathname.startsWith('/inspect/')) {
+  if (isPublic || pathname === '/' || pathname.startsWith('/pricing') || pathname === '/privacy' || pathname === '/terms' || pathname === '/contact' || pathname === '/download' || pathname.startsWith('/releases') || pathname.startsWith('/roadside/view') || pathname.startsWith('/inspect/') || pathname.startsWith('/forgot-password')) {
     return response;
   }
 
@@ -43,26 +43,22 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(redirect);
   }
 
-  // Super-admin impersonating: if they have impersonated_org_id cookie, let them through to dashboard (don't redirect to /admin)
+  // Owner can use carrier routes (their own org dashboard); only other staff are redirected to /admin when not impersonating
   const impersonatedOrgId = request.cookies.get('impersonated_org_id')?.value;
-  const carrierRoutes = ['/dashboard', '/drivers', '/vehicles', '/loads', '/compliance', '/regulatory', '/settings', '/roadside-mode', '/dispatcher'];
+  const carrierRoutes = ['/dashboard', '/drivers', '/vehicles', '/loads', '/compliance', '/regulatory', '/settings', '/roadside-mode', '/dispatcher', '/trailers'];
 
   if (user.id === ADMIN_OWNER_ID) {
-    if (carrierRoutes.some((r) => pathname.startsWith(r)) && !impersonatedOrgId) {
-      return NextResponse.redirect(new URL('/admin', request.url));
-    }
     return response;
   }
 
-  if (isSuperAdmin === true || isAdmin === true) {
-    if (carrierRoutes.some((r) => pathname.startsWith(r)) && !impersonatedOrgId) {
-      return NextResponse.redirect(new URL('/admin', request.url));
-    }
+  // Staff (not owner): when not impersonating, carrier routes redirect to /admin
+  if (isStaff === true && carrierRoutes.some((r) => pathname.startsWith(r)) && !impersonatedOrgId) {
+    return NextResponse.redirect(new URL('/admin', request.url));
   }
 
-  // Admin portal: only super-admin may access (platform_roles.role = 'super-admin' or owner ID)
+  // Admin portal: any platform staff may access
   if (pathname.startsWith('/admin')) {
-    if (isSuperAdmin !== true) {
+    if (isStaff !== true) {
       return NextResponse.redirect(new URL('/', request.url));
     }
   }

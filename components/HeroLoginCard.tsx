@@ -2,8 +2,10 @@
 
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { useState } from 'react';
 import { motion } from 'framer-motion';
+import { PasswordInput } from '@/components/PasswordInput';
 
 const ADMIN_OWNER_ID = 'ae175e55-72b4-4441-9e3c-02ecd8225bf7';
 
@@ -67,15 +69,20 @@ export function HeroLoginCard({ redirectTo = '/dashboard' }: { redirectTo?: stri
             <label htmlFor="hero-password" className="sr-only">
               Password
             </label>
-            <input
+            <PasswordInput
               id="hero-password"
-              type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              required
               placeholder="Password"
-              className="w-full min-h-[48px] px-4 py-3 rounded-xl bg-white/5 border border-white/20 text-white placeholder-white/40 focus:outline-none focus:border-[#FFBF00] focus:ring-1 focus:ring-[#FFBF00]/50 transition-colors text-base touch-manipulation"
+              required
+              autoComplete="current-password"
+              className="w-full min-h-[48px] px-4 py-3 rounded-xl bg-white/5 border border-white/20 text-white placeholder-white/40 focus:outline-none focus:border-[#FFBF00] focus:ring-1 focus:ring-[#FFBF00]/50 transition-colors text-base touch-manipulation pr-12"
             />
+            <div className="mt-1.5 text-right">
+              <Link href="/forgot-password" className="text-sm text-[#FFBF00] hover:text-[#FFBF00]/90">
+                Forgot password?
+              </Link>
+            </div>
           </div>
           {message && (
             <p className="text-sm text-red-400 text-center">{message}</p>
