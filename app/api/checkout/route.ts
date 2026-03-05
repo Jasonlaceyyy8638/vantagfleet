@@ -103,11 +103,12 @@ export async function POST(request: NextRequest) {
     const isPro = key === 'pro' || key === 'pro_annual';
     const isEnterprise = key === 'enterprise_monthly' || key === 'enterprise_annual';
     const tierLabel = isEnterprise ? 'Enterprise' : isPro ? 'Fleet Master' : 'Solo Pro';
+    const TRIAL_PERIOD_DAYS = 7;
     const subscriptionData: Stripe.Checkout.SessionCreateParams['subscription_data'] = {
       metadata: { business_name: 'VantagFleet', tier: tierLabel },
     };
     if (isPro) {
-      subscriptionData.trial_period_days = 30;
+      subscriptionData.trial_period_days = TRIAL_PERIOD_DAYS;
     }
 
     // Optional: link subscription to org when user is logged in (for webhook to set stripe_customer_id / trial_active)

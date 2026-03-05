@@ -33,7 +33,7 @@ export function PricingSuccessClient({ planName }: { planName: string | null }) 
         </div>
         <h1 className="text-3xl font-bold text-soft-cloud mb-3">Welcome to VantagFleet</h1>
         <p className="text-xl text-soft-cloud font-semibold mb-4">
-          Your 30-day free trial is now active
+          Your 7-day free trial is now active
         </p>
         <p className="text-soft-cloud/80 text-sm mb-4">
           Check your email for your trial reminder (sent 3 days before trial ends).

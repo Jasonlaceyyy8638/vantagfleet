@@ -9,7 +9,7 @@ import { Check, ArrowRight } from 'lucide-react';
 const LINES = [
   { key: 'dot', prefix: '[SYSTEM] Verifying DOT: ', suffix: '... SUCCESS', paramKey: 'dot' as const },
   { key: 'motive', prefix: '[SYSTEM] Linking Motive API... ', suffix: 'CONNECTED', paramKey: null },
-  { key: 'trial', prefix: '[SYSTEM] Initializing 30-Day Diamond Trial... ', suffix: 'ACTIVE', paramKey: null },
+  { key: 'trial', prefix: '[SYSTEM] Initializing 7-Day Free Trial... ', suffix: 'ACTIVE', paramKey: null },
 ] as const;
 
 function playSystemBeep() {

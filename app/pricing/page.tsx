@@ -9,7 +9,7 @@ export default function PricingPage() {
           <h1 className="text-3xl font-bold text-soft-cloud">Solo Pro, Fleet Master & Enterprise</h1>
           <p className="text-soft-cloud/70 mt-2">One dashboard. Choose what fits your fleet.</p>
           <p className="text-soft-cloud/60 text-sm mt-2">
-            Your card will not be charged until the end of your 30-day trial.
+            Your card will not be charged until the end of your 7-Day Free Trial.
           </p>
         </div>
         <Pricing />
