@@ -144,15 +144,18 @@ export async function getDevices(
     return { error: out.error.message ?? 'Failed to get devices' };
   }
   const list = Array.isArray(out.result) ? out.result : [];
-  const devices = list.map((d) => ({
-    id: String((d as { id?: string }).id ?? (d as { id?: number }).id ?? ''),
-    name: (d as { name?: string }).name,
-    serialNumber: (d as { serialNumber?: string }).serialNumber,
-    deviceType: (d as { deviceType?: string }).deviceType,
-    vin: (d as { vin?: string }).vin,
-    licensePlate: (d as { licensePlate?: string }).licensePlate,
-    comment: (d as { comment?: string }).comment,
-  }));
+  const devices = list.map((d) => {
+    const raw = d as { id?: string | number; name?: string; serialNumber?: string; deviceType?: string; vin?: string; licensePlate?: string; comment?: string };
+    return {
+    id: String(raw.id ?? ''),
+    name: raw.name,
+    serialNumber: raw.serialNumber,
+    deviceType: raw.deviceType,
+    vin: raw.vin,
+    licensePlate: raw.licensePlate,
+    comment: raw.comment,
+  };
+  });
   return { devices };
 }
 
@@ -269,7 +272,7 @@ export async function getDeviceLocations(
     }
   }
   const locations: GeotabMapLocation[] = [];
-  for (const [devId, row] of byDevice) {
+  for (const [devId, row] of Array.from(byDevice.entries())) {
     const lat = typeof row.latitude === 'number' ? row.latitude : 0;
     const lng = typeof row.longitude === 'number' ? row.longitude : 0;
     const speed = typeof row.speed === 'number' ? row.speed : null;
