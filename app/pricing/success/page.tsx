@@ -18,7 +18,15 @@ export default async function PricingSuccessPage({ searchParams }: Props) {
     }
   }
 
-  const planName = tierLabel === 'Pro' ? 'Compliance Pro' : tierLabel === 'Solo' ? 'Solo Guard' : null;
+  // Use Stripe metadata tier as display name; map legacy tier values to current plan names only (never show old "Solo Guard" / "Compliance Pro")
+  const planName =
+    tierLabel === 'Solo Pro' || tierLabel === 'Fleet Master' || tierLabel === 'Enterprise'
+      ? tierLabel
+      : tierLabel === 'Solo'
+        ? 'Solo Pro'
+        : tierLabel === 'Pro'
+          ? 'Fleet Master'
+          : null;
 
   return <PricingSuccessClient planName={planName} />;
 }

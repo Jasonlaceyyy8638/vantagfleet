@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { CheckCircle2, AlertCircle, FileWarning, RefreshCw } from 'lucide-react';
+import { CheckCircle2, AlertCircle, FileWarning, RefreshCw, Phone } from 'lucide-react';
 import { syncOrganizationFromFmcsa } from '@/app/actions/fmcsa';
+import { updateDispatchPhone } from '@/app/actions/org-settings';
 
 type Props = {
   orgId: string;
@@ -13,6 +14,7 @@ type Props = {
   legalName: string | null;
   address: string | null;
   safetyRating: string | null;
+  dispatchPhone: string | null;
 };
 
 type DotStatus = { active: boolean } | null;
@@ -25,12 +27,20 @@ export function CarrierProfile({
   legalName,
   address,
   safetyRating,
+  dispatchPhone: initialDispatchPhone,
 }: Props) {
   const router = useRouter();
   const [dotStatus, setDotStatus] = useState<DotStatus>(null);
   const [dotLoading, setDotLoading] = useState(!!usdotNumber?.trim());
   const [syncLoading, setSyncLoading] = useState(false);
   const [syncError, setSyncError] = useState<string | null>(null);
+  const [dispatchPhone, setDispatchPhone] = useState(initialDispatchPhone ?? '');
+  const [dispatchPhoneSaving, setDispatchPhoneSaving] = useState(false);
+  const [dispatchPhoneSaved, setDispatchPhoneSaved] = useState(false);
+
+  useEffect(() => {
+    setDispatchPhone(initialDispatchPhone ?? '');
+  }, [initialDispatchPhone]);
 
   useEffect(() => {
     if (!usdotNumber?.trim()) {
@@ -69,6 +79,21 @@ export function CarrierProfile({
       }
     } finally {
       setSyncLoading(false);
+    }
+  }
+
+  async function handleSaveDispatchPhone() {
+    setDispatchPhoneSaving(true);
+    setDispatchPhoneSaved(false);
+    try {
+      const result = await updateDispatchPhone(orgId, dispatchPhone.trim() || null);
+      if (result.ok) {
+        setDispatchPhoneSaved(true);
+        router.refresh();
+        setTimeout(() => setDispatchPhoneSaved(false), 2000);
+      }
+    } finally {
+      setDispatchPhoneSaving(false);
     }
   }
 
@@ -132,7 +157,34 @@ export function CarrierProfile({
           </div>
         )}
 
-        <div className="pt-2 flex flex-wrap gap-3">
+        <div className="pt-4 border-t border-white/10 mt-4">
+          <div className="flex items-center gap-2 mb-2">
+            <Phone className="size-4 text-soft-cloud/60" />
+            <span className="text-soft-cloud/60 text-sm">Dispatch phone</span>
+          </div>
+          <p className="text-xs text-soft-cloud/50 mb-2">
+            This number is shown to drivers on the Roadside tab for &quot;Call Dispatch.&quot; Leave blank to hide the button.
+          </p>
+          <div className="flex gap-2 flex-wrap">
+            <input
+              type="tel"
+              value={dispatchPhone}
+              onChange={(e) => setDispatchPhone(e.target.value)}
+              placeholder="e.g. +1 555-123-4567"
+              className="flex-1 min-w-[200px] px-3 py-2 rounded-lg bg-deep-ink border border-white/10 text-soft-cloud text-sm placeholder:text-soft-cloud/40"
+            />
+            <button
+              type="button"
+              onClick={handleSaveDispatchPhone}
+              disabled={dispatchPhoneSaving}
+              className="px-4 py-2 rounded-lg bg-cyber-amber text-midnight-ink font-medium text-sm hover:bg-cyber-amber/90 disabled:opacity-50"
+            >
+              {dispatchPhoneSaving ? 'Saving…' : dispatchPhoneSaved ? 'Saved' : 'Save'}
+            </button>
+          </div>
+        </div>
+
+        <div className="pt-2 flex flex-wrap gap-3 mt-4">
           {/* DOT Status (Census) */}
           <div className="flex flex-col gap-1">
             <span className="text-soft-cloud/60 text-xs uppercase tracking-wider">DOT status (Census)</span>

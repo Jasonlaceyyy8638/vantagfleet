@@ -1,14 +1,19 @@
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getDashboardOrgId } from '@/lib/admin';
+import { getRoadsideSummaryForOrg } from '@/app/actions/roadside';
 import { cookies } from 'next/headers';
 import Link from 'next/link';
 import { EmailToOfficerButton } from './EmailToOfficerButton';
 import { SignDailyLogButton } from './SignDailyLogButton';
-import { ReportIncidentSection } from './ReportIncidentSection';
+import { ReportIncidentCard } from './ReportIncidentCard';
+import { DotInspectionQrCard } from './DotInspectionQrCard';
+import { DotInspectionEldCard } from './DotInspectionEldCard';
+import { CallDispatchAndTruckStopButtons } from './CallDispatchAndTruckStopButtons';
 
 const BUCKET = 'dq-documents';
 const SIGNED_URL_EXPIRES = 3600; // 1 hour
+const APP_ORIGIN = process.env.NEXT_PUBLIC_APP_URL || 'https://vantagfleet.com';
 
 export default async function RoadsideShieldPage({
   searchParams,
@@ -33,9 +38,10 @@ export default async function RoadsideShieldPage({
     );
   }
 
-  const [{ data: org }, { data: docs }] = await Promise.all([
-    supabase.from('organizations').select('name, usdot_number').eq('id', orgId).single(),
+  const [{ data: org }, { data: docs }, summary] = await Promise.all([
+    supabase.from('organizations').select('name, usdot_number, dispatch_phone').eq('id', orgId).single(),
     supabase.from('compliance_docs').select('id, doc_type, file_path').eq('org_id', orgId),
+    getRoadsideSummaryForOrg(orgId),
   ]);
 
   const admin = createAdminClient();
@@ -56,6 +62,7 @@ export default async function RoadsideShieldPage({
 
   const carrierName = (org as { name?: string } | null)?.name ?? 'Carrier';
   const usdot = (org as { usdot_number?: string | null } | null)?.usdot_number ?? '—';
+  const dispatchPhone = (org as { dispatch_phone?: string | null } | null)?.dispatch_phone ?? null;
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-[#e2e8f0]">
@@ -73,88 +80,90 @@ export default async function RoadsideShieldPage({
         </p>
       </header>
 
-      <main className="p-4 max-w-lg mx-auto">
-        {/* Email to Officer — primary CTA with modal */}
-        <section className="mb-6">
-          <EmailToOfficerButton />
-        </section>
-
-        {/* Share via Email — form fallback */}
+      <main className="p-4 max-w-4xl mx-auto">
+        {/* Top half: DOT Inspection Mode */}
         <section className="mb-8">
-          <form
-            action="/api/driver/roadside-shield/share"
-            method="POST"
-            className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-4"
-          >
-            <h2 className="text-base font-semibold text-amber-400 mb-3">
-              Share via Email
-            </h2>
-            <p className="text-sm text-[#94a3b8] mb-3">
-              Enter the officer&apos;s email to send a zip of all compliance docs in one click.
-            </p>
-            <input
-              type="email"
-              name="officerEmail"
-              required
-              placeholder="officer@example.com"
-              className="w-full px-4 py-3 rounded-lg bg-[#1e293b] border border-white/10 text-white placeholder-[#64748b] text-base mb-3"
-            />
-            <button
-              type="submit"
-              className="roadside-btn w-full rounded-lg bg-[#f59e0b] text-black font-semibold px-4 py-3"
-            >
-              Send zip to officer
-            </button>
-          </form>
-          {params.sent === '1' && (
-            <p className="mt-2 text-sm text-emerald-400">Email sent successfully.</p>
-          )}
-          {params.error && (
-            <p className="mt-2 text-sm text-red-400">
-              {params.error === '1' ? 'Failed to send. Try again.' : decodeURIComponent(params.error)}
-            </p>
-          )}
-        </section>
-
-        {/* Sign Daily Log — signature watermarked onto PDFs sent to officer */}
-        <section className="mb-8">
-          <h2 className="text-base font-semibold text-white mb-3">
-            Daily Log
-          </h2>
-          <p className="text-sm text-[#94a3b8] mb-3">
-            Sign your daily log. Your signature will be watermarked on the PDFs sent to the officer.
-          </p>
-          <SignDailyLogButton />
-        </section>
-
-        {/* Ready for Inspection documents */}
-        <section className="mb-8">
-          <h2 className="text-base font-semibold text-white mb-3">
-            Ready for Inspection
-          </h2>
-          {docsWithUrls.length === 0 ? (
-            <p className="text-[#94a3b8] text-sm">No documents on file yet. Upload from Compliance or New Hire Documents.</p>
-          ) : (
-            <ul className="space-y-3 list-none p-0 m-0">
-              {docsWithUrls.map((doc) => (
-                <li key={doc.id} className="rounded-xl border border-white/10 bg-[#1e293b] p-4">
-                  <p className="text-sm text-[#94a3b8] mb-3">{doc.doc_type}</p>
-                  <a
-                    href={doc.viewUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="roadside-btn block w-full text-center rounded-lg bg-[#f59e0b] text-black font-semibold px-4 py-3 no-underline"
+          <h2 className="text-lg font-bold text-white mb-4">DOT Inspection Mode</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <DotInspectionQrCard orgId={orgId} appOrigin={APP_ORIGIN} />
+            <DotInspectionEldCard summary={summary} />
+            <div className="rounded-2xl border border-white/10 bg-[#1e293b] p-4 flex flex-col">
+              <h3 className="text-base font-semibold text-amber-400 mb-2">Email Logs</h3>
+              <p className="text-sm text-[#94a3b8] mb-3">
+                Send compliance docs to the officer, share via email, or sign your daily log.
+              </p>
+              <div className="space-y-3 flex-1">
+                <EmailToOfficerButton />
+                <form
+                  action="/api/driver/roadside-shield/share"
+                  method="POST"
+                  className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-3"
+                >
+                  <p className="text-xs text-[#94a3b8] mb-2">Send zip to officer&apos;s email</p>
+                  <input
+                    type="email"
+                    name="officerEmail"
+                    required
+                    placeholder="officer@example.com"
+                    className="w-full px-3 py-2 rounded-lg bg-[#0f172a] border border-white/10 text-white placeholder-[#64748b] text-sm mb-2"
+                  />
+                  <button
+                    type="submit"
+                    className="roadside-btn w-full rounded-lg bg-[#f59e0b] text-black font-semibold px-3 py-2 text-sm"
                   >
-                    View PDF
-                  </a>
-                </li>
-              ))}
-            </ul>
-          )}
+                    Send zip
+                  </button>
+                </form>
+                {params.sent === '1' && <p className="text-xs text-emerald-400">Email sent.</p>}
+                {params.error && (
+                  <p className="text-xs text-red-400">
+                    {params.error === '1' ? 'Failed to send.' : decodeURIComponent(params.error)}
+                  </p>
+                )}
+                <div>
+                  <p className="text-xs text-[#94a3b8] mb-2">Sign daily log (watermarked on PDFs)</p>
+                  <SignDailyLogButton />
+                </div>
+                {docsWithUrls.length > 0 && (
+                  <div>
+                    <p className="text-xs text-[#94a3b8] mb-2">Ready for inspection</p>
+                    <ul className="space-y-2 list-none p-0 m-0">
+                      {docsWithUrls.map((doc) => (
+                        <li key={doc.id}>
+                          <a
+                            href={doc.viewUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="roadside-btn block w-full text-center rounded-lg bg-[#f59e0b] text-black font-semibold px-3 py-2 text-sm no-underline"
+                          >
+                            {doc.doc_type} — View PDF
+                          </a>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Call Dispatch & Find Truck Stop — side-by-side below DOT Inspection */}
+          <div className="mt-6">
+            <CallDispatchAndTruckStopButtons dispatchPhone={dispatchPhone} />
+          </div>
         </section>
 
-        {/* Report Inspection/Incident — at bottom, high-visibility; dispatcher alert */}
-        <ReportIncidentSection />
+        {/* Driver Tools: Report Incident */}
+        <section>
+          <h2 className="text-lg font-bold text-white mb-4">Driver Tools</h2>
+          <div className="rounded-2xl border border-white/10 bg-[#1e293b] p-4 flex flex-col">
+            <h3 className="text-base font-semibold text-amber-400 mb-2">Report Incident</h3>
+            <p className="text-sm text-[#94a3b8] mb-3">
+              Log DOT inspections, breakdowns, accidents, or citations. Dispatch is notified immediately.
+            </p>
+            <ReportIncidentCard />
+          </div>
+        </section>
 
         <p className="mt-8 text-center">
           <Link href="/dashboard" className="text-[#94a3b8] text-sm underline">

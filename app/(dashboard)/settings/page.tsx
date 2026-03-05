@@ -32,10 +32,11 @@ export default async function SettingsPage() {
   let legalName: string | null = null;
   let address: string | null = null;
   let safetyRating: string | null = null;
+  let dispatchPhone: string | null = null;
   if (orgId) {
     const { data: org } = await supabase
       .from('organizations')
-      .select('name, usdot_number, stripe_customer_id, authority_verified, legal_name, address, safety_rating')
+      .select('name, usdot_number, stripe_customer_id, authority_verified, legal_name, address, safety_rating, dispatch_phone')
       .eq('id', orgId)
       .single();
     stripeCustomerId = org?.stripe_customer_id ?? null;
@@ -45,6 +46,7 @@ export default async function SettingsPage() {
     legalName = (org as { legal_name?: string | null })?.legal_name ?? null;
     address = (org as { address?: string | null })?.address ?? null;
     safetyRating = (org as { safety_rating?: string | null })?.safety_rating ?? null;
+    dispatchPhone = (org as { dispatch_phone?: string | null })?.dispatch_phone ?? null;
   }
 
   return (
@@ -63,6 +65,7 @@ export default async function SettingsPage() {
           legalName={legalName}
           address={address}
           safetyRating={safetyRating}
+          dispatchPhone={dispatchPhone}
         />
       )}
 

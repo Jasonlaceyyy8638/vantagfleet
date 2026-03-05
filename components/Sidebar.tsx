@@ -53,8 +53,9 @@ const nav = [
   { href: '/settings/team', label: 'Team', icon: UserPlus },
 ];
 
-/** Dispatcher sees only these four items. Billing, Pricing, Settings, Team are admin-only. */
+/** Dispatcher sees Dispatcher Dashboard first, then these items. */
 const dispatcherNav = [
+  { href: '/dispatcher', label: 'Dispatcher Dashboard', icon: LayoutDashboard },
   { href: '/dashboard/map', label: 'Live Map', icon: MapPin },
   { href: '/dashboard/enterprise', label: 'Fleet Health', icon: Building2 },
   { href: '/roadside-mode', label: 'Roadside', icon: Smartphone },

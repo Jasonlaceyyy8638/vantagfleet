@@ -45,7 +45,7 @@ export async function middleware(request: NextRequest) {
 
   // Super-admin impersonating: if they have impersonated_org_id cookie, let them through to dashboard (don't redirect to /admin)
   const impersonatedOrgId = request.cookies.get('impersonated_org_id')?.value;
-  const carrierRoutes = ['/dashboard', '/drivers', '/vehicles', '/loads', '/compliance', '/regulatory', '/settings', '/roadside-mode'];
+  const carrierRoutes = ['/dashboard', '/drivers', '/vehicles', '/loads', '/compliance', '/regulatory', '/settings', '/roadside-mode', '/dispatcher'];
 
   if (user.id === ADMIN_OWNER_ID) {
     if (carrierRoutes.some((r) => pathname.startsWith(r)) && !impersonatedOrgId) {
