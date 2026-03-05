@@ -78,7 +78,7 @@ export function LiveMapUpgradeModal({ open, onClose, showTrialCopy = true }: Liv
             </button>
           </div>
           <p className="text-gray-600 text-sm sm:text-base mb-6 leading-relaxed">
-            Connect your Motive ELD and see your entire fleet&apos;s live location, HOS status, and real-time profit margins.
+            Connect your ELD (Motive, Geotab, or Samsara) and see your entire fleet&apos;s live location, HOS status, and real-time profit margins.
           </p>
           <ul className="space-y-4 mb-8">
             <li className="flex items-start gap-3">

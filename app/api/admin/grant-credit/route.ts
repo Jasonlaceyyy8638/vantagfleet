@@ -1,13 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { createClient } from '@/lib/supabase/server';
-import { getPlatformRole, isPlatformStaff } from '@/lib/admin';
+import { getPlatformRole, isPlatformStaff, ADMIN_OWNER_ID } from '@/lib/admin';
 import { createAdminClient } from '@/lib/supabase/admin';
 
 export async function POST(request: NextRequest) {
   const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+  const isOwner = user.id === ADMIN_OWNER_ID;
   const role = await getPlatformRole(supabase);
-  if (!isPlatformStaff(role)) {
+  if (!isOwner && !isPlatformStaff(role)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 

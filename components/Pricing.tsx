@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Check, Loader2 } from 'lucide-react';
+import { Check, Loader2, X } from 'lucide-react';
 
 type Billing = 'monthly' | 'yearly';
 
@@ -13,11 +13,13 @@ const SOLO_PRO_POINTS = [
   'Expiry Alerts',
 ];
 
+const SOLO_PRO_EXCLUDED = ['ELD Integration: Not included'];
+
 const FLEET_MASTER_POINTS = [
   'Small Fleets (2–5 trucks)',
-  'Motive ELD Sync',
-  'IFTA (standard)',
-  'Certified Audit-Ready Exports',
+  'Universal ELD Integration (Motive, Geotab, Samsara)',
+  'Automated IFTA Reporting',
+  'One-Click Audit-Ready PDF Exports',
   'Real-time Profitability',
   'Everything in Solo Pro',
 ];
@@ -25,8 +27,9 @@ const FLEET_MASTER_POINTS = [
 const ENTERPRISE_POINTS = [
   'Unlimited Trucks',
   'Multi-user access',
-  'IFTA (standard)',
-  'Certified Audit-Ready Exports',
+  'Universal ELD Integration (Motive, Geotab, Samsara)',
+  'Automated IFTA Reporting',
+  'One-Click Audit-Ready PDF Exports',
   'Audit-Ready IFTA Reports',
   'Everything in Fleet Master',
   'Dedicated support',
@@ -115,6 +118,12 @@ export function Pricing() {
             {SOLO_PRO_POINTS.map((point, i) => (
               <li key={i} className="flex items-start gap-2">
                 <Check className="size-4 text-electric-teal shrink-0 mt-0.5" />
+                <span>{point}</span>
+              </li>
+            ))}
+            {SOLO_PRO_EXCLUDED.map((point, i) => (
+              <li key={`excluded-${i}`} className="flex items-start gap-2 text-soft-cloud/60">
+                <X className="size-4 text-red-400 shrink-0 mt-0.5" aria-hidden />
                 <span>{point}</span>
               </li>
             ))}

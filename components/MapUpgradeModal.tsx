@@ -98,7 +98,7 @@ export function MapUpgradeModal({ open, onClose }: MapUpgradeModalProps) {
             </li>
             <li className="flex items-start gap-3">
               <span className="shrink-0 text-lg" aria-hidden>🚦</span>
-              <span><strong className="text-soft-cloud">Motive ELD Integration:</strong> Real-time HOS and location sync.</span>
+              <span><strong className="text-soft-cloud">Universal ELD Integration (Motive, Geotab, Samsara):</strong> Real-time HOS and location sync.</span>
             </li>
             <li className="flex items-start gap-3">
               <span className="shrink-0 text-lg" aria-hidden>📈</span>

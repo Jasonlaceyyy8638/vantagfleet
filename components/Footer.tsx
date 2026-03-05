@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { Mail } from 'lucide-react';
-import { EMAIL_SUPPORT, EMAIL_INFO } from '@/lib/email-addresses';
+import { EMAIL_SUPPORT, EMAIL_INFO, EMAIL_BILLING } from '@/lib/email-addresses';
 
 export function Footer() {
   return (
@@ -11,12 +11,6 @@ export function Footer() {
             © 2026 VantagFleet. All rights reserved.
           </div>
           <nav className="order-1 sm:order-2 flex items-center gap-6" aria-label="Footer">
-            <Link
-              href="/contact"
-              className="text-soft-cloud/80 hover:text-cyber-amber transition-colors"
-            >
-              Contact Support
-            </Link>
             <Link
               href="/privacy"
               className="text-soft-cloud/80 hover:text-cyber-amber transition-colors"
@@ -37,6 +31,12 @@ export function Footer() {
             >
               <Mail className="size-4" aria-hidden />
               Help
+            </a>
+            <a
+              href={`mailto:${EMAIL_BILLING}`}
+              className="inline-flex items-center gap-2 text-soft-cloud/80 hover:text-cyber-amber transition-colors"
+            >
+              Billing
             </a>
             <a
               href={`mailto:${EMAIL_INFO}`}

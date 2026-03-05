@@ -717,6 +717,7 @@ export function LandingPage({ isAuthenticated = false, navbarRole = null }: Land
                 why: 'Stop sweating IFTA audits. VantagFleet compiles your ELD bread-crumbs, state-line crossings, and fuel receipts into a professional, watermarked ZIP bundle. Hand it to an auditor with confidence.',
                 Icon: Shield,
                 comingSoon: false,
+                badge: 'Certified' as const,
               },
               {
                 id: 'boc3' as const,
@@ -724,6 +725,7 @@ export function LandingPage({ isAuthenticated = false, navbarRole = null }: Land
                 why: 'Designate process agents in every state you operate—no more missed service of process.',
                 Icon: Scale,
                 comingSoon: true,
+                badge: null,
               },
               {
                 id: 'mcs150' as const,
@@ -731,21 +733,30 @@ export function LandingPage({ isAuthenticated = false, navbarRole = null }: Land
                 why: 'Avoid $1k+ fines with automated biennial updates and reminders.',
                 Icon: FileText,
                 comingSoon: true,
+                badge: null,
               },
               {
                 id: 'ifta' as const,
-                title: 'IFTA Fuel Tax',
-                why: 'File and track IFTA fuel tax in one place. Stay audit-ready.',
+                title: 'Automated IFTA Reporting',
+                why: 'Audit-ready IFTA logs. File and track IFTA fuel tax in one place with ELD sync.',
                 Icon: Fuel,
                 comingSoon: false,
+                badge: 'Certified' as const,
               },
-            ].map(({ id, title, why, Icon, comingSoon }) => (
+            ].map(({ id, title, why, Icon, comingSoon, badge }) => (
               <div
                 key={id}
                 className="group relative rounded-xl border-2 border-dashed border-amber-500/40 bg-white/[0.04] backdrop-blur-sm p-6 transition-all duration-300 hover:border-amber-500/70 hover:shadow-[0_0_40px_-8px_rgba(245,158,11,0.35)] hover:bg-white/[0.06]"
                 title={why}
               >
-                <div className="absolute top-3 right-3 h-2 w-2 rounded-full bg-amber-500/60 group-hover:bg-amber-400" aria-hidden />
+                <div className="absolute top-3 right-3 flex items-center gap-2">
+                  {badge && (
+                    <span className="rounded-md bg-electric-teal/20 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-electric-teal">
+                      {badge}
+                    </span>
+                  )}
+                  <span className="h-2 w-2 rounded-full bg-amber-500/60 group-hover:bg-amber-400" aria-hidden />
+                </div>
                 <div className="flex items-center gap-3 mb-3">
                   <div className="p-2 rounded-lg border border-amber-500/30 bg-amber-500/10">
                     <Icon className="size-5 text-amber-400" />
@@ -765,7 +776,7 @@ export function LandingPage({ isAuthenticated = false, navbarRole = null }: Land
                       onClick={() => setEarlyAccessModal(id)}
                       className="w-full py-2.5 rounded-lg border border-amber-500/50 bg-amber-500/10 text-amber-400 text-sm font-medium hover:bg-amber-500/20 hover:border-amber-500/60 transition-colors"
                     >
-                      Get Early Access
+                      Get notified when available
                     </button>
                   </>
                 ) : (
@@ -821,18 +832,21 @@ export function LandingPage({ isAuthenticated = false, navbarRole = null }: Land
                 title: 'BOC-3 Authority Link',
                 subtext: 'Instant 50-state process agent coverage. Stay legal, stay moving.',
                 Icon: Scale,
+                ctaLink: null,
               },
               {
                 title: 'Automated MCS-150',
                 subtext: 'Never miss a biennial update. We pre-fill your census data from your ELD activity.',
                 Icon: FileText,
+                ctaLink: null,
               },
               {
-                title: 'Quarterly IFTA Prep',
-                subtext: 'Stop the spreadsheets. Automated fuel tax reporting based on GPS mileage.',
+                title: 'Automated IFTA Reporting',
+                subtext: 'Audit-ready IFTA logs. Automated fuel tax reporting based on GPS mileage.',
                 Icon: Fuel,
+                ctaLink: isAuthenticated ? '/dashboard/ifta' : '/signup',
               },
-            ].map(({ title, subtext, Icon }) => (
+            ].map(({ title, subtext, Icon, ctaLink }) => (
               <div
                 key={title}
                 className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl shadow-[0_0_40px_-12px_rgba(255,176,0,0.12)] p-6 flex flex-col"
@@ -844,13 +858,22 @@ export function LandingPage({ isAuthenticated = false, navbarRole = null }: Land
                   <h3 className="text-lg font-semibold text-soft-cloud">{title}</h3>
                 </div>
                 <p className="text-sm text-soft-cloud/70 mb-6 flex-1">{subtext}</p>
-                <button
-                  type="button"
-                  onClick={() => setRoadmapModalOpen(true)}
-                  className="w-full py-2.5 rounded-xl border border-amber-500/40 bg-amber-500/10 text-amber-400 text-sm font-medium hover:bg-amber-500/20 hover:border-amber-500/50 transition-colors"
-                >
-                  Early Access
-                </button>
+                {ctaLink ? (
+                  <Link
+                    href={ctaLink}
+                    className="w-full py-2.5 rounded-xl border border-amber-500/40 bg-amber-500/10 text-amber-400 text-sm font-medium hover:bg-amber-500/20 hover:border-amber-500/50 transition-colors text-center"
+                  >
+                    Get started
+                  </Link>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setRoadmapModalOpen(true)}
+                    className="w-full py-2.5 rounded-xl border border-amber-500/40 bg-amber-500/10 text-amber-400 text-sm font-medium hover:bg-amber-500/20 hover:border-amber-500/50 transition-colors"
+                  >
+                    Get notified when available
+                  </button>
+                )}
               </div>
             ))}
           </motion.div>
@@ -1052,8 +1075,8 @@ export function LandingPage({ isAuthenticated = false, navbarRole = null }: Land
                 comingSoon: true,
               },
               {
-                title: 'Quarterly IFTA Prep',
-                text: 'Stop the spreadsheets. Automated fuel tax reporting based on GPS mileage. Connect Motive to auto-generate state-by-state data.',
+                title: 'Automated IFTA Reporting',
+                text: 'Audit-ready IFTA logs. Automated fuel tax reporting based on GPS mileage. Connect your ELD (Motive, Geotab, Samsara) to auto-generate state-by-state data.',
                 Icon: Gauge,
                 comingSoon: false,
               },
@@ -1067,7 +1090,12 @@ export function LandingPage({ isAuthenticated = false, navbarRole = null }: Land
                     COMING SOON
                   </span>
                 )}
-                <div className={`flex items-center gap-3 mb-3 ${comingSoon ? 'pr-20' : ''}`}>
+                {!comingSoon && title.includes('IFTA') && (
+                  <span className="absolute top-3 right-3 rounded-md bg-electric-teal/20 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-electric-teal">
+                    Certified
+                  </span>
+                )}
+                <div className={`flex items-center gap-3 mb-3 ${comingSoon ? 'pr-20' : ''} ${!comingSoon && title.includes('IFTA') ? 'pr-20' : ''}`}>
                   <div className="p-2 rounded-lg bg-amber-500/20 border border-amber-500/30">
                     <Icon className="size-5 text-amber-500" />
                   </div>
@@ -1080,7 +1108,7 @@ export function LandingPage({ isAuthenticated = false, navbarRole = null }: Land
                     onClick={() => setRoadmapSectionModalOpen(true)}
                     className="w-full py-2.5 rounded-xl border border-amber-500/40 bg-amber-500/10 text-amber-500 text-sm font-medium hover:bg-amber-500/20 hover:border-amber-500/50 transition-colors"
                   >
-                    Join Waitlist
+                    Get notified when available
                   </button>
                 ) : (
                   <Link
@@ -1244,7 +1272,11 @@ export function LandingPage({ isAuthenticated = false, navbarRole = null }: Land
               <div className="w-full max-w-[min(28rem,100vw-2rem)] mx-auto my-auto rounded-2xl border-2 border-amber-500/30 bg-midnight-ink/95 shadow-2xl shadow-amber-500/10 p-4 sm:p-6 shrink-0">
                 <div className="flex items-center justify-between mb-4">
                   <h3 id="early-access-title" className="text-lg font-semibold text-soft-cloud">
-                    Get Early Access — {earlyAccessModal === 'boc3' ? 'BOC-3' : earlyAccessModal === 'mcs150' ? 'MCS-150' : 'IFTA'}
+                    {earlyAccessModal === 'ifta' || earlyAccessModal === 'audit'
+                      ? 'Get Started'
+                      : 'Get notified when available'}
+                    {' — '}
+                    {earlyAccessModal === 'boc3' ? 'BOC-3' : earlyAccessModal === 'mcs150' ? 'MCS-150' : earlyAccessModal === 'audit' ? 'Audit Export' : 'Automated IFTA Reporting'}
                   </h3>
                   <button
                     type="button"
