@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { cookies } from 'next/headers';
-import { getDashboardOrgId } from '@/lib/admin';
+import { getDashboardOrgId, isSuperAdminImpersonating } from '@/lib/admin';
 import { canSeeMap } from '@/lib/userHasAccess';
 import { FleetMapDynamic } from '@/components/FleetMapDynamic';
 import { MapUpgradeOverlay } from './MapUpgradeOverlay';
@@ -42,7 +42,8 @@ export default async function DashboardMapPage() {
 
   const profile = profileRow as { is_beta_tester?: boolean } | null;
   const org = orgRow as { tier?: string | null } | null;
-  const mapAccess = canSeeMap(profile, org);
+  const adminImpersonating = await isSuperAdminImpersonating(supabase, cookieStore);
+  const mapAccess = adminImpersonating || canSeeMap(profile, org);
 
   if (mapAccess) {
     return (

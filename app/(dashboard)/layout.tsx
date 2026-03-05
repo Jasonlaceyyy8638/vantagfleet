@@ -27,7 +27,7 @@ export default async function DashboardLayout({
   const impersonatedId = cookieStore.get(IMPERSONATE_COOKIE)?.value;
   const superAdmin = await isSuperAdmin(supabase);
 
-  // Super-admin impersonating: stay on dashboard and use impersonated org
+  // Super-admin impersonating: stay on dashboard and use impersonated org; grant full carrier access
   if (superAdmin && impersonatedId) {
     const currentOrgId = impersonatedId;
     const admin = createAdminClient();
@@ -47,6 +47,7 @@ export default async function DashboardLayout({
             currentOrgId={currentOrgId}
             showAdminLink={showAdminLink}
             showAdminGearInTauri={true}
+            canSeeMap={true}
           />
           <main className="flex-1 overflow-auto">
             {children}

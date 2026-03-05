@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 import { Logo } from '@/components/Logo';
 import { createClient } from '@/lib/supabase/client';
 import { LogOut } from 'lucide-react';
+import { EMAIL_SUPPORT, EMAIL_INFO, EMAIL_BILLING } from '@/lib/email-addresses';
 
 const ADMIN_OWNER_ID = 'ae175e55-72b4-4441-9e3c-02ecd8225bf7';
 
@@ -31,6 +32,9 @@ const linkBase =
   'px-4 py-2.5 rounded-lg font-medium transition-colors text-soft-cloud hover:bg-white/10';
 const linkActive =
   'px-4 py-2.5 rounded-lg font-medium transition-colors shadow-[0_0_16px_-2px_rgba(255,176,0,0.4)] ring-1 ring-cyber-amber/60 bg-cyber-amber/20 text-cyber-amber';
+
+const emailLinkClass =
+  'px-2.5 py-1.5 rounded-md text-sm font-medium transition-colors text-soft-cloud/80 hover:text-cyber-amber hover:bg-cyber-amber/10 border border-transparent hover:border-cyber-amber/30';
 
 export function Navbar({
   isAuthenticated: initialAuth = false,
@@ -114,6 +118,11 @@ export function Navbar({
         )}
         {ready && !auth && (
           <>
+            <span className="hidden sm:flex items-center gap-0.5 text-soft-cloud/70">
+              <a href={`mailto:${EMAIL_SUPPORT}`} className={emailLinkClass} title="Support">Support</a>
+              <a href={`mailto:${EMAIL_INFO}`} className={emailLinkClass} title="General">General</a>
+              <a href={`mailto:${EMAIL_BILLING}`} className={emailLinkClass} title="Billing">Billing</a>
+            </span>
             <Link
               href="/login"
               className="glass-btn min-h-[44px] inline-flex items-center px-3 sm:px-4 py-2.5 rounded-lg font-medium text-sm sm:text-base text-soft-cloud hover:text-soft-cloud transition-colors touch-manipulation whitespace-nowrap"
@@ -184,6 +193,17 @@ export function Navbar({
                 My Fleet
               </Link>
             )}
+            <span className="hidden lg:flex items-center gap-0.5 text-soft-cloud/70" aria-label="Contact">
+              <a href={`mailto:${EMAIL_SUPPORT}`} className={emailLinkClass} title="Support">
+                Support
+              </a>
+              <a href={`mailto:${EMAIL_INFO}`} className={emailLinkClass} title="General inquiries">
+                General
+              </a>
+              <a href={`mailto:${EMAIL_BILLING}`} className={emailLinkClass} title="Billing">
+                Billing
+              </a>
+            </span>
             {!isTauri && (
               <Link
                 href="/download"

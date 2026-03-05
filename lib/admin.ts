@@ -93,6 +93,19 @@ const ORG_COOKIE = 'vantag-current-org-id';
 export const IMPERSONATE_COOKIE = 'impersonated_org_id';
 
 /**
+ * True when the current user is a super-admin and viewing the dashboard as a carrier
+ * (impersonated_org_id cookie is set). Use to grant full access without subscription checks.
+ */
+export async function isSuperAdminImpersonating(
+  supabase: SupabaseClient,
+  cookieStore: { get: (name: string) => { value: string } | undefined }
+): Promise<boolean> {
+  const impersonated = cookieStore.get(IMPERSONATE_COOKIE)?.value;
+  if (!impersonated) return false;
+  return isSuperAdmin(supabase);
+}
+
+/**
  * Returns the effective org ID for dashboard data: if user is super-admin and
  * impersonated_org_id cookie is set, use that; otherwise use the normal current-org cookie.
  * Use this in dashboard layout and pages so impersonation is respected.

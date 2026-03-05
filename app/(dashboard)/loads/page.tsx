@@ -5,7 +5,7 @@ import { UpgradeOverlay } from '@/components/UpgradeOverlay';
 import { ProfitabilityCalculator } from './ProfitabilityCalculator';
 import { IftaSection } from './IftaSection';
 import { AddLoadForm } from './AddLoadForm';
-import { getDashboardOrgId } from '@/lib/admin';
+import { getDashboardOrgId, isSuperAdminImpersonating } from '@/lib/admin';
 
 function getQuarterRange(): { start: string; end: string; label: string } {
   const now = new Date();
@@ -69,7 +69,8 @@ export default async function LoadsPage() {
 
   const profileData = profile as { is_beta_tester?: boolean; beta_expires_at?: string | null; ifta_enabled?: boolean } | null;
   const orgData = org as { subscription_status?: string | null } | null;
-  const hasAccess = hasFullAccess(profileData, orgData);
+  const adminImpersonating = await isSuperAdminImpersonating(supabase, cookieStore);
+  const hasAccess = adminImpersonating || hasFullAccess(profileData, orgData);
 
   const loadIds = (loads ?? []).map((l) => l.id);
   let segmentList: { load_id: string; state_code: string; miles_driven: number }[] = [];

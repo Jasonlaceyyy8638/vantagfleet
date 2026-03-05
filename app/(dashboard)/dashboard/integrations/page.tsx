@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server';
 import { cookies } from 'next/headers';
 import { getIntegrationsForOrg } from '@/app/actions/integrations';
 import { IntegrationsHubClient } from './IntegrationsHubClient';
-import { getDashboardOrgId } from '@/lib/admin';
+import { getDashboardOrgId, isSuperAdminImpersonating } from '@/lib/admin';
 
 export default async function IntegrationsPage() {
   const supabase = await createClient();
@@ -23,6 +23,8 @@ export default async function IntegrationsPage() {
   const tier = (orgRow as { tier?: string | null } | null)?.tier ?? '';
   const tierNorm = tier.toString().trim().toLowerCase().replace(/\s+/g, '_');
   const isSoloPro = tierNorm === 'solo_pro' || tierNorm === 'solo';
+  const adminImpersonating = await isSuperAdminImpersonating(supabase, cookieStore);
+  const isEldLocked = !adminImpersonating && isSoloPro;
 
   return (
     <div className="p-6 md:p-8 max-w-5xl">
@@ -33,7 +35,7 @@ export default async function IntegrationsPage() {
       <p className="text-soft-cloud/50 text-sm mb-6">
         <strong>Motive:</strong> Click Connect to sign in with your Motive account and authorize. <strong>FMCSA:</strong> Click Connect to enable FMCSA access—no API key needed. You can also use your own API key if you prefer.
       </p>
-      <IntegrationsHubClient orgId={orgId} initialIntegrations={integrations} isEldLocked={isSoloPro} />
+      <IntegrationsHubClient orgId={orgId} initialIntegrations={integrations} isEldLocked={isEldLocked} />
     </div>
   );
 }

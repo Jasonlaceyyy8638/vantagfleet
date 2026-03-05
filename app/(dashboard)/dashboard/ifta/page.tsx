@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { cookies } from 'next/headers';
-import { getDashboardOrgId } from '@/lib/admin';
+import { getDashboardOrgId, isSuperAdminImpersonating } from '@/lib/admin';
 import { redirect } from 'next/navigation';
 import { hasFullAccess } from '@/lib/userHasAccess';
 import { IFTADashboardClient } from './IFTADashboardClient';
@@ -29,7 +29,8 @@ export default async function IFTADashboardPage() {
 
   const profileData = profile as { id?: string; ifta_enabled?: boolean; is_beta_tester?: boolean; beta_expires_at?: string | null } | null;
   const orgData = org as { subscription_status?: string | null; tier?: string | null } | null;
-  const hasAccess = hasFullAccess(profileData, orgData);
+  const adminImpersonating = await isSuperAdminImpersonating(supabase, cookieStore);
+  const hasAccess = adminImpersonating || hasFullAccess(profileData, orgData);
   const profileId = profileData?.id ?? null;
   const tier = (orgData?.tier ?? '').toString().trim().toLowerCase().replace(/\s+/g, '_');
   const isSoloPro = tier === 'solo_pro' || tier === 'solo';

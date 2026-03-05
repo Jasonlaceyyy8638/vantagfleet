@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
-import { getDashboardOrgId } from '@/lib/admin';
+import { getDashboardOrgId, isSuperAdminImpersonating } from '@/lib/admin';
 import { cookies } from 'next/headers';
 import { hasFullAccess } from '@/lib/userHasAccess';
 import { UpgradeOverlay } from '@/components/UpgradeOverlay';
@@ -49,7 +49,8 @@ export default async function VehiclesPage() {
 
   const profileData = profile as { is_beta_tester?: boolean; beta_expires_at?: string | null; ifta_enabled?: boolean } | null;
   const orgData = org as { subscription_status?: string | null } | null;
-  const hasAccess = hasFullAccess(profileData, orgData);
+  const adminImpersonating = await isSuperAdminImpersonating(supabase, cookieStore);
+  const hasAccess = adminImpersonating || hasFullAccess(profileData, orgData);
 
   const driverList = (drivers ?? []).map((d) => ({
     id: d.id,

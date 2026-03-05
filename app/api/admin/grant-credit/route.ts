@@ -44,10 +44,18 @@ export async function POST(request: NextRequest) {
     .eq('id', orgId)
     .single();
 
-  if (orgErr || !org?.stripe_customer_id) {
+  if (orgErr || !org) {
     return NextResponse.json(
-      { error: 'Organization not found or has no Stripe customer.' },
+      { error: 'Organization not found.' },
       { status: 404 }
+    );
+  }
+  if (!org.stripe_customer_id) {
+    return NextResponse.json(
+      {
+        error: 'This organization has no Stripe subscription yet. Use "View Dashboard as [carrier]" to open the carrier dashboard—when you view as a carrier, you have full access to all features without paying.',
+      },
+      { status: 400 }
     );
   }
 
