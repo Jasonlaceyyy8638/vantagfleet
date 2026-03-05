@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
     if (!cred.passwordEncrypted) continue; // cannot refresh without stored password
 
     const probe = await probeSession(cred);
-    if (probe.valid) continue;
+    if ('valid' in probe && probe.valid) continue;
     if (!('expired' in probe) || !probe.expired) {
       errors.push(`org ${(row as { org_id?: string }).org_id}: ${('error' in probe ? probe.error : 'unknown')}`);
       continue;
