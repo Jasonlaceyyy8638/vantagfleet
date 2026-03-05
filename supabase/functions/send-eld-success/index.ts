@@ -18,6 +18,16 @@ function eldDisplayName(provider: string): string {
   return provider || 'ELD';
 }
 
+function emailFooter(baseUrl: string): { text: string; html: string } {
+  const base = (baseUrl || '').replace(/\/$/, '');
+  const privacyUrl = base ? `${base}/privacy` : '#';
+  const termsUrl = base ? `${base}/terms` : '#';
+  return {
+    text: base ? `\n\n---\nPrivacy Policy: ${privacyUrl}\nTerms of Service: ${termsUrl}\n© VantagFleet` : '',
+    html: base ? `<p style="margin-top:24px;font-size:12px;color:#94a3b8;">Privacy Policy: <a href="${privacyUrl}" style="color:#f59e0b;">${privacyUrl}</a> &nbsp;|&nbsp; Terms of Service: <a href="${termsUrl}" style="color:#f59e0b;">${termsUrl}</a></p><p style="font-size:11px;color:#64748b;">© VantagFleet</p>` : '',
+  };
+}
+
 function buildEldSuccessEmail(params: {
   firstName: string;
   eldProviderName: string;
@@ -25,8 +35,9 @@ function buildEldSuccessEmail(params: {
   includeDispatcherBullet: boolean;
   mapLink: string;
   iftaLink: string;
+  baseUrl?: string;
 }): { text: string; html: string } {
-  const { firstName, eldProviderName, truckCount, includeDispatcherBullet, mapLink, iftaLink } = params;
+  const { firstName, eldProviderName, truckCount, includeDispatcherBullet, mapLink, iftaLink, baseUrl = '' } = params;
 
   let text = `Hi ${firstName},
 
@@ -53,12 +64,14 @@ Add Dispatchers: (Fleet Master & Enterprise) Invite your team to view the map an
 `;
   }
 
+  const footer = emailFooter(baseUrl);
   text += `
 Welcome to the future of fleet management.
 
 Best,
 The VantagFleet Team
 Built by a Carrier. Not a Tech Company.`;
+  text += footer.text;
 
   const dispatcherHtml = includeDispatcherBullet
     ? '<li><strong>Add Dispatchers:</strong> (Fleet Master & Enterprise) Invite your team to view the map and manage loads.</li>'
@@ -82,6 +95,7 @@ Built by a Carrier. Not a Tech Company.`;
     `</ul>`,
     `<p>Welcome to the future of fleet management.</p>`,
     `<p>Best,<br><strong>The VantagFleet Team</strong><br>Built by a Carrier. Not a Tech Company.</p>`,
+    footer.html,
   ]
     .filter(Boolean)
     .join('');
@@ -242,10 +256,11 @@ Deno.serve(async (req: Request) => {
     includeDispatcherBullet,
     mapLink,
     iftaLink,
+    baseUrl: base,
   });
 
   const sendgridKey = Deno.env.get('SENDGRID_API_KEY');
-  const fromEmail = Deno.env.get('SENDGRID_FROM_EMAIL') ?? 'VantagFleet <info@vantagfleet.com>';
+  const fromEmail = Deno.env.get('SENDGRID_SUPPORT_FROM_EMAIL') ?? Deno.env.get('SENDGRID_FROM_EMAIL') ?? 'VantagFleet <support@vantagfleet.com>';
   if (!sendgridKey) {
     console.error('SENDGRID_API_KEY not set');
     return new Response(JSON.stringify({ error: 'Email not configured' }), {

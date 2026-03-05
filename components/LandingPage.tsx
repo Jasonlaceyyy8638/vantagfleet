@@ -44,7 +44,7 @@ export function LandingPage({ isAuthenticated = false, navbarRole = null }: Land
   const [founderVideoFailed, setFounderVideoFailed] = useState(false);
   const [founderVideoError, setFounderVideoError] = useState<string | null>(null);
 
-  const [earlyAccessModal, setEarlyAccessModal] = useState<'boc3' | 'mcs150' | 'ifta' | null>(null);
+  const [earlyAccessModal, setEarlyAccessModal] = useState<'audit' | 'boc3' | 'mcs150' | 'ifta' | null>(null);
   const [earlyAccessEmail, setEarlyAccessEmail] = useState('');
   const [earlyAccessDot, setEarlyAccessDot] = useState('');
   const [earlyAccessSubmitting, setEarlyAccessSubmitting] = useState(false);
@@ -708,9 +708,16 @@ export function LandingPage({ isAuthenticated = false, navbarRole = null }: Land
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, amount: 0.15 }}
             transition={{ duration: 0.5 }}
-            className="grid grid-cols-1 md:grid-cols-3 gap-6"
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
           >
             {[
+              {
+                id: 'audit' as const,
+                title: 'One-Click Audit Protection',
+                why: 'Stop sweating IFTA audits. VantagFleet compiles your ELD bread-crumbs, state-line crossings, and fuel receipts into a professional, watermarked ZIP bundle. Hand it to an auditor with confidence.',
+                Icon: Shield,
+                comingSoon: false,
+              },
               {
                 id: 'boc3' as const,
                 title: 'BOC-3 Process Agents',

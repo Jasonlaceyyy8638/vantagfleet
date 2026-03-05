@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { Mail } from 'lucide-react';
+import { EMAIL_SUPPORT, EMAIL_INFO } from '@/lib/email-addresses';
 
 export function Footer() {
   return (
@@ -29,13 +30,19 @@ export function Footer() {
               Terms of Service
             </Link>
           </nav>
-          <div className="order-3">
+          <div className="order-3 flex items-center gap-4">
             <a
-              href="mailto:info@vantagfleet.com"
+              href={`mailto:${EMAIL_SUPPORT}`}
               className="inline-flex items-center gap-2 text-soft-cloud/80 hover:text-cyber-amber transition-colors"
             >
               <Mail className="size-4" aria-hidden />
-              info@vantagfleet.com
+              Help
+            </a>
+            <a
+              href={`mailto:${EMAIL_INFO}`}
+              className="inline-flex items-center gap-2 text-soft-cloud/80 hover:text-cyber-amber transition-colors"
+            >
+              General Inquiries
             </a>
           </div>
         </div>

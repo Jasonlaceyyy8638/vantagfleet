@@ -25,6 +25,7 @@
     "archiver": "^7.0.1",
     "canvas-confetti": "^1.9.4",
     "framer-motion": "^12.34.3",
+    "jszip": "^3.10.1",
     "lucide-react": "^0.460.0",
     "mapbox-gl": "^3.19.0",
     "mg-api-js": "^3.0.0",

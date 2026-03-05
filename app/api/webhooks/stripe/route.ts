@@ -11,6 +11,7 @@ function getStripe(): Stripe {
 /**
  * Webhook runs on the server with no user session. We must use the Supabase
  * service role client (createAdminClient) so RLS does not block updates.
+ * For receipts, subscription issues, and plan upgrades, direct users to billing@vantagfleet.com.
  */
 export async function POST(request: NextRequest) {
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET?.trim();

@@ -15,6 +15,7 @@ import { syncGeotabVehicles } from '@/app/actions/geotab-sync';
 import Link from 'next/link';
 import { Plug, Loader2, Check, X, RefreshCw, CloudDownload, MapPin, FileBarChart, Lock } from 'lucide-react';
 import { ProviderBranding, getProviderBranding } from '@/components/ProviderBranding';
+import { SmartErrorAction } from '@/components/SmartErrorAction';
 
 const PROVIDERS: { id: IntegrationProvider; name: string; label: string; placeholder: string }[] = [
   { id: 'motive', name: 'Motive', label: 'Motive', placeholder: '' },
@@ -434,12 +435,24 @@ export function IntegrationsHubClient({ orgId, initialIntegrations, isEldLocked 
                   </p>
                 )}
                 {p.id === 'fmcsa' && fmcsaConnectError && (
-                  <p className="text-xs text-amber-400 mt-1">{fmcsaConnectError}</p>
+                  <p className="text-xs text-amber-400 mt-1">
+                    {fmcsaConnectError}{' '}
+                    <a href="mailto:support@vantagfleet.com" className="text-cyber-amber hover:underline">Contact Support</a>
+                  </p>
                 )}
                 {p.id === 'geotab' && geotabSyncResult && (
-                  <p className={`text-xs mt-1 ${geotabSyncResult.startsWith('Geotab sync') ? 'text-electric-teal' : 'text-amber-400'}`}>
-                    {geotabSyncResult}
-                  </p>
+                  geotabSyncResult.startsWith('Geotab sync') ? (
+                    <p className="text-xs mt-1 text-electric-teal">{geotabSyncResult}</p>
+                  ) : (
+                    <div className="mt-2">
+                      <SmartErrorAction
+                        errorMessage={geotabSyncResult}
+                        eldProvider="Geotab"
+                        label="Geotab sync failed"
+                        className="!p-3"
+                      />
+                    </div>
+                  )
                 )}
               </div>
             </div>
@@ -499,9 +512,17 @@ export function IntegrationsHubClient({ orgId, initialIntegrations, isEldLocked 
           {motiveSyncLoading ? 'Syncing…' : 'Sync from Motive'}
         </button>
         {motiveSyncResult && (
-          <p className={`mt-3 text-sm ${motiveSyncResult.startsWith('Motive sync') ? 'text-electric-teal' : 'text-amber-400'}`}>
-            {motiveSyncResult}
-          </p>
+          motiveSyncResult.startsWith('Motive sync') ? (
+            <p className="mt-3 text-sm text-electric-teal">{motiveSyncResult}</p>
+          ) : (
+            <div className="mt-3">
+              <SmartErrorAction
+                errorMessage={motiveSyncResult}
+                eldProvider="Motive"
+                label="Motive sync failed"
+              />
+            </div>
+          )
         )}
       </section>
 
@@ -598,7 +619,14 @@ export function IntegrationsHubClient({ orgId, initialIntegrations, isEldLocked 
                   className="w-full px-3 py-2.5 rounded-lg bg-midnight-ink border border-white/10 text-soft-cloud placeholder-soft-cloud/50 focus:outline-none focus:ring-2 focus:ring-cyber-amber focus:border-cyber-amber/50"
                 />
               </div>
-              {geotabConnectError && <p className="text-sm text-red-400">{geotabConnectError}</p>}
+              {geotabConnectError && (
+                <SmartErrorAction
+                  errorMessage={geotabConnectError}
+                  eldProvider="Geotab"
+                  label="Connection failed"
+                  className="mb-2"
+                />
+              )}
               <div className="flex gap-3 pt-2">
                 <button
                   type="button"

@@ -3,8 +3,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import sgMail from '@sendgrid/mail';
-
-const FROM_EMAIL = process.env.SENDGRID_FROM_EMAIL ?? 'VantagFleet <info@vantagfleet.com>';
+import { getFromEmail } from '@/lib/email-addresses';
 
 export type EmailOfficerResult =
   | { ok: true }
@@ -127,7 +126,7 @@ export async function emailOfficer(
   try {
     await sgMail.send({
       to: trimmedEmail,
-      from: FROM_EMAIL,
+      from: getFromEmail('APP_NOTIFICATION_SUPPORT'),
       subject: `VantagFleet Official Compliance Report — ${orgName} (USDOT ${usdot})`,
       text: `VantagFleet Official Compliance Report. Carrier: ${orgName}, USDOT: ${usdot}. Driver: ${driverName}. Document links in HTML version.`,
       html,

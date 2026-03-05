@@ -2,8 +2,7 @@
 
 import { createAdminClient } from '@/lib/supabase/admin';
 import sgMail from '@sendgrid/mail';
-
-const FROM_EMAIL = process.env.SENDGRID_FROM_EMAIL ?? 'VantagFleet <info@vantagfleet.com>';
+import { getFromEmail } from '@/lib/email-addresses';
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://vantagfleet.com';
 const HIRING_PORTAL_PATH = '/documents';
 
@@ -113,7 +112,7 @@ export async function runExpiryAlerts(): Promise<ExpiryAlertResult> {
     try {
       await sgMail.send({
         to: email,
-        from: FROM_EMAIL,
+        from: getFromEmail('APP_NOTIFICATION_SUPPORT'),
         subject,
         html,
         text: `Action required: ${driver.name}'s ${doc.document_type} expires on ${doc.expiry_date}. Upload a new document at ${uploadUrl}`,

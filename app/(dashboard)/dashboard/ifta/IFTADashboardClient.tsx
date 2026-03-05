@@ -6,6 +6,7 @@ import {
   Fuel,
   Route,
   FileText,
+  FileArchive,
   Upload,
   Loader2,
   CheckCircle2,
@@ -23,6 +24,8 @@ import { createClient } from '@/lib/supabase/client';
 import { uploadIftaReceipt } from '@/app/actions/ifta-upload';
 import { updateIftaReceipt, approveIftaReceipt } from '@/app/actions/ifta-receipts';
 import { UpgradeOverlay } from '@/components/UpgradeOverlay';
+import { SmartErrorAction } from '@/components/SmartErrorAction';
+import { AuditExportModal } from '@/components/AuditExportModal';
 
 type ReceiptRow = {
   id: string;
@@ -111,6 +114,7 @@ export function IFTADashboardClient({
   const [mileageLoading, setMileageLoading] = useState(false);
   const [pdfLoading, setPdfLoading] = useState(false);
   const [useManualEntry, setUseManualEntry] = useState(false);
+  const [auditExportModalOpen, setAuditExportModalOpen] = useState(false);
 
   const processedOnly = receipts.filter((r) => r.status === 'processed');
   const quarterlyTotalGallons = processedOnly.reduce((sum, r) => sum + (r.gallons ?? 0), 0);
@@ -526,8 +530,8 @@ export function IFTADashboardClient({
           </div>
         </section>
 
-        {/* Total Miles (optional) + Export + PDF */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+        {/* Total Miles (optional) + Export + PDF + Audit Export */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           <div className="rounded-xl border border-white/10 bg-card p-5">
             <div className="flex items-center gap-2 text-soft-cloud/60 text-sm mb-1">
               <Route className="size-4 text-cyber-amber" />
@@ -572,7 +576,27 @@ export function IFTADashboardClient({
               IFTA-100 style return with reconciled data and total balance due
             </p>
           </div>
+          <div className="rounded-xl border border-white/10 bg-card p-5 flex flex-col justify-center">
+            <button
+              type="button"
+              onClick={() => setAuditExportModalOpen(true)}
+              className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-cyber-amber/50 bg-cyber-amber/10 text-cyber-amber font-medium hover:bg-cyber-amber/20 transition-colors"
+            >
+              <FileArchive className="size-5" />
+              Generate Audit Export
+            </button>
+            <p className="text-xs text-soft-cloud/50 mt-1.5">
+              ZIP with Summary Report and Detailed Trip Log (state line crossings)
+            </p>
+          </div>
         </div>
+
+        <AuditExportModal
+          open={auditExportModalOpen}
+          onClose={() => setAuditExportModalOpen(false)}
+          defaultQuarter={quarter}
+          defaultYear={year}
+        />
 
         {/* Mileage Summary + Gap Analysis (ELD vs receipts) */}
         <section className="rounded-xl border border-white/10 bg-card overflow-hidden mb-8">
@@ -597,18 +621,23 @@ export function IFTADashboardClient({
                 Loading ELD mileage…
               </div>
             ) : mileageError ? (
-              <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-6 text-center">
-                <p className="text-sm text-soft-cloud/90 mb-4">{mileageError}</p>
-                <p className="text-sm text-soft-cloud/60 mb-4">
-                  Connect your ELD (Motive or Geotab) to auto-generate state-by-state mileage and simplify your IFTA reporting.
-                </p>
-                <Link
-                  href="/dashboard/integrations"
-                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-cyber-amber text-midnight-ink font-semibold hover:bg-cyber-amber/90 transition-colors"
-                >
-                  <Plug className="size-5" />
-                  Connect ELD to Auto-Generate IFTA
-                </Link>
+              <div className="space-y-4">
+                <SmartErrorAction
+                  errorMessage={mileageError}
+                  label="ELD mileage unavailable"
+                />
+                <div className="rounded-xl border border-white/10 bg-card/50 p-4 text-center">
+                  <p className="text-sm text-soft-cloud/60 mb-3">
+                    Connect your ELD (Motive or Geotab) to auto-generate state-by-state mileage and simplify your IFTA reporting.
+                  </p>
+                  <Link
+                    href="/dashboard/integrations"
+                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-cyber-amber text-midnight-ink font-semibold hover:bg-cyber-amber/90 transition-colors"
+                  >
+                    <Plug className="size-5" />
+                    Connect ELD to Auto-Generate IFTA
+                  </Link>
+                </div>
               </div>
             ) : (
               <>

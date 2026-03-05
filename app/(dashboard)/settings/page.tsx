@@ -4,6 +4,7 @@ import { ManageSubscriptionButton } from './ManageSubscriptionButton';
 import { CopyUserId } from './CopyUserId';
 import { CarrierProfile } from './CarrierProfile';
 import { getDashboardOrgId } from '@/lib/admin';
+import { EMAIL_BILLING } from '@/lib/email-addresses';
 
 export default async function SettingsPage() {
   const supabase = await createClient();
@@ -68,6 +69,10 @@ export default async function SettingsPage() {
           Update your card, view invoices, or cancel your plan. You’ll be redirected to our secure billing portal.
         </p>
         <ManageSubscriptionButton stripeCustomerId={stripeCustomerId} />
+        <p className="text-xs text-soft-cloud/50 mt-4 pt-4 border-t border-white/10">
+          Receipts or plan questions? Email{' '}
+          <a href={`mailto:${EMAIL_BILLING}`} className="text-cyber-amber hover:underline">{EMAIL_BILLING}</a>.
+        </p>
       </div>
     </div>
   );

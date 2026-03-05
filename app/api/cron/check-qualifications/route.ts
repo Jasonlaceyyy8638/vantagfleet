@@ -3,7 +3,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { sendEmail } from '@/lib/mail';
 import { getDaysUntil } from '@/lib/compliance';
 
-const ALERT_EMAIL = process.env.SENDGRID_ALERT_EMAIL ?? 'info@vantagfleet.com';
+const ALERT_EMAIL = process.env.SENDGRID_ALERT_EMAIL ?? 'support@vantagfleet.com';
 
 function getAlertStatus(expirationDate: string | null): 'green' | 'amber' | 'red' | null {
   if (!expirationDate) return null;

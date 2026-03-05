@@ -5,7 +5,6 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { sendEmail } from '@/lib/mail';
 
 const INVITE_EXPIRES_DAYS = 7;
-const FROM_EMAIL = process.env.SENDGRID_FROM_EMAIL ?? 'VantagFleet <info@vantagfleet.com>';
 
 export type InviteDriverResult =
   | { ok: true; driver: { id: string; name: string; license_number: string | null; license_state: string | null; med_card_expiry: string | null; clearinghouse_status: string | null } }
@@ -114,7 +113,7 @@ export async function inviteDriver(
 
   const emailResult = await sendEmail({
     to: email,
-    from: FROM_EMAIL,
+    department: 'APP_NOTIFICATION_SUPPORT',
     subject: 'Set up your VantagFleet Roadside Shield',
     text: `${orgName} invited you to join VantagFleet. Set up your Roadside Shield and upload your CDL here: ${inviteLink}\n\nSet your password and access your documents. This link expires in ${INVITE_EXPIRES_DAYS} days.`,
     html: inviteEmailHtml(orgName, inviteLink, INVITE_EXPIRES_DAYS),

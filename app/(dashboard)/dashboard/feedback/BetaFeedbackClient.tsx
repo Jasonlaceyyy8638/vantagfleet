@@ -221,7 +221,7 @@ export function BetaFeedbackClient() {
           </button>
         </form>
         <p className="mt-3 text-xs text-soft-cloud/50">
-          Reports are saved to our bug tracker so we can track and fix issues. You can also email us at info@vantagfleet.com with the same details.
+          Reports are saved to our bug tracker so we can track and fix issues. You can also email us at feedback@vantagfleet.com with the same details.
         </p>
       </section>
     </div>

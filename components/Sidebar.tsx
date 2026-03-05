@@ -30,6 +30,8 @@ import {
   Lock,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import { EMAIL_SUPPORT, EMAIL_INFO } from '@/lib/email-addresses';
+import { SupportTicketModal } from '@/components/SupportTicketModal';
 
 const nav = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -75,6 +77,7 @@ export function Sidebar({
   const pathname = usePathname();
   const [isTauri, setIsTauri] = useState(false);
   const [adminGearOpen, setAdminGearOpen] = useState(false);
+  const [supportTicketOpen, setSupportTicketOpen] = useState(false);
   const adminGearRef = useRef<HTMLDivElement>(null);
 
   let navFiltered = isDispatcher
@@ -211,6 +214,19 @@ export function Sidebar({
             )}
           </div>
         )}
+        <div className="flex flex-col gap-0.5 text-xs text-soft-cloud/50">
+          <button
+            type="button"
+            onClick={() => setSupportTicketOpen(true)}
+            className="px-3 py-1.5 rounded-lg hover:text-cyber-amber hover:bg-midnight-ink/60 transition-colors text-left"
+          >
+            Help
+          </button>
+          <a href={`mailto:${EMAIL_INFO}`} className="px-3 py-1.5 rounded-lg hover:text-cyber-amber hover:bg-midnight-ink/60 transition-colors">
+            General Inquiries
+          </a>
+        </div>
+        <SupportTicketModal open={supportTicketOpen} onClose={() => setSupportTicketOpen(false)} />
         <button
           type="button"
           onClick={signOut}

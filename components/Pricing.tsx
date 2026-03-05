@@ -17,6 +17,7 @@ const FLEET_MASTER_POINTS = [
   'Small Fleets (2–5 trucks)',
   'Motive ELD Sync',
   'IFTA (standard)',
+  'Certified Audit-Ready Exports',
   'Real-time Profitability',
   'Everything in Solo Pro',
 ];
@@ -25,6 +26,7 @@ const ENTERPRISE_POINTS = [
   'Unlimited Trucks',
   'Multi-user access',
   'IFTA (standard)',
+  'Certified Audit-Ready Exports',
   'Audit-Ready IFTA Reports',
   'Everything in Fleet Master',
   'Dedicated support',

@@ -5,9 +5,9 @@ import { getDashboardOrgId } from '@/lib/admin';
 import { cookies } from 'next/headers';
 import archiver from 'archiver';
 import sgMail from '@sendgrid/mail';
+import { getFromEmail } from '@/lib/email-addresses';
 
 const BUCKET = 'dq-documents';
-const FROM_EMAIL = process.env.SENDGRID_FROM_EMAIL ?? 'VantagFleet <info@vantagfleet.com>';
 
 function complianceReportHtml(params: {
   carrierName: string;
@@ -170,7 +170,7 @@ export async function POST(request: NextRequest) {
   try {
     await sgMail.send({
       to: officerEmail,
-      from: FROM_EMAIL,
+      from: getFromEmail('APP_NOTIFICATION_SUPPORT'),
       subject: `VantagFleet Compliance Report — ${carrierName} (USDOT ${usdot})`,
       text: `VantagFleet Compliance Report for ${carrierName}, USDOT ${usdot}. Report date: ${reportDate}. Documents included: ${docTypes.join(', ')}. See attached ZIP.`,
       html,

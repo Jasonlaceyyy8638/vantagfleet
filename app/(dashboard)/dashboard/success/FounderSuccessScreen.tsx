@@ -51,8 +51,12 @@ export function FounderSuccessScreen({ name }: Props) {
       <h1 className="text-2xl md:text-3xl font-bold text-soft-cloud text-center mb-4">
         Welcome to the Inner Circle, {displayName}! 🚚
       </h1>
-      <p className="text-soft-cloud/85 text-center max-w-lg mb-8">
+      <p className="text-soft-cloud/85 text-center max-w-lg mb-4">
         Your Lifetime Founder Discount is now active. You will receive 20% off your VantagFleet subscription for as long as your account is active. Thank you for being one of our first 5 partners.
+      </p>
+      <p className="text-soft-cloud/70 text-sm text-center max-w-lg mb-8">
+        Questions or feedback? Reply to us at{' '}
+        <a href="mailto:feedback@vantagfleet.com" className="text-cyber-amber hover:underline">feedback@vantagfleet.com</a>.
       </p>
       <Link
         href="/dashboard"

@@ -33,13 +33,15 @@ export async function GET(request: NextRequest) {
 
   const { data: org } = await admin
     .from('organizations')
-    .select('name, legal_name, fein, ifta_account_number')
+    .select('name, legal_name, fein, ifta_account_number, usdot_number')
     .eq('id', orgId)
     .single();
 
   const legalName = (org as { legal_name?: string } | null)?.legal_name ?? (org as { name?: string })?.name ?? '—';
   const fein = (org as { fein?: string } | null)?.fein ?? '';
   const iftaAccountNumber = (org as { ifta_account_number?: string } | null)?.ifta_account_number ?? '';
+  const dotNumber = (org as { usdot_number?: string | null } | null)?.usdot_number ?? '—';
+  const exportDate = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
 
   const { data: profile } = await supabase
     .from('profiles')
@@ -88,6 +90,9 @@ export async function GET(request: NextRequest) {
       quarter,
       year,
       mpg: iftaResult.mpg,
+      companyName: legalName,
+      dotNumber,
+      exportDate,
     },
     iftaResult
   );

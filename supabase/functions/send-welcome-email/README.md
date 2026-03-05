@@ -13,7 +13,8 @@ Invoked by the database webhook (trigger on `profiles` INSERT). See migration `0
 | Secret | Description |
 |--------|-------------|
 | `SENDGRID_API_KEY` | SendGrid API key (from .env / SendGrid dashboard) |
-| `SENDGRID_FROM_EMAIL` | From address, e.g. `VantagFleet <info@vantagfleet.com>` |
+| `SENDGRID_FROM_EMAIL` | From address (marketing), e.g. `VantagFleet <info@vantagfleet.com>` |
+| `SENDGRID_SUPPORT_FROM_EMAIL` | (Optional) From for app notifications; defaults to `VantagFleet <support@vantagfleet.com>` if unset |
 | `SUPABASE_URL` | Project URL, e.g. `https://YOUR_PROJECT_REF.supabase.co` |
 | `SUPABASE_SERVICE_ROLE_KEY` | Service role key (to look up user email from Auth) |
 | `APP_URL` | (Optional) Frontend URL for links, e.g. `https://vantagfleet.com` — used for “Live Map is ready” link |
@@ -27,7 +28,7 @@ supabase functions deploy send-welcome-email
 Then set the secrets:
 
 ```bash
-supabase secrets set SENDGRID_API_KEY=your_key SENDGRID_FROM_EMAIL="VantagFleet <info@vantagfleet.com>"
+supabase secrets set SENDGRID_API_KEY=your_key SENDGRID_FROM_EMAIL="VantagFleet <info@vantagfleet.com>" SENDGRID_SUPPORT_FROM_EMAIL="VantagFleet <support@vantagfleet.com>"
 # SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are often set automatically; if not, set them too.
 ```
 

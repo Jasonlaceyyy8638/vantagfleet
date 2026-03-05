@@ -3,6 +3,7 @@ import { cookies } from 'next/headers';
 import Stripe from 'stripe';
 import { createClient } from '@/lib/supabase/server';
 import { getDashboardOrgId } from '@/lib/admin';
+import { EMAIL_BILLING } from '@/lib/email-addresses';
 
 export async function POST(request: NextRequest) {
   const secretKey = process.env.STRIPE_SECRET_KEY;
@@ -65,6 +66,7 @@ export async function POST(request: NextRequest) {
           type: 'IFTA',
           user_id: user.id,
           org_id: orgId,
+          support_email: EMAIL_BILLING,
         },
         discounts: isBeta ? [{ coupon: 'beta-tester-20' }] : [],
         branding_settings: {
@@ -143,6 +145,7 @@ export async function POST(request: NextRequest) {
       metadata: {
         business_name: 'VantagFleet',
         tier: tierLabel,
+        support_email: EMAIL_BILLING,
         ...(orgId && { org_id: orgId }),
       },
       subscription_data: subscriptionData,

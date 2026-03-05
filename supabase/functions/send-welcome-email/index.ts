@@ -12,6 +12,16 @@ function getFirstName(fullName: string | null | undefined): string {
   return first || 'there';
 }
 
+function emailFooter(appUrl: string): { text: string; html: string } {
+  const base = (appUrl || '').replace(/\/$/, '');
+  const privacyUrl = base ? `${base}/privacy` : '#';
+  const termsUrl = base ? `${base}/terms` : '#';
+  return {
+    text: base ? `\n\n---\nPrivacy Policy: ${privacyUrl}\nTerms of Service: ${termsUrl}\n© VantagFleet` : '',
+    html: base ? `<p style="margin-top:24px;font-size:12px;color:#94a3b8;">Privacy Policy: <a href="${privacyUrl}" style="color:#f59e0b;">${privacyUrl}</a> &nbsp;|&nbsp; Terms of Service: <a href="${termsUrl}" style="color:#f59e0b;">${termsUrl}</a></p><p style="font-size:11px;color:#64748b;">© VantagFleet</p>` : '',
+  };
+}
+
 function buildEmailBody(firstName: string, isBetaTester: boolean, appUrl: string): { text: string; html: string } {
   const guide = `
 1. Log In: Head over to your VantagFleet Dashboard.
@@ -66,6 +76,8 @@ Welcome to the future of the road,
 
 The VantagFleet Team
 Built by a Carrier. Not a Tech Company.`;
+  const footer = emailFooter(appUrl);
+  text += footer.text;
 
   const mapSectionHtml = hasMapAccess
     ? liveMapUrl
@@ -87,6 +99,7 @@ Built by a Carrier. Not a Tech Company.`;
     '<p>If you run into any issues during the sync, just hit reply to this email or click the &#34;Support&#34; button in your dashboard. We&#39;re here to help you keep the wheels turning.</p>',
     '<p>Welcome to the future of the road,</p>',
     '<p><strong>The VantagFleet Team</strong><br>Built by a Carrier. Not a Tech Company.</p>',
+    footer.html,
   ]
     .filter(Boolean)
     .join('');
@@ -173,7 +186,7 @@ Deno.serve(async (req: Request) => {
   }
 
   const sendgridKey = Deno.env.get('SENDGRID_API_KEY');
-  const fromEmail = Deno.env.get('SENDGRID_FROM_EMAIL') ?? 'VantagFleet <info@vantagfleet.com>';
+  const fromEmail = Deno.env.get('SENDGRID_SUPPORT_FROM_EMAIL') ?? Deno.env.get('SENDGRID_FROM_EMAIL') ?? 'VantagFleet <support@vantagfleet.com>';
   if (!sendgridKey) {
     console.error('SENDGRID_API_KEY not set');
     return new Response(JSON.stringify({ error: 'Email not configured' }), {

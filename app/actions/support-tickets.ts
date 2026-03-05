@@ -3,8 +3,9 @@
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getPlatformRole, isPlatformStaff, isAdmin } from '@/lib/admin';
+import { EMAIL_SUPPORT } from '@/lib/email-addresses';
 
-const SUPPORT_EMAIL = 'info@vantagfleet.com';
+const SUPPORT_EMAIL = EMAIL_SUPPORT;
 const DEFAULT_FROM_EMAIL = 'noreply@vantagfleet.com';
 const DEFAULT_FROM_NAME = 'VantagFleet Support';
 
@@ -59,7 +60,7 @@ async function notifySupportTicket(ref: string, name: string, email: string, sub
 
 export type SubmitTicketResult = { ok: true; reference: string } | { error: string };
 
-/** Submit a contact support ticket. Saves to DB and optionally emails info@vantagfleet.com via SendGrid. */
+/** Submit a contact support ticket. Saves to DB and optionally emails support@vantagfleet.com via SendGrid. */
 export async function submitTicket(
   name: string,
   email: string,
