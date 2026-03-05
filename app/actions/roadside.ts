@@ -11,7 +11,12 @@ export type RoadsideSummary = {
   error?: string;
 };
 
-export async function createRoadsideToken(orgId: string, driverId?: string | null): Promise<{ token?: string; error?: string }> {
+/** When true, token expires in 4 hours (for officer inspection page). Otherwise 15 minutes. */
+export async function createRoadsideToken(
+  orgId: string,
+  driverId?: string | null,
+  inspectionExpiry?: boolean
+): Promise<{ token?: string; error?: string }> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: 'Not authenticated' };
@@ -20,10 +25,11 @@ export async function createRoadsideToken(orgId: string, driverId?: string | nul
   const orgIds = Array.from(new Set((profiles ?? []).map((p) => p.org_id).filter(Boolean)));
   if (!orgIds.includes(orgId)) return { error: 'Organization not found' };
 
+  const expiresAt = new Date(Date.now() + (inspectionExpiry ? 4 * 60 * 60 * 1000 : 15 * 60 * 1000)).toISOString();
   const admin = createAdminClient();
   const { data: row, error } = await admin
     .from('roadside_tokens')
-    .insert({ org_id: orgId, driver_id: driverId || null })
+    .insert({ org_id: orgId, driver_id: driverId || null, expires_at: expiresAt })
     .select('token')
     .single();
 

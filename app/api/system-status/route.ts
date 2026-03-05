@@ -3,14 +3,14 @@ import { cookies } from 'next/headers';
 import { createClient } from '@/lib/supabase/server';
 import { getDashboardOrgId } from '@/lib/admin';
 
-export type SystemStatus = 'live' | 'syncing' | 'error';
+export type SystemStatus = 'live' | 'syncing' | 'error' | 'no_eld';
 
 /**
  * Returns system status and last fleet sync time from ELD integrations (Motive/Geotab).
- * Uses last_synced_at from carrier_integrations for the user's current org.
+ * status 'no_eld' when no active ELD connection; 'live' when connected.
  */
 export async function GET() {
-  const status: SystemStatus = 'live';
+  let status: SystemStatus = 'no_eld';
   let lastSyncedAt: string | null = null;
 
   const supabase = await createClient();
@@ -23,12 +23,15 @@ export async function GET() {
       .select('last_synced_at')
       .eq('org_id', orgId)
       .in('provider', ['motive', 'geotab']);
-    const dates = (rows ?? [])
-      .map((r) => (r as { last_synced_at?: string | null }).last_synced_at)
-      .filter((d): d is string => d != null && d !== '');
-    if (dates.length > 0) {
-      const max = dates.reduce((a, b) => (a > b ? a : b));
-      lastSyncedAt = max;
+    const list = rows ?? [];
+    if (list.length > 0) {
+      status = 'live';
+      const dates = list
+        .map((r) => (r as { last_synced_at?: string | null }).last_synced_at)
+        .filter((d): d is string => d != null && d !== '');
+      if (dates.length > 0) {
+        lastSyncedAt = dates.reduce((a, b) => (a > b ? a : b));
+      }
     }
   }
 

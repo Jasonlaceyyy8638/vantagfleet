@@ -4,6 +4,8 @@ import { getDashboardOrgId } from '@/lib/admin';
 import { cookies } from 'next/headers';
 import Link from 'next/link';
 import { EmailToOfficerButton } from './EmailToOfficerButton';
+import { SignDailyLogButton } from './SignDailyLogButton';
+import { ReportIncidentSection } from './ReportIncidentSection';
 
 const BUCKET = 'dq-documents';
 const SIGNED_URL_EXPIRES = 3600; // 1 hour
@@ -114,8 +116,19 @@ export default async function RoadsideShieldPage({
           )}
         </section>
 
+        {/* Sign Daily Log — signature watermarked onto PDFs sent to officer */}
+        <section className="mb-8">
+          <h2 className="text-base font-semibold text-white mb-3">
+            Daily Log
+          </h2>
+          <p className="text-sm text-[#94a3b8] mb-3">
+            Sign your daily log. Your signature will be watermarked on the PDFs sent to the officer.
+          </p>
+          <SignDailyLogButton />
+        </section>
+
         {/* Ready for Inspection documents */}
-        <section>
+        <section className="mb-8">
           <h2 className="text-base font-semibold text-white mb-3">
             Ready for Inspection
           </h2>
@@ -139,6 +152,9 @@ export default async function RoadsideShieldPage({
             </ul>
           )}
         </section>
+
+        {/* Report Inspection/Incident — at bottom, high-visibility; dispatcher alert */}
+        <ReportIncidentSection />
 
         <p className="mt-8 text-center">
           <Link href="/dashboard" className="text-[#94a3b8] text-sm underline">

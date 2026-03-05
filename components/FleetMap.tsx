@@ -26,6 +26,8 @@ export type FleetMapLocation = {
 
 type FleetMapProps = {
   accessToken: string;
+  /** When set, fetches locations for this org only (Dispatchers see all trucks in their org). */
+  organizationId?: string | null;
   initialLocations?: FleetMapLocation[];
   height?: string;
   className?: string;
@@ -38,6 +40,7 @@ function isInHeavyTraffic(loc: FleetMapLocation): boolean {
 
 export function FleetMap({
   accessToken,
+  organizationId,
   initialLocations = [],
   height = '480px',
   className = '',
@@ -54,19 +57,32 @@ export function FleetMap({
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch('/api/fleet/locations');
+      const url = organizationId
+        ? `/api/fleet/locations?org_id=${encodeURIComponent(organizationId)}`
+        : '/api/fleet/locations';
+      const res = await fetch(url);
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         setError(data.error ?? 'Failed to load locations');
         return;
       }
-      setLocations(Array.isArray(data.locations) ? data.locations : []);
+      const raw = Array.isArray(data.locations) ? data.locations : [];
+      setLocations(
+        raw.filter(
+          (loc: unknown) =>
+            loc &&
+            typeof loc === 'object' &&
+            typeof (loc as FleetMapLocation).id === 'string' &&
+            Number.isFinite((loc as FleetMapLocation).lat) &&
+            Number.isFinite((loc as FleetMapLocation).lng)
+        ) as FleetMapLocation[]
+      );
     } catch {
       setError('Failed to load locations');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [organizationId]);
 
   useEffect(() => {
     fetchLocations();
@@ -130,43 +146,49 @@ export function FleetMap({
     map.setLayoutProperty(TRAFFIC_LAYER_ID, 'visibility', trafficOn ? 'visible' : 'none');
   }, [trafficOn]);
 
-  const selected = locations.find((l) => l.id === selectedId);
-  const hovered = locations.find((l) => l.id === hoveredId);
-  const hasCoords = locations.some((l) => Number.isFinite(l.lat) && Number.isFinite(l.lng));
+  const selected = locations.find((l) => l && l.id === selectedId);
+  const hovered = locations.find((l) => l && l.id === hoveredId);
+  const hasCoords = locations.some((l) => l && Number.isFinite(l.lat) && Number.isFinite(l.lng));
   const centerLng = hasCoords
-    ? locations.reduce((s, l) => s + l.lng, 0) / locations.length
+    ? locations.reduce((s, l) => s + (l?.lng ?? 0), 0) / locations.length
     : -98;
   const centerLat = hasCoords
-    ? locations.reduce((s, l) => s + l.lat, 0) / locations.length
+    ? locations.reduce((s, l) => s + (l?.lat ?? 0), 0) / locations.length
     : 39;
+
+  const mapHeight = height || '480px';
+  const effectiveHeight = mapHeight === '100%' ? '100%' : mapHeight;
 
   if (!accessToken) {
     return (
       <div
-        className={`rounded-xl border border-white/10 bg-card flex items-center justify-center text-soft-cloud/60 ${className}`}
-        style={{ height }}
+        className={`rounded-xl border border-white/10 bg-card flex flex-col items-center justify-center gap-2 text-soft-cloud/60 text-center px-4 ${className}`}
+        style={{ height: effectiveHeight, minHeight: 400 }}
       >
         <p className="text-sm">Mapbox token not configured. Set NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN.</p>
+        <p className="text-xs text-soft-cloud/50 max-w-md">
+          If the map is blank with a token set, ensure vantagfleet.com (and localhost for dev) is allowed in your Mapbox token URL restrictions.
+        </p>
       </div>
     );
   }
 
   return (
-    <div className={`relative rounded-xl border border-white/10 bg-card overflow-hidden ${className}`}>
+    <div
+      className={`relative rounded-xl border border-white/10 bg-card overflow-hidden ${className}`}
+      style={{ minHeight: mapHeight === '100%' ? 400 : undefined, height: effectiveHeight }}
+    >
       {loading && locations.length === 0 && (
         <div
           className="absolute inset-0 z-10 flex items-center justify-center bg-midnight-ink/80 text-soft-cloud"
-          style={{ height }}
+          style={{ height: effectiveHeight, minHeight: 400 }}
         >
           <span className="text-sm">Loading map…</span>
         </div>
       )}
       {error && locations.length === 0 && (
-        <div
-          className="flex items-center justify-center text-amber-400 text-sm p-4"
-          style={{ minHeight: height }}
-        >
-          {error}
+        <div className="absolute top-3 left-3 right-3 z-20 rounded-lg bg-amber-500/20 border border-amber-500/40 text-amber-400 text-sm p-3 text-center">
+          {error} — Map centered on US.
         </div>
       )}
 
@@ -188,15 +210,15 @@ export function FleetMap({
       <Map
         mapboxAccessToken={accessToken}
         initialViewState={{
-          longitude: centerLng,
-          latitude: centerLat,
+          longitude: Number(centerLng),
+          latitude: Number(centerLat),
           zoom: locations.length <= 1 ? 4 : 5,
         }}
-        style={{ width: '100%', height }}
+        style={{ width: '100%', height: effectiveHeight, minHeight: 400 }}
         mapStyle={MAPBOX_DARK}
         onLoad={handleMapLoad}
       >
-        {locations.map((loc) => {
+        {locations.filter((loc) => loc && loc.id && Number.isFinite(loc.lat) && Number.isFinite(loc.lng)).map((loc) => {
           const lateAlert = trafficOn && isInHeavyTraffic(loc);
           return (
             <Marker

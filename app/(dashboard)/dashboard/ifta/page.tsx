@@ -20,14 +20,15 @@ export default async function IFTADashboardPage() {
   ] = await Promise.all([
     supabase
       .from('profiles')
-      .select('id, ifta_enabled, is_beta_tester, beta_expires_at')
+      .select('id, ifta_enabled, is_beta_tester, beta_expires_at, role')
       .eq('user_id', user.id)
       .eq('org_id', orgId)
       .single(),
     supabase.from('organizations').select('subscription_status, tier').eq('id', orgId).single(),
   ]);
 
-  const profileData = profile as { id?: string; ifta_enabled?: boolean; is_beta_tester?: boolean; beta_expires_at?: string | null } | null;
+  const profileData = profile as { id?: string; ifta_enabled?: boolean; is_beta_tester?: boolean; beta_expires_at?: string | null; role?: string } | null;
+  const isDispatcher = profileData?.role === 'Dispatcher';
   const orgData = org as { subscription_status?: string | null; tier?: string | null } | null;
   const adminImpersonating = await isSuperAdminImpersonating(supabase, cookieStore);
   const hasAccess = adminImpersonating || hasFullAccess(profileData, orgData);
@@ -68,6 +69,7 @@ export default async function IFTADashboardPage() {
       currentYear={year}
       initialReceipts={initialReceipts}
       isSoloPro={isSoloPro}
+      isDispatcher={isDispatcher}
     />
   );
 }

@@ -9,6 +9,7 @@ import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard,
   Users,
+  UserPlus,
   Truck,
   FileCheck,
   Settings,
@@ -28,6 +29,7 @@ import {
   Building2,
   MapPin,
   Lock,
+  MessageCircle,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { EMAIL_SUPPORT, EMAIL_INFO } from '@/lib/email-addresses';
@@ -48,6 +50,15 @@ const nav = [
   { href: '/roadside-mode', label: 'Roadside', icon: Smartphone },
   { href: '/dashboard/feedback', label: 'Beta Feedback', icon: Headphones },
   { href: '/settings', label: 'Settings', icon: Settings },
+  { href: '/settings/team', label: 'Team', icon: UserPlus },
+];
+
+/** Dispatcher sees only these four items. Billing, Pricing, Settings, Team are admin-only. */
+const dispatcherNav = [
+  { href: '/dashboard/map', label: 'Live Map', icon: MapPin },
+  { href: '/dashboard/enterprise', label: 'Fleet Health', icon: Building2 },
+  { href: '/roadside-mode', label: 'Roadside', icon: Smartphone },
+  { href: '/dashboard/feedback', label: 'Message Center', icon: MessageCircle },
 ];
 
 const driverNav = [
@@ -82,9 +93,7 @@ export function Sidebar({
   const [supportTicketOpen, setSupportTicketOpen] = useState(false);
   const adminGearRef = useRef<HTMLDivElement>(null);
 
-  let navFiltered = isDispatcher
-    ? nav.filter((item) => item.href !== '/settings' && item.href !== '/dashboard/enterprise')
-    : nav;
+  const navFiltered = isDispatcher ? dispatcherNav : nav;
   const showMapLock = !canSeeMap;
 
   useEffect(() => {

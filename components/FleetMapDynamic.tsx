@@ -10,6 +10,7 @@ const FleetMap = dynamic(
 
 type Props = {
   accessToken: string;
+  organizationId?: string | null;
   initialLocations?: FleetMapLocation[];
   height?: string;
   className?: string;

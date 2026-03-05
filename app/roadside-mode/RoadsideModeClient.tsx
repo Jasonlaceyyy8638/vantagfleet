@@ -18,13 +18,13 @@ export function RoadsideModeClient({ orgId, appOrigin, summary }: Props) {
     setLoading(true);
     setError('');
     setQrUrl(null);
-    const { token, error: err } = await createRoadsideToken(orgId);
+    const { token, error: err } = await createRoadsideToken(orgId, null, true);
     setLoading(false);
     if (err) {
       setError(err);
       return;
     }
-    if (token) setQrUrl(`${appOrigin}/roadside/view?t=${token}`);
+    if (token) setQrUrl(`${appOrigin}/inspect/${token}`);
   };
 
   const closeQr = () => {
@@ -45,50 +45,23 @@ export function RoadsideModeClient({ orgId, appOrigin, summary }: Props) {
 
       <div className="px-4 pt-6 space-y-4 max-w-lg mx-auto">
         <p className="text-soft-cloud/80 text-sm text-center">
-          Tap a card to view. Generate a QR code for the officer to scan a read-only summary.
+          Jump to a section below or generate a QR code for the officer.
         </p>
 
-        {/* Digital folder cards – large tap targets */}
-        <a
-          href="#eld"
-          className="block w-full p-5 rounded-2xl bg-card border border-white/10 active:scale-[0.98] transition-transform min-h-[88px] flex items-center gap-4"
-        >
-          <div className="p-3 rounded-xl bg-cyber-amber/20 shrink-0">
-            <Smartphone className="size-8 text-cyber-amber" />
-          </div>
-          <div className="text-left">
-            <span className="font-semibold text-lg text-soft-cloud">ELD Status</span>
-            <p className="text-sm text-soft-cloud/70 mt-0.5">Hours, device status</p>
-          </div>
-        </a>
+        {/* Single nav strip – no duplicate cards */}
+        <nav className="flex flex-wrap gap-2 justify-center">
+          <a href="#eld" className="px-3 py-2 rounded-lg bg-cyber-amber/20 text-cyber-amber font-medium text-sm hover:bg-cyber-amber/30">
+            ELD Status
+          </a>
+          <a href="#insurance" className="px-3 py-2 rounded-lg bg-cyber-amber/20 text-cyber-amber font-medium text-sm hover:bg-cyber-amber/30">
+            Insurance / Permits
+          </a>
+          <a href="#maintenance" className="px-3 py-2 rounded-lg bg-cyber-amber/20 text-cyber-amber font-medium text-sm hover:bg-cyber-amber/30">
+            Recent Maintenance
+          </a>
+        </nav>
 
-        <a
-          href="#insurance"
-          className="block w-full p-5 rounded-2xl bg-card border border-white/10 active:scale-[0.98] transition-transform min-h-[88px] flex items-center gap-4"
-        >
-          <div className="p-3 rounded-xl bg-cyber-amber/20 shrink-0">
-            <FileCheck className="size-8 text-cyber-amber" />
-          </div>
-          <div className="text-left">
-            <span className="font-semibold text-lg text-soft-cloud">Insurance / Permits</span>
-            <p className="text-sm text-soft-cloud/70 mt-0.5">Proof of insurance, authority</p>
-          </div>
-        </a>
-
-        <a
-          href="#maintenance"
-          className="block w-full p-5 rounded-2xl bg-card border border-white/10 active:scale-[0.98] transition-transform min-h-[88px] flex items-center gap-4"
-        >
-          <div className="p-3 rounded-xl bg-cyber-amber/20 shrink-0">
-            <Wrench className="size-8 text-cyber-amber" />
-          </div>
-          <div className="text-left">
-            <span className="font-semibold text-lg text-soft-cloud">Recent Maintenance</span>
-            <p className="text-sm text-soft-cloud/70 mt-0.5">Inspection and repair records</p>
-          </div>
-        </a>
-
-        {/* Sections the cards scroll to */}
+        {/* Single instance of each module */}
         <div id="eld" className="scroll-mt-4 rounded-2xl bg-card border border-white/10 p-4 mt-2">
           <h2 className="font-semibold text-cyber-amber mb-2 flex items-center gap-2">
             <Smartphone className="size-5" />

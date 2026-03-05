@@ -76,6 +76,7 @@ export function IFTADashboardClient({
   currentYear: initialYear,
   initialReceipts,
   isSoloPro = false,
+  isDispatcher = false,
 }: {
   iftaEnabled: boolean;
   profileId: string | null;
@@ -84,6 +85,7 @@ export function IFTADashboardClient({
   currentYear: number;
   initialReceipts: ReceiptRow[];
   isSoloPro?: boolean;
+  isDispatcher?: boolean;
 }) {
   const [quarter, setQuarter] = useState<1 | 2 | 3 | 4>(initialQuarter);
   const [year] = useState(initialYear);
@@ -530,8 +532,8 @@ export function IFTADashboardClient({
           </div>
         </section>
 
-        {/* Total Miles (optional) + Export + PDF + Audit Export */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        {/* Total Miles (optional) + Export + PDF + Audit Export (hidden for Dispatcher) */}
+        <div className={`grid grid-cols-1 gap-4 mb-8 ${isDispatcher ? 'sm:grid-cols-1' : 'sm:grid-cols-2 lg:grid-cols-4'}`}>
           <div className="rounded-xl border border-white/10 bg-card p-5">
             <div className="flex items-center gap-2 text-soft-cloud/60 text-sm mb-1">
               <Route className="size-4 text-cyber-amber" />
@@ -548,47 +550,51 @@ export function IFTADashboardClient({
               <span className="text-soft-cloud/50 text-sm">mi</span>
             </div>
           </div>
-          <div className="rounded-xl border border-white/10 bg-card p-5 flex flex-col justify-center">
-            <button
-              type="button"
-              onClick={handleExport}
-              disabled={verifiedReceipts.length === 0}
-              className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-electric-teal/50 bg-electric-teal/10 text-electric-teal font-medium hover:bg-electric-teal/20 disabled:opacity-50 disabled:pointer-events-none transition-colors"
-            >
-              <Download className="size-5" />
-              Export Q{quarter} Report
-            </button>
-            <p className="text-xs text-soft-cloud/50 mt-1.5">
-              CSV of verified receipts for this quarter
-            </p>
-          </div>
-          <div className="rounded-xl border border-white/10 bg-card p-5 flex flex-col justify-center">
-            <button
-              type="button"
-              onClick={handleDownloadPdf}
-              disabled={pdfLoading}
-              className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-white/30 bg-white/5 text-soft-cloud font-medium hover:bg-white/10 disabled:opacity-50 disabled:pointer-events-none transition-colors"
-            >
-              {pdfLoading ? <Loader2 className="size-5 animate-spin" /> : <FileText className="size-5" />}
-              Download Q{quarter} {year} Return (PDF)
-            </button>
-            <p className="text-xs text-soft-cloud/50 mt-1.5">
-              IFTA-100 style return with reconciled data and total balance due
-            </p>
-          </div>
-          <div className="rounded-xl border border-white/10 bg-card p-5 flex flex-col justify-center">
-            <button
-              type="button"
-              onClick={() => setAuditExportModalOpen(true)}
-              className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-cyber-amber/50 bg-cyber-amber/10 text-cyber-amber font-medium hover:bg-cyber-amber/20 transition-colors"
-            >
-              <FileArchive className="size-5" />
-              Generate Audit Export
-            </button>
-            <p className="text-xs text-soft-cloud/50 mt-1.5">
-              ZIP with Summary Report and Detailed Trip Log (state line crossings)
-            </p>
-          </div>
+          {!isDispatcher && (
+            <>
+              <div className="rounded-xl border border-white/10 bg-card p-5 flex flex-col justify-center">
+                <button
+                  type="button"
+                  onClick={handleExport}
+                  disabled={verifiedReceipts.length === 0}
+                  className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-electric-teal/50 bg-electric-teal/10 text-electric-teal font-medium hover:bg-electric-teal/20 disabled:opacity-50 disabled:pointer-events-none transition-colors"
+                >
+                  <Download className="size-5" />
+                  Export Q{quarter} Report
+                </button>
+                <p className="text-xs text-soft-cloud/50 mt-1.5">
+                  CSV of verified receipts for this quarter
+                </p>
+              </div>
+              <div className="rounded-xl border border-white/10 bg-card p-5 flex flex-col justify-center">
+                <button
+                  type="button"
+                  onClick={handleDownloadPdf}
+                  disabled={pdfLoading}
+                  className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-white/30 bg-white/5 text-soft-cloud font-medium hover:bg-white/10 disabled:opacity-50 disabled:pointer-events-none transition-colors"
+                >
+                  {pdfLoading ? <Loader2 className="size-5 animate-spin" /> : <FileText className="size-5" />}
+                  Download Q{quarter} {year} Return (PDF)
+                </button>
+                <p className="text-xs text-soft-cloud/50 mt-1.5">
+                  IFTA-100 style return with reconciled data and total balance due
+                </p>
+              </div>
+              <div className="rounded-xl border border-white/10 bg-card p-5 flex flex-col justify-center">
+                <button
+                  type="button"
+                  onClick={() => setAuditExportModalOpen(true)}
+                  className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-cyber-amber/50 bg-cyber-amber/10 text-cyber-amber font-medium hover:bg-cyber-amber/20 transition-colors"
+                >
+                  <FileArchive className="size-5" />
+                  Generate Audit Export
+                </button>
+                <p className="text-xs text-soft-cloud/50 mt-1.5">
+                  ZIP with Summary Report and Detailed Trip Log (state line crossings)
+                </p>
+              </div>
+            </>
+          )}
         </div>
 
         <AuditExportModal

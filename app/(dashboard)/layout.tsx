@@ -41,7 +41,7 @@ export default async function DashboardLayout({
     return (
       <div className="flex min-h-screen flex-col">
         <ImpersonationBar carrierName={org?.name ?? 'Unknown'} />
-        <div className="flex flex-1 min-h-0">
+        <div className="flex flex-1 min-h-0 overflow-hidden">
           <Sidebar
             organizations={organizations}
             currentOrgId={currentOrgId}
@@ -50,7 +50,7 @@ export default async function DashboardLayout({
             canSeeMap={true}
             isFounder={isFounderImpersonating}
           />
-          <main className="flex-1 overflow-auto">
+          <main className="flex-1 min-h-0 overflow-auto overflow-x-hidden">
             {children}
           </main>
           <ComplianceRequestFab />
@@ -118,7 +118,7 @@ export default async function DashboardLayout({
   }
 
   return (
-    <div className="flex min-h-screen">
+    <div className="flex min-h-screen overflow-hidden">
       <Sidebar
         organizations={organizations ?? []}
         currentOrgId={currentOrgId}
@@ -129,7 +129,7 @@ export default async function DashboardLayout({
         canSeeMap={mapAccess}
         isFounder={profileForAccess?.is_founder === true}
       />
-      <main className="flex-1 overflow-auto flex flex-col">
+      <main className="flex-1 min-h-0 overflow-auto flex flex-col overflow-x-hidden">
         <BetaCountdownBanner
           betaExpiresAt={profileForAccess?.beta_expires_at ?? null}
           isBetaTester={profileForAccess?.is_beta_tester === true}

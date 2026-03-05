@@ -1,7 +1,8 @@
 /**
  * GET /api/fleet/locations
- * Returns live GPS from whichever ELD is connected (Motive or Geotab).
- * Same shape for both so the Dashboard Map works identically.
+ * Returns live GPS for the current organization (Motive or Geotab).
+ * Dispatchers and other org members see every truck that shares their organization_id.
+ * Query: ?org_id=uuid (optional) — if provided and user has access, use it; else use dashboard org from cookie.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -100,18 +101,24 @@ export async function GET(request: NextRequest) {
   }
 
   const cookieStore = await cookies();
-  const orgId = await getDashboardOrgId(supabase, cookieStore);
+  const { data: profiles } = await supabase.from('profiles').select('org_id').eq('user_id', user.id);
+  const userOrgIds = Array.from(new Set((profiles ?? []).map((p) => p.org_id).filter((id): id is string => id != null)));
+  const isSuperAdminViewingOrg = await isSuperAdmin(supabase);
+  const impersonatedOrg = cookieStore.get(IMPERSONATE_COOKIE)?.value;
+
+  let orgId: string | null = null;
+  const queryOrgId = request.nextUrl.searchParams.get('org_id');
+  if (queryOrgId && (userOrgIds.includes(queryOrgId) || (isSuperAdminViewingOrg && impersonatedOrg === queryOrgId))) {
+    orgId = queryOrgId;
+  }
+  if (!orgId) {
+    orgId = await getDashboardOrgId(supabase, cookieStore);
+  }
   if (!orgId) {
     return NextResponse.json({ locations: [] });
   }
-
-  const impersonating = cookieStore.get(IMPERSONATE_COOKIE)?.value === orgId && (await isSuperAdmin(supabase));
-  if (!impersonating) {
-    const { data: profiles } = await supabase.from('profiles').select('org_id').eq('user_id', user.id);
-    const orgIds = (profiles ?? []).map((p) => p.org_id).filter((id): id is string => id != null);
-    if (!orgIds.includes(orgId)) {
-      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
-    }
+  if (!userOrgIds.includes(orgId) && !(isSuperAdminViewingOrg && impersonatedOrg === orgId)) {
+    return NextResponse.json({ error: 'Access denied' }, { status: 403 });
   }
 
   const locations = await fetchLocationsForOrg(orgId);

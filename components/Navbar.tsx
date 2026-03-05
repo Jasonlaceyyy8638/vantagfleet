@@ -5,8 +5,8 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Logo } from '@/components/Logo';
 import { createClient } from '@/lib/supabase/client';
-import { LogOut, Mail, CreditCard, HelpCircle } from 'lucide-react';
-import { EMAIL_SUPPORT, EMAIL_INFO, EMAIL_BILLING } from '@/lib/email-addresses';
+import { LogOut } from 'lucide-react';
+import { EMAIL_SUPPORT, EMAIL_BILLING } from '@/lib/email-addresses';
 import { SystemStatusIndicator, type SystemStatus } from '@/components/SystemStatusIndicator';
 
 const ADMIN_OWNER_ID = 'ae175e55-72b4-4441-9e3c-02ecd8225bf7';
@@ -34,9 +34,6 @@ const linkBase =
 const linkActive =
   'px-4 py-2.5 rounded-lg font-medium transition-colors shadow-[0_0_16px_-2px_rgba(255,176,0,0.4)] ring-1 ring-cyber-amber/60 bg-cyber-amber/20 text-cyber-amber';
 
-const iconButtonClass =
-  'p-2 rounded-lg text-soft-cloud/70 hover:text-cyber-amber hover:bg-white/5 border border-transparent hover:border-cyber-amber/20 transition-colors inline-flex items-center justify-center';
-
 export function Navbar({
   isAuthenticated: initialAuth = false,
   signupHref = '/signup',
@@ -48,7 +45,7 @@ export function Navbar({
   const [role, setRole] = useState<NavRole>(null);
   const [ready, setReady] = useState(false);
   const [isTauri, setIsTauri] = useState(false);
-  const [systemStatus, setSystemStatus] = useState<SystemStatus>('live');
+  const [systemStatus, setSystemStatus] = useState<SystemStatus>('no_eld');
   const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null);
 
   useEffect(() => {
@@ -97,10 +94,10 @@ export function Navbar({
       fetch('/api/system-status')
         .then((res) => res.json())
         .then((data: { status?: SystemStatus; lastSyncedAt?: string | null }) => {
-          setSystemStatus(data?.status ?? 'live');
+          setSystemStatus(data?.status ?? 'no_eld');
           setLastSyncedAt(data?.lastSyncedAt ?? null);
         })
-        .catch(() => setSystemStatus('live'));
+        .catch(() => setSystemStatus('no_eld'));
     };
     fetchStatus();
     const interval = setInterval(fetchStatus, 30000);
@@ -113,41 +110,47 @@ export function Navbar({
 
   return (
     <header
-      className="fixed top-0 left-0 right-0 z-[100] flex items-center justify-between gap-2 px-3 sm:px-6 lg:px-8 py-3 sm:py-4 bg-midnight-ink/95 backdrop-blur-md border-b border-white/10 min-h-[3.5rem] sm:min-h-[4rem] min-w-0 max-w-[100vw]"
-      style={{ pointerEvents: 'auto', paddingTop: 'max(0.75rem, env(safe-area-inset-top, 0px))', paddingLeft: 'max(0.75rem, env(safe-area-inset-left, 0px))', paddingRight: 'max(0.75rem, env(safe-area-inset-right, 0px))' }}
+      className="fixed top-0 left-0 right-0 z-50 flex flex-col min-w-0 max-w-[100vw] bg-midnight-ink/95 backdrop-blur-md border-b border-white/10"
+      style={{
+        pointerEvents: 'auto',
+        paddingTop: 'max(0.5rem, env(safe-area-inset-top, 0px))',
+        paddingLeft: 'max(0.75rem, env(safe-area-inset-left, 0px))',
+        paddingRight: 'max(0.75rem, env(safe-area-inset-right, 0px))',
+      }}
     >
-      <Link
-        href="/"
-        className="flex items-center gap-2 shrink-0 min-w-0 text-soft-cloud hover:opacity-90"
-        style={{ pointerEvents: 'auto' }}
-      >
-        <Logo size={40} className="h-10 w-10 shrink-0" />
-        <span className="font-bold text-lg tracking-wide hidden sm:inline truncate">
-          Vantag<span className="text-cyber-amber">Fleet</span>
-        </span>
-      </Link>
+      {/* Top bar: Support & Billing text links aligned right */}
+      <div className="flex items-center justify-end gap-4 py-1.5 px-0 text-xs text-soft-cloud/80">
+        <a href={`mailto:${EMAIL_SUPPORT}`} className="hover:text-cyber-amber transition-colors whitespace-nowrap">
+          Support
+        </a>
+        <a href={`mailto:${EMAIL_BILLING}`} className="hover:text-cyber-amber transition-colors whitespace-nowrap">
+          Billing
+        </a>
+      </div>
 
-      <div
-        className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0 min-w-0 justify-end"
-        style={{ pointerEvents: 'auto' }}
-      >
+      {/* Main nav */}
+      <div className="flex items-center justify-between gap-2 pb-2 sm:pb-3 min-h-[3rem] sm:min-h-[3.5rem]">
+        <Link
+          href="/"
+          className="flex items-center gap-2 shrink-0 min-w-0 text-soft-cloud hover:opacity-90"
+          style={{ pointerEvents: 'auto' }}
+        >
+          <Logo size={40} className="h-10 w-10 shrink-0" />
+          <span className="font-bold text-lg tracking-wide hidden sm:inline truncate">
+            Vantag<span className="text-cyber-amber">Fleet</span>
+          </span>
+        </Link>
+
+        <div
+          className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0 min-w-0 justify-end flex-nowrap"
+          style={{ pointerEvents: 'auto' }}
+        >
         {!ready && (
           <span className="h-10 w-24 rounded-lg bg-white/5 animate-pulse" aria-hidden />
         )}
         {ready && !auth && (
           <>
             <SystemStatusIndicator status={systemStatus} lastSyncedAt={lastSyncedAt} />
-            <span className="hidden sm:flex items-center gap-0.5" aria-label="Contact">
-              <a href={`mailto:${EMAIL_SUPPORT}`} className={iconButtonClass} title="Contact Support" aria-label="Contact Support">
-                <Mail className="size-4" />
-              </a>
-              <a href={`mailto:${EMAIL_BILLING}`} className={iconButtonClass} title="Billing" aria-label="Billing">
-                <CreditCard className="size-4" />
-              </a>
-              <a href={`mailto:${EMAIL_INFO}`} className={iconButtonClass} title="General inquiries" aria-label="General inquiries">
-                <HelpCircle className="size-4" />
-              </a>
-            </span>
             <Link
               href="/login"
               className="glass-btn min-h-[44px] inline-flex items-center px-3 sm:px-4 py-2.5 rounded-lg font-medium text-sm sm:text-base text-soft-cloud hover:text-soft-cloud transition-colors touch-manipulation whitespace-nowrap"
@@ -219,17 +222,6 @@ export function Navbar({
               </Link>
             )}
             <SystemStatusIndicator status={systemStatus} lastSyncedAt={lastSyncedAt} />
-            <span className="hidden lg:flex items-center gap-0.5" aria-label="Contact">
-              <a href={`mailto:${EMAIL_SUPPORT}`} className={iconButtonClass} title="Contact Support" aria-label="Contact Support">
-                <Mail className="size-4" />
-              </a>
-              <a href={`mailto:${EMAIL_BILLING}`} className={iconButtonClass} title="Billing" aria-label="Billing">
-                <CreditCard className="size-4" />
-              </a>
-              <a href={`mailto:${EMAIL_INFO}`} className={iconButtonClass} title="General inquiries" aria-label="General inquiries">
-                <HelpCircle className="size-4" />
-              </a>
-            </span>
             {!isTauri && (
               <Link
                 href="/download"
@@ -253,6 +245,7 @@ export function Navbar({
             </button>
           </>
         )}
+        </div>
       </div>
     </header>
   );

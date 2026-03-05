@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { getTimeAgo } from '@/lib/time-ago';
 
-export type SystemStatus = 'live' | 'syncing' | 'error';
+export type SystemStatus = 'live' | 'syncing' | 'error' | 'no_eld';
 
 type Props = {
   status?: SystemStatus;
@@ -31,6 +31,11 @@ const CONFIG: Record<
     label: 'Connection Alert',
     dotClass: 'bg-amber-500 text-amber-500',
     statusLabel: 'Alert',
+  },
+  no_eld: {
+    label: 'No ELD Connected',
+    dotClass: 'bg-gray-500 text-gray-500',
+    statusLabel: 'No ELD',
   },
 };
 
@@ -61,7 +66,7 @@ export function SystemStatusIndicator({ status = 'live', providerName, lastSynce
       onMouseLeave={() => setHover(false)}
     >
       <span
-        className={`size-2 rounded-full status-dot-pulse ${dotClass}`}
+        className={`size-2 rounded-full ${status === 'live' || status === 'syncing' ? 'status-dot-pulse ' : ''}${dotClass}`}
         style={{ boxShadow: 'none' }}
         aria-hidden
       />

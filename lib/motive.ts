@@ -283,3 +283,78 @@ export async function isMotiveAvailable(orgId?: string): Promise<boolean> {
   const auth = await getAuthHeaders(orgId);
   return auth !== null;
 }
+
+// --- HOS (Hours of Service) logs for officer inspection ---
+
+export type HosLogEvent = {
+  type: 'off_duty' | 'sleeper' | 'driving' | 'on_duty' | 'waiting';
+  startTime: string;
+  endTime: string;
+  location?: string;
+  notes?: string;
+  isManual?: boolean;
+};
+
+export type HosLogDay = {
+  date: string;
+  driverFirstName?: string;
+  driverLastName?: string;
+  totalMiles?: number;
+  events: HosLogEvent[];
+  offDutySeconds?: number;
+  sleeperSeconds?: number;
+  drivingSeconds?: number;
+  onDutySeconds?: number;
+  waitingSeconds?: number;
+};
+
+function normalizeEventType(t: string): HosLogEvent['type'] {
+  const s = (t || '').toLowerCase();
+  if (s.includes('off') || s === 'off_duty') return 'off_duty';
+  if (s.includes('sleeper')) return 'sleeper';
+  if (s.includes('driv')) return 'driving';
+  if (s.includes('on_duty') || s.includes('on duty')) return 'on_duty';
+  if (s.includes('wait')) return 'waiting';
+  return 'on_duty';
+}
+
+/** Fetch HOS logs for last N days from Motive (for officer inspection page). */
+export async function getMotiveHosLogs(
+  orgId: string,
+  startDate: string,
+  endDate: string
+): Promise<{ logs: HosLogDay[] } | { error: string }> {
+  const result = await fetchMotive<{ logs?: unknown[] }>(
+    '/logs',
+    orgId,
+    { searchParams: { start_date: startDate, end_date: endDate } }
+  );
+  if ('error' in result) return result;
+  const raw = result.data?.logs ?? [];
+  const logs: HosLogDay[] = [];
+  for (const row of Array.isArray(raw) ? raw : []) {
+    const r = row as Record<string, unknown>;
+    const events = (Array.isArray(r.events) ? r.events : []).map((e: Record<string, unknown>) => ({
+      type: normalizeEventType(String(e.type ?? '')),
+      startTime: String(e.start_time ?? e.startTime ?? ''),
+      endTime: String(e.end_time ?? e.endTime ?? ''),
+      location: e.location != null ? String(e.location) : undefined,
+      notes: e.notes != null ? String(e.notes) : undefined,
+      isManual: Boolean(e.is_manual ?? e.isManual),
+    })) as HosLogEvent[];
+    logs.push({
+      date: String(r.date ?? ''),
+      driverFirstName: r.driver_first_name != null ? String(r.driver_first_name) : undefined,
+      driverLastName: r.driver_last_name != null ? String(r.driver_last_name) : undefined,
+      totalMiles: typeof r.total_miles === 'number' ? r.total_miles : undefined,
+      events,
+      offDutySeconds: typeof r.off_duty_duration === 'number' ? r.off_duty_duration : undefined,
+      sleeperSeconds: typeof r.sleeper_duration === 'number' ? r.sleeper_duration : undefined,
+      drivingSeconds: typeof r.driving_duration === 'number' ? r.driving_duration : undefined,
+      onDutySeconds: typeof r.on_duty_duration === 'number' ? r.on_duty_duration : undefined,
+      waitingSeconds: typeof r.waiting_duration === 'number' ? r.waiting_duration : undefined,
+    });
+  }
+  logs.sort((a, b) => a.date.localeCompare(b.date));
+  return { logs };
+}

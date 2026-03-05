@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import { updateSession } from '@/lib/supabase/middleware';
 
-const PUBLIC_PATHS = ['/login', '/signup', '/invite', '/register', '/auth/callback', '/roadside/view'];
+const PUBLIC_PATHS = ['/login', '/signup', '/invite', '/register', '/auth/callback', '/roadside/view', '/inspect'];
 
 /** VantagFleet owner: always send to /admin; bypass carrier onboarding. */
 const ADMIN_OWNER_ID = 'ae175e55-72b4-4441-9e3c-02ecd8225bf7';
@@ -32,7 +32,7 @@ export async function middleware(request: NextRequest) {
   const { response, user, isAdmin, isSuperAdmin } = await updateSession(request, pathname);
 
   // Allow public paths and auth callback without requiring user
-  if (isPublic || pathname === '/' || pathname.startsWith('/pricing') || pathname === '/privacy' || pathname === '/terms' || pathname === '/contact' || pathname === '/download' || pathname.startsWith('/releases') || pathname.startsWith('/roadside/view')) {
+  if (isPublic || pathname === '/' || pathname.startsWith('/pricing') || pathname === '/privacy' || pathname === '/terms' || pathname === '/contact' || pathname === '/download' || pathname.startsWith('/releases') || pathname.startsWith('/roadside/view') || pathname.startsWith('/inspect/')) {
     return response;
   }
 

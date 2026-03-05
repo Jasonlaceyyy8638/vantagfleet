@@ -5,6 +5,7 @@ import { getDashboardOrgId } from '@/lib/admin';
 import { cookies } from 'next/headers';
 import archiver from 'archiver';
 import sgMail from '@sendgrid/mail';
+import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 import { getFromEmail } from '@/lib/email-addresses';
 
 const BUCKET = 'dq-documents';
@@ -81,6 +82,94 @@ function escapeHtml(s: string): string {
     .replace(/"/g, '&quot;');
 }
 
+async function buildDailyLogPdfWithSignature(
+  signaturePngBytes: Uint8Array,
+  carrierName: string,
+  usdot: string
+): Promise<Uint8Array | null> {
+  const doc = await PDFDocument.create();
+  const font = await doc.embedFont(StandardFonts.Helvetica);
+  const fontBold = await doc.embedFont(StandardFonts.HelveticaBold);
+  const page = doc.addPage([612, 792]);
+  const { width, height } = page.getSize();
+  const margin = 50;
+
+  const reportDate = new Date().toLocaleDateString('en-US', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+
+  page.drawText('VantagFleet', {
+    x: margin,
+    y: height - margin - 20,
+    size: 14,
+    font: fontBold,
+    color: rgb(0.2, 0.2, 0.25),
+  });
+  page.drawText('Daily Log — Officer Copy', {
+    x: width - margin - 180,
+    y: height - margin - 20,
+    size: 10,
+    font: font,
+    color: rgb(0.4, 0.4, 0.45),
+  });
+
+  let y = height - margin - 50;
+  page.drawText(`Carrier: ${carrierName}`, { x: margin, y, size: 11, font: fontBold, color: rgb(0.1, 0.1, 0.15) });
+  y -= 18;
+  page.drawText(`USDOT: ${usdot}`, { x: margin, y, size: 11, font: font, color: rgb(0.2, 0.2, 0.25) });
+  y -= 18;
+  page.drawText(`Date: ${reportDate}`, { x: margin, y, size: 11, font: font, color: rgb(0.2, 0.2, 0.25) });
+  y -= 28;
+
+  page.drawText('Driver signature (watermarked):', {
+    x: margin,
+    y,
+    size: 10,
+    font: font,
+    color: rgb(0.45, 0.45, 0.5),
+  });
+  y -= 12;
+
+  try {
+    const image = await doc.embedPng(signaturePngBytes);
+    const imgDims = image.scale(0.35);
+    const sigHeight = imgDims.height;
+    const sigWidth = imgDims.width;
+    const sigX = margin;
+    const sigY = y - sigHeight;
+    page.drawImage(image, {
+      x: sigX,
+      y: Math.max(50, sigY),
+      width: sigWidth,
+      height: sigHeight,
+      opacity: 0.9,
+    });
+  } catch {
+    return null;
+  }
+
+  y = 60;
+  page.drawText('This daily log was signed electronically via VantagFleet Roadside Shield.', {
+    x: margin,
+    y,
+    size: 8,
+    font: font,
+    color: rgb(0.5, 0.5, 0.55),
+  });
+  page.drawText('vantagfleet.com', {
+    x: margin,
+    y: 44,
+    size: 8,
+    font: font,
+    color: rgb(0.55, 0.55, 0.6),
+  });
+
+  return doc.save();
+}
+
 export async function POST(request: NextRequest) {
   const supabase = await createClient();
   const cookieStore = await cookies();
@@ -122,7 +211,30 @@ export async function POST(request: NextRequest) {
   const usdot = (org as { usdot_number?: string | null } | null)?.usdot_number ?? '—';
   const docTypes = Array.from(new Set((docs ?? []).map((d: { doc_type: string }) => d.doc_type)));
 
-  if (!docs?.length) {
+  const { data: { user } } = await supabase.auth.getUser();
+  let signaturePngBytes: Uint8Array | null = null;
+  let hasSignature = false;
+  if (user) {
+    const { data: sigRow } = await supabase
+      .from('driver_daily_log_signatures')
+      .select('file_path')
+      .eq('org_id', orgId)
+      .eq('user_id', user.id)
+      .order('signature_date', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    const filePath = (sigRow as { file_path?: string } | null)?.file_path;
+    if (filePath) {
+      hasSignature = true;
+      docTypes.push('Daily Log (signed)');
+      const { data: sigBlob } = await admin.storage.from(BUCKET).download(filePath);
+      if (sigBlob) {
+        signaturePngBytes = new Uint8Array(await sigBlob.arrayBuffer());
+      }
+    }
+  }
+
+  if (!docs?.length && !hasSignature) {
     return jsonOrRedirect(request, { error: 'No documents to send' }, 400);
   }
 
@@ -134,13 +246,26 @@ export async function POST(request: NextRequest) {
     archive.on('error', reject);
   });
 
-  for (let i = 0; i < docs.length; i++) {
-    const doc = docs[i];
+  const docsList = docs ?? [];
+  for (let i = 0; i < docsList.length; i++) {
+    const doc = docsList[i];
     const { data: blob, error } = await admin.storage.from(BUCKET).download(doc.file_path);
     if (error || !blob) continue;
     const ext = doc.file_path.split('.').pop() || 'bin';
     const safeName = `${doc.doc_type.replace(/[^a-zA-Z0-9-_]/g, '_')}_${i + 1}.${ext}`;
     archive.append(Buffer.from(await blob.arrayBuffer()), { name: safeName });
+  }
+
+  if (signaturePngBytes && signaturePngBytes.length > 0) {
+    try {
+      const dailyLogPdf = await buildDailyLogPdfWithSignature(signaturePngBytes, carrierName, usdot);
+      if (dailyLogPdf) {
+        const reportDate = new Date().toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '-');
+        archive.append(Buffer.from(dailyLogPdf), { name: `Daily_Log_Signed_${reportDate}.pdf` });
+      }
+    } catch (e) {
+      console.error('[roadside-shield share] Daily log PDF with signature failed:', e);
+    }
   }
 
   archive.finalize();

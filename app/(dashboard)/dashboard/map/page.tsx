@@ -47,11 +47,15 @@ export default async function DashboardMapPage() {
 
   if (mapAccess) {
     return (
-      <div className="h-[calc(100vh-6rem)] min-h-[400px] w-full">
+      <div
+        className="w-full flex-1 min-h-0 rounded-xl overflow-hidden"
+        style={{ height: 'calc(100vh - 64px)', minHeight: 400 }}
+      >
         <FleetMapDynamic
           accessToken={process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN ?? ''}
+          organizationId={orgId}
           height="100%"
-          className="rounded-xl"
+          className="rounded-xl h-full"
         />
       </div>
     );

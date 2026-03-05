@@ -2,16 +2,24 @@ import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { Footer } from '@/components/Footer';
 import { TauriUpdateNotifier } from '@/components/TauriUpdateNotifier';
+import { PwaRegister } from '@/components/PwaRegister';
 
 export const metadata: Metadata = {
   title: 'Vantag Fleet — Compliance',
   description: 'Multi-tenant trucking compliance SaaS',
+  manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'VantagFleet',
+  },
 };
 
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   viewportFit: 'cover',
+  themeColor: '#f59e0b',
 };
 
 export default function RootLayout({
@@ -25,6 +33,7 @@ export default function RootLayout({
         <div className="flex-1">{children}</div>
         <Footer />
         <TauriUpdateNotifier />
+        <PwaRegister />
       </body>
     </html>
   );
