@@ -167,3 +167,12 @@ body {
 .verify-radar-ring:nth-child(3) {
   animation-delay: 0.8s;
 }
+
+/* System status indicator: subtle pulse on the dot */
+@keyframes status-dot-pulse {
+  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 currentColor; }
+  50% { opacity: 0.9; box-shadow: 0 0 0 4px currentColor; }
+}
+.status-dot-pulse {
+  animation: status-dot-pulse 2s ease-in-out infinite;
+}

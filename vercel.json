@@ -11,6 +11,10 @@
     {
       "path": "/api/cron/refresh-geotab-sessions",
       "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/cron/monthly-fleet-health",
+      "schedule": "0 8 1 * *"
     }
   ]
 }

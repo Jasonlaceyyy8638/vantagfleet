@@ -22,7 +22,48 @@ function emailFooter(appUrl: string): { text: string; html: string } {
   };
 }
 
-function buildEmailBody(firstName: string, isBetaTester: boolean, appUrl: string): { text: string; html: string } {
+/** Founder Welcome (first 5): 90-day credit, full access, direct feedback line. */
+function buildFounderWelcomeEmail(firstName: string, appUrl: string): { subject: string; text: string; html: string } {
+  const dashboardUrl = appUrl ? `${appUrl.replace(/\/$/, '')}/dashboard` : '';
+  const footer = emailFooter(appUrl);
+  const signOff = 'The VantagFleet Team, Founder of VantagFleet';
+  const text = `Hi ${firstName},
+
+You made it. You're one of the first 5 carriers to join our Founder's Beta.
+
+I've applied a 90-day credit to your account for the Fleet Master Plan. You now have full access to:
+• Live GPS Tracking
+• Audit-Ready IFTA Exports
+• The AI Fuel Scanner
+
+Since you're a Founding Carrier, you have a direct line to me for feedback.
+
+Welcome to the future of fleet management.
+
+- ${signOff}${footer.text}`;
+
+  const html = [
+    `<p>Hi <strong>${firstName}</strong>,</p>`,
+    `<p>You made it. You're one of the first 5 carriers to join our Founder's Beta.</p>`,
+    `<p>I've applied a <strong>90-day credit</strong> to your account for the Fleet Master Plan. You now have full access to:</p>`,
+    '<ul><li>Live GPS Tracking</li><li>Audit-Ready IFTA Exports</li><li>The AI Fuel Scanner</li></ul>',
+    `<p>Since you're a Founding Carrier, you have a direct line to me for feedback.</p>`,
+    `<p>Welcome to the future of fleet management.</p>`,
+    dashboardUrl ? `<p><a href="${dashboardUrl}" style="display:inline-block;padding:12px 24px;background:#f59e0b;color:#0f172a;font-weight:700;text-decoration:none;border-radius:8px;">Go to Dashboard</a></p>` : '',
+    `<p>- ${signOff}</p>`,
+    footer.html,
+  ]
+    .filter(Boolean)
+    .join('');
+
+  return {
+    subject: "Welcome to the VantagFleet Inner Circle! (Founder's Access)",
+    text,
+    html,
+  };
+}
+
+function buildStandardEmailBody(firstName: string, isBetaTester: boolean, appUrl: string): { text: string; html: string } {
   const guide = `
 1. Log In: Head over to your VantagFleet Dashboard.
 2. Go to Connections: Click on the Settings gear icon in the sidebar and select 'Integrations'.
@@ -124,7 +165,7 @@ Deno.serve(async (req: Request) => {
     });
   }
 
-  let payload: { record?: { user_id?: string; full_name?: string | null; is_beta_tester?: boolean }; user_id?: string; full_name?: string | null; is_beta_tester?: boolean };
+  let payload: { record?: { user_id?: string; full_name?: string | null; is_beta_tester?: boolean; is_founder?: boolean }; user_id?: string; full_name?: string | null; is_beta_tester?: boolean; is_founder?: boolean };
   try {
     payload = await req.json();
   } catch {
@@ -145,6 +186,7 @@ Deno.serve(async (req: Request) => {
 
   const fullName = record.full_name ?? null;
   const isBetaTester = record.is_beta_tester === true;
+  const isFounder = record.is_founder === true;
 
   const supabaseUrl = Deno.env.get('SUPABASE_URL');
   const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
@@ -197,7 +239,21 @@ Deno.serve(async (req: Request) => {
 
   const appUrl = Deno.env.get('APP_URL') ?? Deno.env.get('NEXT_PUBLIC_APP_URL') ?? '';
   const firstName = getFirstName(fullName);
-  const { text, html } = buildEmailBody(firstName, isBetaTester, appUrl);
+
+  let subject: string;
+  let text: string;
+  let html: string;
+  if (isFounder) {
+    const founder = buildFounderWelcomeEmail(firstName, appUrl);
+    subject = founder.subject;
+    text = founder.text;
+    html = founder.html;
+  } else {
+    const standard = buildStandardEmailBody(firstName, isBetaTester, appUrl);
+    subject = 'Welcome to the Cab! 🚛 Here is how to sync your Motive Fleet.';
+    text = standard.text;
+    html = standard.html;
+  }
 
   const fromName = fromEmail.includes('<') ? fromEmail.replace(/^([^<]+)\s*<.+>$/, '$1').trim() : 'VantagFleet';
   const fromAddr = fromEmail.includes('<') ? fromEmail.replace(/^.+<([^>]+)>$/, '$1').trim() : fromEmail;
@@ -212,7 +268,7 @@ Deno.serve(async (req: Request) => {
       body: JSON.stringify({
         personalizations: [{ to: [{ email }] }],
         from: { email: fromAddr, name: fromName },
-        subject: 'Welcome to the Cab! 🚛 Here is how to sync your Motive Fleet.',
+        subject,
         content: [
           { type: 'text/plain', value: text },
           { type: 'text/html', value: html },

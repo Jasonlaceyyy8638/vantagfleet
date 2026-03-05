@@ -64,6 +64,7 @@ export function Sidebar({
   isDispatcher = false,
   showBetaRibbon = false,
   canSeeMap = true,
+  isFounder = false,
 }: {
   organizations: Organization[];
   currentOrgId: string | null;
@@ -73,6 +74,7 @@ export function Sidebar({
   isDispatcher?: boolean;
   showBetaRibbon?: boolean;
   canSeeMap?: boolean;
+  isFounder?: boolean;
 }) {
   const pathname = usePathname();
   const [isTauri, setIsTauri] = useState(false);
@@ -137,6 +139,7 @@ export function Sidebar({
           <OrgSwitcher
             organizations={organizations}
             currentOrgId={currentOrgId}
+            isFounder={isFounder}
           />
         </div>
       )}

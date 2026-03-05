@@ -5,8 +5,9 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Logo } from '@/components/Logo';
 import { createClient } from '@/lib/supabase/client';
-import { LogOut } from 'lucide-react';
+import { LogOut, Mail, CreditCard, HelpCircle } from 'lucide-react';
 import { EMAIL_SUPPORT, EMAIL_INFO, EMAIL_BILLING } from '@/lib/email-addresses';
+import { SystemStatusIndicator, type SystemStatus } from '@/components/SystemStatusIndicator';
 
 const ADMIN_OWNER_ID = 'ae175e55-72b4-4441-9e3c-02ecd8225bf7';
 
@@ -33,8 +34,8 @@ const linkBase =
 const linkActive =
   'px-4 py-2.5 rounded-lg font-medium transition-colors shadow-[0_0_16px_-2px_rgba(255,176,0,0.4)] ring-1 ring-cyber-amber/60 bg-cyber-amber/20 text-cyber-amber';
 
-const emailLinkClass =
-  'px-2.5 py-1.5 rounded-md text-sm font-medium transition-colors text-soft-cloud/80 hover:text-cyber-amber hover:bg-cyber-amber/10 border border-transparent hover:border-cyber-amber/30';
+const iconButtonClass =
+  'p-2 rounded-lg text-soft-cloud/70 hover:text-cyber-amber hover:bg-white/5 border border-transparent hover:border-cyber-amber/20 transition-colors inline-flex items-center justify-center';
 
 export function Navbar({
   isAuthenticated: initialAuth = false,
@@ -47,6 +48,8 @@ export function Navbar({
   const [role, setRole] = useState<NavRole>(null);
   const [ready, setReady] = useState(false);
   const [isTauri, setIsTauri] = useState(false);
+  const [systemStatus, setSystemStatus] = useState<SystemStatus>('live');
+  const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null);
 
   useEffect(() => {
     const w = typeof window !== 'undefined' ? (window as unknown as { __TAURI__?: unknown; __TAURI_INTERNAL__?: unknown }) : null;
@@ -89,6 +92,21 @@ export function Navbar({
     });
   }, []);
 
+  useEffect(() => {
+    const fetchStatus = () => {
+      fetch('/api/system-status')
+        .then((res) => res.json())
+        .then((data: { status?: SystemStatus; lastSyncedAt?: string | null }) => {
+          setSystemStatus(data?.status ?? 'live');
+          setLastSyncedAt(data?.lastSyncedAt ?? null);
+        })
+        .catch(() => setSystemStatus('live'));
+    };
+    fetchStatus();
+    const interval = setInterval(fetchStatus, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
   const isAdmin = role === 'ADMIN';
   const isEmployee = role === 'EMPLOYEE';
   const isCustomer = role === 'CUSTOMER';
@@ -118,10 +136,17 @@ export function Navbar({
         )}
         {ready && !auth && (
           <>
-            <span className="hidden sm:flex items-center gap-0.5 text-soft-cloud/70">
-              <a href={`mailto:${EMAIL_SUPPORT}`} className={emailLinkClass} title="Support">Support</a>
-              <a href={`mailto:${EMAIL_INFO}`} className={emailLinkClass} title="General">General</a>
-              <a href={`mailto:${EMAIL_BILLING}`} className={emailLinkClass} title="Billing">Billing</a>
+            <SystemStatusIndicator status={systemStatus} lastSyncedAt={lastSyncedAt} />
+            <span className="hidden sm:flex items-center gap-0.5" aria-label="Contact">
+              <a href={`mailto:${EMAIL_SUPPORT}`} className={iconButtonClass} title="Contact Support" aria-label="Contact Support">
+                <Mail className="size-4" />
+              </a>
+              <a href={`mailto:${EMAIL_BILLING}`} className={iconButtonClass} title="Billing" aria-label="Billing">
+                <CreditCard className="size-4" />
+              </a>
+              <a href={`mailto:${EMAIL_INFO}`} className={iconButtonClass} title="General inquiries" aria-label="General inquiries">
+                <HelpCircle className="size-4" />
+              </a>
             </span>
             <Link
               href="/login"
@@ -193,15 +218,16 @@ export function Navbar({
                 My Fleet
               </Link>
             )}
-            <span className="hidden lg:flex items-center gap-0.5 text-soft-cloud/70" aria-label="Contact">
-              <a href={`mailto:${EMAIL_SUPPORT}`} className={emailLinkClass} title="Support">
-                Support
+            <SystemStatusIndicator status={systemStatus} lastSyncedAt={lastSyncedAt} />
+            <span className="hidden lg:flex items-center gap-0.5" aria-label="Contact">
+              <a href={`mailto:${EMAIL_SUPPORT}`} className={iconButtonClass} title="Contact Support" aria-label="Contact Support">
+                <Mail className="size-4" />
               </a>
-              <a href={`mailto:${EMAIL_INFO}`} className={emailLinkClass} title="General inquiries">
-                General
+              <a href={`mailto:${EMAIL_BILLING}`} className={iconButtonClass} title="Billing" aria-label="Billing">
+                <CreditCard className="size-4" />
               </a>
-              <a href={`mailto:${EMAIL_BILLING}`} className={emailLinkClass} title="Billing">
-                Billing
+              <a href={`mailto:${EMAIL_INFO}`} className={iconButtonClass} title="General inquiries" aria-label="General inquiries">
+                <HelpCircle className="size-4" />
               </a>
             </span>
             {!isTauri && (

@@ -8,8 +8,9 @@ import { createPortal } from 'react-dom';
 import { Navbar } from '@/components/Navbar';
 import { Pricing } from '@/components/Pricing';
 import { HeroLoginCard } from '@/components/HeroLoginCard';
-import { FileCheck, Users, Truck, Shield, ArrowRight, Plug, Quote, MapPin, X, Scale, FileText, Fuel, ShieldCheck, CalendarClock, Gauge } from 'lucide-react';
+import { FileCheck, Users, Truck, Shield, ArrowRight, Plug, Quote, MapPin, X, Scale, FileText, Fuel, ShieldCheck, CalendarClock, Gauge, Mail } from 'lucide-react';
 import type { NavbarRole } from '@/lib/admin';
+import { EMAIL_SUPPORT } from '@/lib/email-addresses';
 
 const glassCardClass =
   'backdrop-blur-lg border border-white/10 rounded-2xl shadow-[0_0_40px_-12px_rgba(255,176,0,0.15)]';
@@ -482,13 +483,16 @@ export function LandingPage({ isAuthenticated = false, navbarRole = null }: Land
                 </p>
               </motion.div>
               <motion.a
-                href="mailto:info@vantagfleet.com"
+                href={`mailto:${EMAIL_SUPPORT}`}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ duration: 0.5, delay: 0.4 }}
-                className="mt-6 w-full max-w-md mx-auto block text-center backdrop-blur-2xl bg-black/40 border border-white/10 rounded-3xl min-h-[48px] flex items-center justify-center py-4 px-6 shadow-[0_0_50px_-12px_rgba(255,191,0,0.25)] text-[#FFBF00] font-medium hover:bg-black/50 hover:border-[#FFBF00]/40 transition-colors touch-manipulation"
+                title="Contact Support"
+                aria-label="Contact Support"
+                className="mt-6 inline-flex items-center justify-center gap-2 p-3 rounded-xl backdrop-blur-2xl bg-black/40 border border-white/10 shadow-[0_0_50px_-12px_rgba(255,191,0,0.25)] text-cyber-amber hover:bg-black/50 hover:border-cyber-amber/40 transition-colors touch-manipulation"
               >
-                info@vantagfleet.com
+                <Mail className="size-5" />
+                <span className="sr-only">Contact Support</span>
               </motion.a>
             </>
           ) : (
@@ -510,10 +514,13 @@ export function LandingPage({ isAuthenticated = false, navbarRole = null }: Land
                 <ArrowRight className="size-5" />
               </Link>
               <a
-                href="mailto:info@vantagfleet.com"
-                className="block text-center backdrop-blur-2xl bg-black/40 border border-white/10 rounded-3xl py-4 px-8 shadow-[0_0_50px_-12px_rgba(255,191,0,0.25)] text-[#FFBF00] font-medium hover:bg-black/50 hover:border-[#FFBF00]/40 transition-colors"
+                href={`mailto:${EMAIL_SUPPORT}`}
+                title="Contact Support"
+                aria-label="Contact Support"
+                className="inline-flex items-center justify-center gap-2 p-3 rounded-xl backdrop-blur-2xl bg-black/40 border border-white/10 shadow-[0_0_50px_-12px_rgba(255,191,0,0.25)] text-cyber-amber hover:bg-black/50 hover:border-cyber-amber/40 transition-colors"
               >
-                info@vantagfleet.com
+                <Mail className="size-5" />
+                <span className="sr-only">Contact Support</span>
               </a>
             </motion.div>
           )}

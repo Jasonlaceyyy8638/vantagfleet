@@ -31,13 +31,13 @@ export default async function DashboardLayout({
   if (superAdmin && impersonatedId) {
     const currentOrgId = impersonatedId;
     const admin = createAdminClient();
-    const { data: org } = await admin
-      .from('organizations')
-      .select('id, name, usdot_number, status, created_at, updated_at')
-      .eq('id', currentOrgId)
-      .single();
+    const [{ data: org }, { data: impProfile }] = await Promise.all([
+      admin.from('organizations').select('id, name, usdot_number, status, created_at, updated_at').eq('id', currentOrgId).single(),
+      admin.from('profiles').select('is_founder').eq('org_id', currentOrgId).limit(1).maybeSingle(),
+    ]);
     const organizations = org ? [org] : [];
     const showAdminLink = true;
+    const isFounderImpersonating = (impProfile as { is_founder?: boolean } | null)?.is_founder === true;
     return (
       <div className="flex min-h-screen flex-col">
         <ImpersonationBar carrierName={org?.name ?? 'Unknown'} />
@@ -48,6 +48,7 @@ export default async function DashboardLayout({
             showAdminLink={showAdminLink}
             showAdminGearInTauri={true}
             canSeeMap={true}
+            isFounder={isFounderImpersonating}
           />
           <main className="flex-1 overflow-auto">
             {children}
@@ -88,7 +89,7 @@ export default async function DashboardLayout({
       .order('name'),
     supabase
       .from('profiles')
-      .select('is_beta_tester, beta_expires_at, ifta_enabled, subscription_status')
+      .select('is_beta_tester, beta_expires_at, ifta_enabled, subscription_status, is_founder')
       .eq('user_id', user.id)
       .eq('org_id', currentOrgId)
       .single(),
@@ -103,7 +104,7 @@ export default async function DashboardLayout({
   const currentProfile = (profiles ?? []).find((p) => p.org_id === currentOrgId);
   const isDriverOnly = currentProfile?.role === 'Driver';
   const isDispatcher = currentProfile?.role === 'Dispatcher';
-  const profileForAccess = profileRow as { is_beta_tester?: boolean; beta_expires_at?: string | null; ifta_enabled?: boolean; subscription_status?: string | null } | null;
+  const profileForAccess = profileRow as { is_beta_tester?: boolean; beta_expires_at?: string | null; ifta_enabled?: boolean; subscription_status?: string | null; is_founder?: boolean } | null;
   const orgForAccess = orgRow as { subscription_status?: string | null; tier?: string | null } | null;
   const fullAccess = hasFullAccess(profileForAccess, orgForAccess);
   const showBetaRibbonFlag = showBetaRibbon(profileForAccess, orgForAccess);
@@ -126,6 +127,7 @@ export default async function DashboardLayout({
         isDispatcher={isDispatcher}
         showBetaRibbon={showBetaRibbonFlag}
         canSeeMap={mapAccess}
+        isFounder={profileForAccess?.is_founder === true}
       />
       <main className="flex-1 overflow-auto flex flex-col">
         <BetaCountdownBanner

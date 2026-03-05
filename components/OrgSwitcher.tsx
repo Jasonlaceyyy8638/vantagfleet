@@ -8,10 +8,12 @@ import { setCurrentOrg } from '@/app/actions/org';
 export function OrgSwitcher({
   organizations,
   currentOrgId,
+  isFounder = false,
 }: {
   organizations: Organization[];
   currentOrgId: string | null;
   onSwitch?: (orgId: string) => void;
+  isFounder?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const current = organizations.find((o) => o.id === currentOrgId) ?? organizations[0];
@@ -21,11 +23,20 @@ export function OrgSwitcher({
     setCurrentOrg(orgId);
   };
 
+  const founderBadge = isFounder ? (
+    <span className="shrink-0 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-400/20 text-amber-400 border border-amber-400/40" title="Founding Carrier">
+      Founding Carrier
+    </span>
+  ) : null;
+
   if (organizations.length === 0) return null;
   if (organizations.length === 1)
     return (
-      <div className="px-3 py-2 rounded-lg bg-deep-ink text-cloud-dancer text-sm font-medium">
-        {current?.name ?? '—'}
+      <div className="flex items-center gap-2 flex-wrap">
+        <span className="px-3 py-2 rounded-lg bg-deep-ink text-cloud-dancer text-sm font-medium">
+          {current?.name ?? '—'}
+        </span>
+        {founderBadge}
       </div>
     );
 
@@ -36,7 +47,10 @@ export function OrgSwitcher({
         onClick={() => setOpen((o) => !o)}
         className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg bg-deep-ink hover:bg-deep-ink/80 text-cloud-dancer text-sm font-medium"
       >
-        <span className="truncate">{current?.name ?? 'Select org'}</span>
+        <span className="flex items-center gap-2 min-w-0">
+          <span className="truncate">{current?.name ?? 'Select org'}</span>
+          {founderBadge}
+        </span>
         <ChevronDown className={`size-4 shrink-0 transition ${open ? 'rotate-180' : ''}`} />
       </button>
       {open && (
