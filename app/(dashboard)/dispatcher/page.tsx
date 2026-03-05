@@ -35,9 +35,17 @@ export default async function DispatcherPage() {
   const month = now.getMonth() + 1;
   const currentQuarter = Math.ceil(month / 3) as 1 | 2 | 3 | 4;
 
+  const { data: profileRow } = await supabase
+    .from('profiles')
+    .select('id')
+    .eq('user_id', user.id)
+    .eq('org_id', orgId)
+    .single();
+
+  const profileId = (profileRow as { id: string } | null)?.id ?? '';
+
   const [
     { data: incidentRows },
-    { data: profileRow },
     { data: receiptRows },
   ] = await Promise.all([
     supabase
@@ -47,15 +55,9 @@ export default async function DispatcherPage() {
       .gte('created_at', sinceIso)
       .order('created_at', { ascending: false }),
     supabase
-      .from('profiles')
-      .select('id')
-      .eq('user_id', user.id)
-      .eq('org_id', orgId)
-      .single(),
-    supabase
       .from('ifta_receipts')
       .select('id, receipt_date, state, gallons, status')
-      .eq('user_id', (profileRow as { id: string } | null)?.id ?? '')
+      .eq('user_id', profileId)
       .eq('quarter', currentQuarter)
       .eq('year', year)
       .eq('status', 'pending')
