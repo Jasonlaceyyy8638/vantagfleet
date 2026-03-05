@@ -167,7 +167,7 @@ export async function addVantagStaffMember(
       subject: 'Welcome to VantagFleet Team',
       text: `You've been added to the VantagFleet team with the role: ${role}.\n\nYour temporary password: ${tempPassword}\n\nPlease sign in at ${loginUrl} and change your password in Settings after your first login.\n\n— VantagFleet`,
     });
-    if (sent.ok !== true) {
+    if ('error' in sent) {
       return { error: `User created and added to team, but welcome email failed: ${sent.error}. Share this temporary password securely: ${tempPassword}` };
     }
     return { ok: true };

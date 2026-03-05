@@ -31,7 +31,7 @@ export async function requestForgotPassword(
       subject: 'Your VantagFleet temporary password',
       text: `You requested a password reset.\n\nYour temporary password: ${tempPassword}\n\nSign in at ${loginUrl}, then go to Change password to set a new one: ${changePasswordUrl}\n\nIf you didn't request this, please sign in and change your password immediately.\n\n— VantagFleet`,
     });
-    if (sent.ok !== true) {
+    if ('error' in sent) {
       return { ok: false, error: 'Email could not be sent. Please try again or contact support.' };
     }
   }

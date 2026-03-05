@@ -7,7 +7,7 @@ const ADMIN_OWNER_ID = 'ae175e55-72b4-4441-9e3c-02ecd8225bf7';
 export async function updateSession(
   request: NextRequest,
   pathname?: string
-): Promise<{ response: NextResponse; user: { id: string } | null; isStaff?: boolean; isAdmin?: boolean; isSuperAdmin?: boolean }> {
+): Promise<{ response: NextResponse; user: { id: string } | null; isStaff?: boolean; isAdmin?: boolean; isSuperAdmin?: boolean; canImpersonate?: boolean }> {
   const response = NextResponse.next({ request });
 
   const supabase = createServerClient(

@@ -88,7 +88,7 @@ export function TeamClient({ initialStaff, initialTickets, initialMotiveDrivers 
       setMessage({ type: 'success', text: 'Password updated.' });
       setResetPasswordUserId(null);
       setResetPasswordValue('');
-    } else setMessage({ type: 'error', text: result.error ?? 'Failed to reset password.' });
+    } else setMessage({ type: 'error', text: ('error' in result ? result.error : 'Failed to reset password.') });
   };
 
   const handleDeleteUser = async (userId: string) => {
@@ -100,7 +100,7 @@ export function TeamClient({ initialStaff, initialTickets, initialMotiveDrivers 
     if ('ok' in result && result.ok) {
       setStaff((prev) => prev.filter((s) => s.user_id !== userId));
       setMessage({ type: 'success', text: 'User removed from the system.' });
-    } else setMessage({ type: 'error', text: result.error ?? 'Failed to delete user.' });
+    } else setMessage({ type: 'error', text: ('error' in result ? result.error : 'Failed to delete user.') });
   };
 
   const handleRemove = async (userId: string) => {
