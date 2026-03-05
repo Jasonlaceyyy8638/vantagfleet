@@ -16,6 +16,7 @@ const SOLO_PRO_POINTS = [
 const FLEET_MASTER_POINTS = [
   'Small Fleets (2–5 trucks)',
   'Motive ELD Sync',
+  'IFTA (standard)',
   'Real-time Profitability',
   'Everything in Solo Pro',
 ];
@@ -23,6 +24,7 @@ const FLEET_MASTER_POINTS = [
 const ENTERPRISE_POINTS = [
   'Unlimited Trucks',
   'Multi-user access',
+  'IFTA (standard)',
   'Audit-Ready IFTA Reports',
   'Everything in Fleet Master',
   'Dedicated support',
@@ -52,22 +54,6 @@ export function Pricing() {
           tier: tierId,
           billing: billing === 'yearly' ? 'annual' : 'monthly',
         }),
-      });
-      const data = await res.json();
-      if (data.url) window.location.href = data.url;
-      else if (data.error) alert(data.error);
-    } finally {
-      setLoadingTier(null);
-    }
-  };
-
-  const handleIftaCheckout = async () => {
-    setLoadingTier('ifta');
-    try {
-      const res = await fetch('/api/checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type: 'ifta' }),
       });
       const data = await res.json();
       if (data.url) window.location.href = data.url;
@@ -226,10 +212,10 @@ export function Pricing() {
         </div>
       </div>
 
-      {/* Add-ons Section */}
+      {/* Add-ons Section — IFTA is standard on Fleet Master & Enterprise */}
       <section className="border-t border-white/10 pt-12">
         <h2 className="text-lg font-bold text-soft-cloud text-center mb-8">Add-ons</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-2xl mx-auto">
           <div className="rounded-xl border border-white/10 bg-white/5 p-5 flex flex-col items-center text-center">
             <p className="font-bold text-soft-cloud">BOC-3 Filing</p>
             <p className="text-2xl font-bold text-cyber-amber mt-1">$79</p>
@@ -250,19 +236,6 @@ export function Pricing() {
             >
               Get started
             </Link>
-          </div>
-          <div className="rounded-xl border border-white/10 bg-white/5 p-5 flex flex-col items-center text-center">
-            <p className="font-bold text-soft-cloud">Quarterly IFTA Prep</p>
-            <p className="text-2xl font-bold text-cyber-amber mt-1">$49/qtr</p>
-            <button
-              type="button"
-              onClick={handleIftaCheckout}
-              disabled={!!loadingTier}
-              className="mt-4 w-full py-2.5 rounded-lg border border-cyber-amber/50 text-cyber-amber text-sm font-medium hover:bg-cyber-amber/10 flex items-center justify-center gap-2 disabled:opacity-60"
-            >
-              {loadingTier === 'ifta' ? <Loader2 className="size-4 animate-spin" /> : null}
-              Get started
-            </button>
           </div>
         </div>
       </section>

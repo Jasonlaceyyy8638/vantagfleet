@@ -54,7 +54,7 @@ export function FleetMap({
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch('/api/motive/locations');
+      const res = await fetch('/api/fleet/locations');
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         setError(data.error ?? 'Failed to load locations');

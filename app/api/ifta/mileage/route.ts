@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { cookies } from 'next/headers';
 import { getDashboardOrgId } from '@/lib/admin';
 import { getIftaSummary } from '@/lib/motive';
+import { getFuelTaxDetails, aggregateFuelTaxByState, type GeotabCredentials } from '@/lib/geotab';
 
 function getQuarterDateRange(year: number, quarter: 1 | 2 | 3 | 4): { start: string; end: string } {
   const startMonth = (quarter - 1) * 3 + 1;
@@ -15,8 +17,8 @@ function getQuarterDateRange(year: number, quarter: 1 | 2 | 3 | 4): { start: str
 
 /**
  * GET /api/ifta/mileage?quarter=1&year=2026
- * Returns Motive mileage for the current user's org, grouped by state, for the given quarter.
- * Uses MOTIVE_API_KEY or OAuth. Q1 Jan 1–Mar 31, Q2 Apr 1–Jun 30, Q3 Jul 1–Sep 30, Q4 Oct 1–Dec 31.
+ * Returns ELD mileage (Motive or Geotab) for the current user's org, grouped by state.
+ * Tries Motive first; if not connected or error, falls back to Geotab FuelTaxDetail.
  */
 export async function GET(request: NextRequest) {
   const supabase = await createClient();
@@ -36,7 +38,27 @@ export async function GET(request: NextRequest) {
   const year = Number(searchParams.get('year')) || new Date().getFullYear();
   const { start, end } = getQuarterDateRange(year, quarter);
 
-  const result = await getIftaSummary(orgId, start, end);
+  let result = await getIftaSummary(orgId, start, end);
+
+  if ('error' in result) {
+    const admin = createAdminClient();
+    const { data: row } = await admin
+      .from('carrier_integrations')
+      .select('credential')
+      .eq('org_id', orgId)
+      .eq('provider', 'geotab')
+      .maybeSingle();
+    const cred = (row as { credential?: string } | null)?.credential
+      ? (JSON.parse((row as { credential: string }).credential) as GeotabCredentials)
+      : null;
+    if (cred?.sessionId) {
+      const geotabResult = await getFuelTaxDetails(cred, start, end);
+      if (!('error' in geotabResult)) {
+        const agg = aggregateFuelTaxByState(geotabResult.details);
+        result = { totalMiles: agg.totalMiles, milesByState: agg.milesByState };
+      }
+    }
+  }
 
   if ('error' in result) {
     return NextResponse.json(

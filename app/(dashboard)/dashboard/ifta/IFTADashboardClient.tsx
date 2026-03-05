@@ -15,6 +15,8 @@ import {
   Plug,
   AlertTriangle,
   DollarSign,
+  Settings,
+  PenLine,
 } from 'lucide-react';
 import { calculateIfta } from '@/lib/ifta-calculate';
 import { createClient } from '@/lib/supabase/client';
@@ -70,6 +72,7 @@ export function IFTADashboardClient({
   currentQuarter: initialQuarter,
   currentYear: initialYear,
   initialReceipts,
+  isSoloPro = false,
 }: {
   iftaEnabled: boolean;
   profileId: string | null;
@@ -77,6 +80,7 @@ export function IFTADashboardClient({
   currentQuarter: 1 | 2 | 3 | 4;
   currentYear: number;
   initialReceipts: ReceiptRow[];
+  isSoloPro?: boolean;
 }) {
   const [quarter, setQuarter] = useState<1 | 2 | 3 | 4>(initialQuarter);
   const [year] = useState(initialYear);
@@ -106,6 +110,7 @@ export function IFTADashboardClient({
   const [mileageError, setMileageError] = useState<string | null>(null);
   const [mileageLoading, setMileageLoading] = useState(false);
   const [pdfLoading, setPdfLoading] = useState(false);
+  const [useManualEntry, setUseManualEntry] = useState(false);
 
   const processedOnly = receipts.filter((r) => r.status === 'processed');
   const quarterlyTotalGallons = processedOnly.reduce((sum, r) => sum + (r.gallons ?? 0), 0);
@@ -191,7 +196,7 @@ export function IFTADashboardClient({
         setMotiveTotalMiles(Number(data.totalMiles) || 0);
       }
     } catch {
-      setMileageError('Failed to load Motive mileage.');
+      setMileageError('Failed to load ELD mileage.');
       setMotiveMilesByState([]);
       setMotiveTotalMiles(0);
     } finally {
@@ -390,6 +395,72 @@ export function IFTADashboardClient({
     handleFiles(e.dataTransfer.files);
   };
 
+  const showEldSetup =
+    iftaEnabled && orgId && !mileageLoading && mileageError && !useManualEntry;
+
+  if (showEldSetup) {
+    return (
+      <UpgradeOverlay hasAccess={iftaEnabled} title="IFTA Scanner">
+        <div className="min-h-screen bg-midnight-ink p-6 md:p-8">
+          <div className="max-w-5xl mx-auto">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+              <div>
+                <h1 className="text-2xl font-bold text-soft-cloud flex items-center gap-2">
+                  <Fuel className="size-7 text-cyber-amber" />
+                  IFTA Dashboard
+                </h1>
+                <p className="text-soft-cloud/60 text-sm mt-1">Quarterly fuel receipts and tax estimate</p>
+              </div>
+              <div className="flex rounded-lg border border-white/10 bg-card/50 p-1">
+                {QUARTERS.map(({ q, label }) => (
+                  <button
+                    key={q}
+                    onClick={() => handleQuarterChange(q)}
+                    className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                      quarter === q
+                        ? 'bg-cyber-amber text-midnight-ink'
+                        : 'text-soft-cloud/70 hover:text-soft-cloud hover:bg-white/5'
+                    }`}
+                  >
+                    {label} {year}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="rounded-2xl border border-white/10 bg-card p-8 md:p-10 text-center max-w-xl mx-auto">
+              <div className="rounded-full bg-amber-500/10 p-4 inline-flex mb-4">
+                <Plug className="size-10 text-cyber-amber" aria-hidden />
+              </div>
+              <h2 className="text-xl font-semibold text-soft-cloud mb-2">Setup IFTA</h2>
+              <p className="text-soft-cloud/80 text-sm mb-6">
+                To automate your quarterly filings, connect your ELD in Settings.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                <Link
+                  href="/dashboard/integrations"
+                  className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-cyber-amber text-midnight-ink font-semibold hover:bg-cyber-amber/90 transition-colors"
+                >
+                  <Settings className="size-5" />
+                  Connect ELD in Settings
+                </Link>
+                {isSoloPro && (
+                  <button
+                    type="button"
+                    onClick={() => setUseManualEntry(true)}
+                    className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl border border-white/20 text-soft-cloud font-medium hover:bg-white/5 transition-colors"
+                  >
+                    <PenLine className="size-5" />
+                    Enter data manually
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      </UpgradeOverlay>
+    );
+  }
+
   const content = (
     <div className="min-h-screen bg-midnight-ink p-6 md:p-8">
       <div className="max-w-5xl mx-auto">
@@ -503,7 +574,7 @@ export function IFTADashboardClient({
           </div>
         </div>
 
-        {/* Mileage Summary + Gap Analysis (Motive vs receipts) */}
+        {/* Mileage Summary + Gap Analysis (ELD vs receipts) */}
         <section className="rounded-xl border border-white/10 bg-card overflow-hidden mb-8">
           <div className="px-5 py-4 border-b border-white/10 flex items-center justify-between flex-wrap gap-2">
             <h2 className="font-semibold text-soft-cloud flex items-center gap-2">
@@ -513,31 +584,43 @@ export function IFTADashboardClient({
             {orgId && (
               <span className="text-xs text-soft-cloud/50 flex items-center gap-1">
                 <Plug className="size-3.5 text-electric-teal" />
-                Motive integration • Q{quarter} dates: {quarter === 1 ? 'Jan 1 – Mar 31' : quarter === 2 ? 'Apr 1 – Jun 30' : quarter === 3 ? 'Jul 1 – Sep 30' : 'Oct 1 – Dec 31'}
+                ELD integration • Q{quarter} dates: {quarter === 1 ? 'Jan 1 – Mar 31' : quarter === 2 ? 'Apr 1 – Jun 30' : quarter === 3 ? 'Jul 1 – Sep 30' : 'Oct 1 – Dec 31'}
               </span>
             )}
           </div>
           <div className="p-5">
             {!orgId ? (
-              <p className="text-sm text-soft-cloud/50">Select an organization to see Motive mileage.</p>
+              <p className="text-sm text-soft-cloud/50">Select an organization to see ELD mileage.</p>
             ) : mileageLoading ? (
               <div className="flex items-center gap-2 py-6 text-soft-cloud/70">
                 <Loader2 className="size-5 animate-spin text-cyber-amber" />
-                Loading Motive mileage…
+                Loading ELD mileage…
               </div>
             ) : mileageError ? (
-              <p className="text-sm text-cyber-amber/90 py-2">{mileageError}</p>
+              <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-6 text-center">
+                <p className="text-sm text-soft-cloud/90 mb-4">{mileageError}</p>
+                <p className="text-sm text-soft-cloud/60 mb-4">
+                  Connect your ELD (Motive or Geotab) to auto-generate state-by-state mileage and simplify your IFTA reporting.
+                </p>
+                <Link
+                  href="/dashboard/integrations"
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-cyber-amber text-midnight-ink font-semibold hover:bg-cyber-amber/90 transition-colors"
+                >
+                  <Plug className="size-5" />
+                  Connect ELD to Auto-Generate IFTA
+                </Link>
+              </div>
             ) : (
               <>
                 <p className="text-xs text-soft-cloud/50 mb-4">
-                  MPG = Total Miles ÷ Total Gallons. Taxable fuel per state = State Miles ÷ MPG. Compare Motive miles vs scanned receipt fuel by state.
+                  MPG = Total Miles ÷ Total Gallons. Taxable fuel per state = State Miles ÷ MPG. Compare ELD miles vs scanned receipt fuel by state.
                 </p>
                 <div className="overflow-x-auto rounded-lg border border-white/10">
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="bg-midnight-ink/80 text-soft-cloud/70 text-left">
                         <th className="px-3 py-2.5 font-medium">State</th>
-                        <th className="px-3 py-2.5 font-medium text-right">Motive Miles</th>
+                        <th className="px-3 py-2.5 font-medium text-right">State Miles (ELD)</th>
                         <th className="px-3 py-2.5 font-medium text-right">Fuel (receipts) gal</th>
                         <th className="px-3 py-2.5 font-medium text-right">Taxable fuel (gal)</th>
                         <th className="px-3 py-2.5 font-medium text-right">Gap</th>
@@ -547,7 +630,7 @@ export function IFTADashboardClient({
                       {mileageSummaryRows.length === 0 ? (
                         <tr>
                           <td colSpan={5} className="px-3 py-4 text-soft-cloud/50 text-center">
-                            No mileage or fuel data for this quarter. Connect Motive and add receipts.
+                            No mileage or fuel data for this quarter. Connect your ELD and add receipts.
                           </td>
                         </tr>
                       ) : (
@@ -609,7 +692,7 @@ export function IFTADashboardClient({
                   {iftaResult.rows.length === 0 ? (
                     <tr>
                       <td colSpan={5} className="px-3 py-4 text-soft-cloud/50 text-center">
-                        No liability data. Connect Motive and add fuel receipts for this quarter.
+                        No liability data. Connect your ELD and add fuel receipts for this quarter.
                       </td>
                     </tr>
                   ) : (

@@ -16,7 +16,13 @@ export default async function IntegrationsPage() {
     );
   }
 
-  const integrations = await getIntegrationsForOrg(orgId);
+  const [integrations, { data: orgRow }] = await Promise.all([
+    getIntegrationsForOrg(orgId),
+    supabase.from('organizations').select('tier').eq('id', orgId).single(),
+  ]);
+  const tier = (orgRow as { tier?: string | null } | null)?.tier ?? '';
+  const tierNorm = tier.toString().trim().toLowerCase().replace(/\s+/g, '_');
+  const isSoloPro = tierNorm === 'solo_pro' || tierNorm === 'solo';
 
   return (
     <div className="p-6 md:p-8 max-w-5xl">
@@ -27,7 +33,7 @@ export default async function IntegrationsPage() {
       <p className="text-soft-cloud/50 text-sm mb-6">
         <strong>Motive:</strong> Click Connect to sign in with your Motive account and authorize. <strong>FMCSA:</strong> Click Connect to enable FMCSA access—no API key needed. You can also use your own API key if you prefer.
       </p>
-      <IntegrationsHubClient orgId={orgId} initialIntegrations={integrations} />
+      <IntegrationsHubClient orgId={orgId} initialIntegrations={integrations} isEldLocked={isSoloPro} />
     </div>
   );
 }

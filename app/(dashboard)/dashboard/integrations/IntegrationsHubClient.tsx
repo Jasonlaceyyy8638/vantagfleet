@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import {
   saveIntegration,
   connectFmcsaWithPlatformKey,
@@ -10,21 +11,25 @@ import {
   type IntegrationProvider,
 } from '@/app/actions/integrations';
 import { syncMotiveFleet } from '@/app/actions/motive-sync';
-import { Plug, Loader2, Check, X, RefreshCw, CloudDownload } from 'lucide-react';
+import { syncGeotabVehicles } from '@/app/actions/geotab-sync';
+import Link from 'next/link';
+import { Plug, Loader2, Check, X, RefreshCw, CloudDownload, MapPin, FileBarChart, Lock } from 'lucide-react';
+import { ProviderBranding, getProviderBranding } from '@/components/ProviderBranding';
 
 const PROVIDERS: { id: IntegrationProvider; name: string; label: string; placeholder: string }[] = [
   { id: 'motive', name: 'Motive', label: 'Motive', placeholder: '' },
   { id: 'fmcsa', name: 'FMCSA', label: 'FMCSA', placeholder: 'Paste key from FMCSA portal' },
+  { id: 'geotab', name: 'Geotab', label: 'Geotab', placeholder: '' },
 ];
 
 const COMING_SOON_PROVIDERS: { id: string; name: string; description: string }[] = [
-  { id: 'geotab', name: 'Geotab', description: 'Connect Geotab for telematics and fleet data.' },
   { id: 'samsara', name: 'Samsara', description: 'Connect Samsara to sync vehicles and driver data.' },
 ];
 
-type Props = { orgId: string; initialIntegrations: IntegrationRow[] };
+type Props = { orgId: string; initialIntegrations: IntegrationRow[]; isEldLocked?: boolean };
 
-export function IntegrationsHubClient({ orgId, initialIntegrations }: Props) {
+export function IntegrationsHubClient({ orgId, initialIntegrations, isEldLocked = false }: Props) {
+  const [eldUpgradeLoading, setEldUpgradeLoading] = useState(false);
   const [integrations, setIntegrations] = useState<IntegrationRow[]>(initialIntegrations);
   const [modalProvider, setModalProvider] = useState<IntegrationProvider | null>(null);
   const [credential, setCredential] = useState('');
@@ -44,6 +49,25 @@ export function IntegrationsHubClient({ orgId, initialIntegrations }: Props) {
   const [notifyMeError, setNotifyMeError] = useState<string | null>(null);
   const [fmcsaConnectLoading, setFmcsaConnectLoading] = useState(false);
   const [fmcsaConnectError, setFmcsaConnectError] = useState<string | null>(null);
+  const [geotabModalOpen, setGeotabModalOpen] = useState(false);
+  const [geotabForm, setGeotabForm] = useState({ server: 'my.geotab.com', database: '', userName: '', password: '' });
+  const [geotabConnectLoading, setGeotabConnectLoading] = useState(false);
+  const [geotabConnectError, setGeotabConnectError] = useState<string | null>(null);
+  const [geotabSyncLoading, setGeotabSyncLoading] = useState(false);
+  const [geotabSyncResult, setGeotabSyncResult] = useState<string | null>(null);
+  const [connectionSuccessProvider, setConnectionSuccessProvider] = useState<'motive' | 'geotab' | 'fmcsa' | null>(null);
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
+  useEffect(() => {
+    const motive = searchParams.get('motive');
+    if (motive === 'connected') {
+      setConnectionSuccessProvider('motive');
+      const url = new URL(window.location.href);
+      url.searchParams.delete('motive');
+      router.replace(url.pathname + url.search);
+    }
+  }, [searchParams, router]);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -118,10 +142,62 @@ export function IntegrationsHubClient({ orgId, initialIntegrations }: Props) {
   }
 
   const openModal = (provider: IntegrationProvider) => {
+    if (provider === 'geotab') {
+      setGeotabModalOpen(true);
+      setGeotabForm({ server: 'my.geotab.com', database: '', userName: '', password: '' });
+      setGeotabConnectError(null);
+      return;
+    }
     setModalProvider(provider);
     setCredential('');
     setError(null);
     setFmcsaConnectError(null);
+  };
+
+  const handleGeotabConnect = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setGeotabConnectError(null);
+    setGeotabConnectLoading(true);
+    try {
+      const res = await fetch('/api/geotab/connect', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          server: geotabForm.server.trim() || 'my.geotab.com',
+          database: geotabForm.database.trim(),
+          userName: geotabForm.userName.trim(),
+          password: geotabForm.password,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.ok) {
+        setGeotabModalOpen(false);
+        setGeotabForm({ server: 'my.geotab.com', database: '', userName: '', password: '' });
+        const next = await getIntegrationsForOrg(orgId);
+        setIntegrations(next);
+        setConnectionSuccessProvider('geotab');
+      } else {
+        setGeotabConnectError(data.error ?? 'Connection failed');
+      }
+    } catch {
+      setGeotabConnectError('Request failed');
+    } finally {
+      setGeotabConnectLoading(false);
+    }
+  };
+
+  const handleGeotabSync = async () => {
+    setGeotabSyncResult(null);
+    setGeotabSyncLoading(true);
+    const result = await syncGeotabVehicles(orgId);
+    setGeotabSyncLoading(false);
+    if ('ok' in result) {
+      setGeotabSyncResult(`Geotab sync complete: ${result.vehicles} vehicle(s) matched by VIN.`);
+      const next = await getIntegrationsForOrg(orgId);
+      setIntegrations(next);
+    } else {
+      setGeotabSyncResult(result.error);
+    }
   };
 
   const handleConnectFmcsa = async () => {
@@ -132,22 +208,143 @@ export function IntegrationsHubClient({ orgId, initialIntegrations }: Props) {
     if ('ok' in result) {
       const next = await getIntegrationsForOrg(orgId);
       setIntegrations(next);
+      setConnectionSuccessProvider('fmcsa');
     } else {
       setFmcsaConnectError(result.error);
     }
   };
 
+  const connectionSuccessBrandName =
+    connectionSuccessProvider === 'motive'
+      ? 'Motive'
+      : connectionSuccessProvider === 'geotab'
+        ? 'Geotab'
+        : connectionSuccessProvider === 'fmcsa'
+          ? 'FMCSA'
+          : '';
+
   return (
     <div className="space-y-6">
+      {/* Connection Success overlay */}
+      {connectionSuccessProvider && (() => {
+        const branding = getProviderBranding(connectionSuccessProvider);
+        return (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-midnight-ink/95 backdrop-blur-md">
+          <div
+            className={`relative w-full max-w-md rounded-2xl border-2 bg-card p-8 shadow-2xl text-center ${branding.borderClass}`}
+            style={{ boxShadow: `0 25px 50px -12px ${branding.primary}20` }}
+          >
+            <div className="connection-success-check mx-auto mb-4">
+              <ProviderBranding provider={connectionSuccessProvider} logoOnly size="lg" variant="dark" />
+            </div>
+            <div
+              className="connection-success-check mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-full border-2"
+              style={{ backgroundColor: `${branding.primary}20`, borderColor: branding.primary }}
+              role="img"
+              aria-label="Success"
+            >
+              <Check className="h-8 w-8 stroke-[2.5]" style={{ color: branding.primaryLight }} />
+            </div>
+            <style dangerouslySetInnerHTML={{ __html: `
+              .connection-success-check {
+                animation: connection-success-pop 0.45s ease-out forwards;
+              }
+              .connection-success-check svg {
+                animation: connection-success-check-in 0.35s ease-out 0.2s forwards;
+                opacity: 0;
+                transform: scale(0.5);
+              }
+              @keyframes connection-success-pop {
+                0% { transform: scale(0.6); opacity: 0; }
+                60% { transform: scale(1.08); opacity: 1; }
+                100% { transform: scale(1); opacity: 1; }
+              }
+              @keyframes connection-success-check-in {
+                to { opacity: 1; transform: scale(1); }
+              }
+            `}} />
+            <p className="text-sm font-medium uppercase tracking-wider mb-1" style={{ color: branding.primaryLight }}>
+              {branding.name} connected
+            </p>
+            <h2 className="text-2xl font-bold text-soft-cloud mb-2">Connection Successful! 🚛</h2>
+            <p className="text-soft-cloud/80 text-sm leading-relaxed mb-8">
+              Your {connectionSuccessBrandName} fleet is now synced. We are currently importing your vehicles and
+              state-line mileage data. Your IFTA reporting is now 100% Automated.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <Link
+                href="/dashboard/map"
+                onClick={() => setConnectionSuccessProvider(null)}
+                className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-cyber-amber text-midnight-ink font-semibold hover:bg-cyber-amber/90 transition-colors"
+              >
+                <MapPin className="size-5" />
+                Go to Live Map
+              </Link>
+              <Link
+                href="/dashboard/ifta"
+                onClick={() => setConnectionSuccessProvider(null)}
+                className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl border border-white/20 text-soft-cloud font-medium hover:bg-white/5 transition-colors"
+              >
+                <FileBarChart className="size-5" />
+                View IFTA Report
+              </Link>
+            </div>
+            <button
+              type="button"
+              onClick={() => setConnectionSuccessProvider(null)}
+              className="mt-6 text-sm text-soft-cloud/60 hover:text-soft-cloud transition-colors"
+            >
+              Done
+            </button>
+          </div>
+        </div>
+        );
+      })()}
+
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {PROVIDERS.map((p) => {
           const row = integrations.find((i) => i.provider === p.id);
           const connected = row?.connected ?? false;
+          const isEldCard = p.id === 'motive' || p.id === 'geotab';
+          const showLock = isEldLocked && isEldCard;
           return (
             <div
               key={p.id}
-              className="rounded-xl border border-white/10 bg-card p-6 flex flex-col shadow-lg hover:border-cyber-amber/30 transition-colors"
+              className="relative rounded-xl border border-white/10 bg-card p-6 flex flex-col shadow-lg hover:border-cyber-amber/30 transition-colors"
             >
+              {showLock && (
+                <div className="absolute inset-0 z-10 flex flex-col items-center justify-center rounded-xl bg-midnight-ink/90 backdrop-blur-sm p-4 text-center">
+                  <div className="p-2.5 rounded-full bg-amber-500/20 text-amber-400 mb-3">
+                    <Lock className="size-6" aria-hidden />
+                  </div>
+                  <p className="text-sm font-medium text-soft-cloud mb-1">ELD Automation is available on Fleet Master and Enterprise plans.</p>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      setEldUpgradeLoading(true);
+                      try {
+                        const res = await fetch('/api/checkout', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ tier: 'fleet_master', billing: 'monthly' }),
+                        });
+                        const data = await res.json();
+                        if (data.url) window.location.href = data.url;
+                        else if (data.error) alert(data.error ?? 'Checkout failed');
+                      } catch {
+                        alert('Something went wrong. Please try again.');
+                      } finally {
+                        setEldUpgradeLoading(false);
+                      }
+                    }}
+                    disabled={eldUpgradeLoading}
+                    className="mt-3 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-cyber-amber text-midnight-ink font-semibold hover:bg-cyber-amber/90 disabled:opacity-60 transition-colors"
+                  >
+                    {eldUpgradeLoading ? <Loader2 className="size-4 animate-spin" /> : null}
+                    {eldUpgradeLoading ? 'Redirecting…' : 'Upgrade'}
+                  </button>
+                </div>
+              )}
               <div className="flex items-center gap-3 mb-3">
                 <div className="p-2 rounded-lg bg-cyber-amber/20">
                   <Plug className="size-6 text-cyber-amber" />
@@ -157,6 +354,7 @@ export function IntegrationsHubClient({ orgId, initialIntegrations }: Props) {
               <p className="text-sm text-soft-cloud/60 mb-4 flex-1">
                 {p.id === 'motive' && 'Connect with your Motive account. Click Connect to sign in and authorize—no API key needed.'}
                 {p.id === 'fmcsa' && 'Connect FMCSA for safety and compliance data with one click. No API key needed—VantagFleet uses secure FMCSA access for your organization.'}
+                {p.id === 'geotab' && 'Connect Geotab with your server, database, username and password. Sync devices by VIN and use FuelTaxDetail for IFTA mileage.'}
               </p>
               <div className="flex flex-col gap-2">
                 <div className="flex items-center justify-between flex-wrap gap-2">
@@ -169,6 +367,17 @@ export function IntegrationsHubClient({ orgId, initialIntegrations }: Props) {
                     <span className="text-sm text-soft-cloud/50">Not connected</span>
                   )}
                   <div className="flex items-center gap-2">
+                    {p.id === 'geotab' && connected && (
+                      <button
+                        type="button"
+                        onClick={handleGeotabSync}
+                        disabled={geotabSyncLoading}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium bg-cyber-amber/20 text-cyber-amber hover:bg-cyber-amber/30 disabled:opacity-60 transition-colors"
+                      >
+                        {geotabSyncLoading ? <Loader2 className="size-3.5 animate-spin" /> : null}
+                        {geotabSyncLoading ? 'Syncing…' : 'Sync Vehicles'}
+                      </button>
+                    )}
                     {p.id === 'motive' && connected && (
                       <button
                         type="button"
@@ -226,6 +435,11 @@ export function IntegrationsHubClient({ orgId, initialIntegrations }: Props) {
                 )}
                 {p.id === 'fmcsa' && fmcsaConnectError && (
                   <p className="text-xs text-amber-400 mt-1">{fmcsaConnectError}</p>
+                )}
+                {p.id === 'geotab' && geotabSyncResult && (
+                  <p className={`text-xs mt-1 ${geotabSyncResult.startsWith('Geotab sync') ? 'text-electric-teal' : 'text-amber-400'}`}>
+                    {geotabSyncResult}
+                  </p>
                 )}
               </div>
             </div>
@@ -315,6 +529,97 @@ export function IntegrationsHubClient({ orgId, initialIntegrations }: Props) {
           </p>
         )}
       </section>
+
+      {/* Connect Geotab modal */}
+      {geotabModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-midnight-ink/90 backdrop-blur-sm">
+          <div
+            className="absolute inset-0"
+            onClick={() => { setGeotabModalOpen(false); setGeotabConnectError(null); }}
+            aria-hidden
+          />
+          <div className="relative w-full max-w-md rounded-xl border border-white/10 bg-card p-6 shadow-xl border-cyber-amber/20">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-soft-cloud">Connect Geotab</h3>
+              <button
+                type="button"
+                onClick={() => { setGeotabModalOpen(false); setGeotabConnectError(null); }}
+                className="p-2 rounded-lg text-soft-cloud/60 hover:text-soft-cloud hover:bg-white/10 transition-colors"
+                aria-label="Close"
+              >
+                <X className="size-5" />
+              </button>
+            </div>
+            <p className="text-sm text-soft-cloud/70 mb-4">
+              Enter your Geotab credentials. We use the Authenticate method to obtain a session and store it securely. Your password is never stored.
+            </p>
+            <form onSubmit={handleGeotabConnect} className="space-y-4">
+              <div>
+                <label htmlFor="geotab-server" className="block text-sm font-medium text-soft-cloud/80 mb-1.5">Server</label>
+                <input
+                  id="geotab-server"
+                  type="text"
+                  value={geotabForm.server}
+                  onChange={(e) => setGeotabForm((f) => ({ ...f, server: e.target.value }))}
+                  placeholder="my.geotab.com"
+                  className="w-full px-3 py-2.5 rounded-lg bg-midnight-ink border border-white/10 text-soft-cloud placeholder-soft-cloud/50 focus:outline-none focus:ring-2 focus:ring-cyber-amber focus:border-cyber-amber/50"
+                />
+              </div>
+              <div>
+                <label htmlFor="geotab-database" className="block text-sm font-medium text-soft-cloud/80 mb-1.5">Database</label>
+                <input
+                  id="geotab-database"
+                  type="text"
+                  value={geotabForm.database}
+                  onChange={(e) => setGeotabForm((f) => ({ ...f, database: e.target.value }))}
+                  placeholder="e.g. acme"
+                  className="w-full px-3 py-2.5 rounded-lg bg-midnight-ink border border-white/10 text-soft-cloud placeholder-soft-cloud/50 focus:outline-none focus:ring-2 focus:ring-cyber-amber focus:border-cyber-amber/50"
+                />
+              </div>
+              <div>
+                <label htmlFor="geotab-username" className="block text-sm font-medium text-soft-cloud/80 mb-1.5">Username</label>
+                <input
+                  id="geotab-username"
+                  type="text"
+                  value={geotabForm.userName}
+                  onChange={(e) => setGeotabForm((f) => ({ ...f, userName: e.target.value }))}
+                  placeholder="Email or username"
+                  className="w-full px-3 py-2.5 rounded-lg bg-midnight-ink border border-white/10 text-soft-cloud placeholder-soft-cloud/50 focus:outline-none focus:ring-2 focus:ring-cyber-amber focus:border-cyber-amber/50"
+                />
+              </div>
+              <div>
+                <label htmlFor="geotab-password" className="block text-sm font-medium text-soft-cloud/80 mb-1.5">Password</label>
+                <input
+                  id="geotab-password"
+                  type="password"
+                  value={geotabForm.password}
+                  onChange={(e) => setGeotabForm((f) => ({ ...f, password: e.target.value }))}
+                  placeholder="Your Geotab password"
+                  className="w-full px-3 py-2.5 rounded-lg bg-midnight-ink border border-white/10 text-soft-cloud placeholder-soft-cloud/50 focus:outline-none focus:ring-2 focus:ring-cyber-amber focus:border-cyber-amber/50"
+                />
+              </div>
+              {geotabConnectError && <p className="text-sm text-red-400">{geotabConnectError}</p>}
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => { setGeotabModalOpen(false); setGeotabConnectError(null); }}
+                  className="flex-1 px-4 py-2.5 rounded-lg border border-white/20 text-soft-cloud hover:bg-white/5 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={geotabConnectLoading || !geotabForm.userName.trim() || !geotabForm.password}
+                  className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-cyber-amber text-midnight-ink font-semibold hover:bg-cyber-amber/90 disabled:opacity-60 transition-colors"
+                >
+                  {geotabConnectLoading ? <Loader2 className="size-4 animate-spin" /> : <Plug className="size-4" />}
+                  {geotabConnectLoading ? 'Connecting…' : 'Connect Geotab'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {modalProvider && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-midnight-ink/90 backdrop-blur-sm">

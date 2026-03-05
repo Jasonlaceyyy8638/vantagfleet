@@ -24,13 +24,15 @@ export default async function IFTADashboardPage() {
       .eq('user_id', user.id)
       .eq('org_id', orgId)
       .single(),
-    supabase.from('organizations').select('subscription_status').eq('id', orgId).single(),
+    supabase.from('organizations').select('subscription_status, tier').eq('id', orgId).single(),
   ]);
 
   const profileData = profile as { id?: string; ifta_enabled?: boolean; is_beta_tester?: boolean; beta_expires_at?: string | null } | null;
-  const orgData = org as { subscription_status?: string | null } | null;
+  const orgData = org as { subscription_status?: string | null; tier?: string | null } | null;
   const hasAccess = hasFullAccess(profileData, orgData);
   const profileId = profileData?.id ?? null;
+  const tier = (orgData?.tier ?? '').toString().trim().toLowerCase().replace(/\s+/g, '_');
+  const isSoloPro = tier === 'solo_pro' || tier === 'solo';
 
   const now = new Date();
   const year = now.getFullYear();
@@ -64,6 +66,7 @@ export default async function IFTADashboardPage() {
       currentQuarter={currentQuarter}
       currentYear={year}
       initialReceipts={initialReceipts}
+      isSoloPro={isSoloPro}
     />
   );
 }

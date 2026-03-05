@@ -3,7 +3,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 
-export type IntegrationProvider = 'samsara' | 'motive' | 'fmcsa';
+export type IntegrationProvider = 'samsara' | 'motive' | 'fmcsa' | 'geotab';
 
 export type IntegrationRow = {
   id: string;
@@ -108,7 +108,7 @@ export async function getIntegrationsForOrg(orgId: string): Promise<IntegrationR
     .select('id, org_id, provider, created_at, last_synced_at')
     .eq('org_id', orgId);
 
-  const providers: IntegrationProvider[] = ['samsara', 'motive', 'fmcsa'];
+  const providers: IntegrationProvider[] = ['samsara', 'motive', 'fmcsa', 'geotab'];
   const rowList = rows ?? [];
   const byProvider = new Map<string, { id: string; org_id: string; provider: string; created_at: string; last_synced_at: string | null }>(
     rowList.map((r) => [r.provider, { ...r, last_synced_at: (r as { last_synced_at?: string | null }).last_synced_at ?? null }])

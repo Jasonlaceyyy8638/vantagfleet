@@ -87,13 +87,20 @@ export async function runMotiveSyncCore(
     if (existing) {
       const { error } = await admin
         .from('vehicles')
-        .update({ unit_number: unitNumber, vin, plate, updated_at: new Date().toISOString() })
+        .update({
+          unit_number: unitNumber,
+          vin,
+          plate,
+          provider: 'motive',
+          updated_at: new Date().toISOString(),
+        })
         .eq('id', existing.id);
       if (!error) vehiclesUpserted++;
     } else {
       const { error } = await admin.from('vehicles').insert({
         org_id: orgId,
         motive_id: motiveId,
+        provider: 'motive',
         unit_number: unitNumber,
         vin,
         plate,

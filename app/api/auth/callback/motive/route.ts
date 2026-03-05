@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { runMotiveSyncCore } from '@/lib/motive-sync-core';
+import { sendEldSuccessEmail } from '@/lib/send-eld-success-email';
 
 const MOTIVE_TOKEN_URL = 'https://api.gomotive.com/oauth/token';
 
@@ -114,5 +115,7 @@ export async function GET(request: NextRequest) {
     // Still redirect; map will fetch on first load
   }
 
-  return NextResponse.redirect(`${baseUrl}/dashboard?motive=connected`);
+  sendEldSuccessEmail(user.id, orgId, 'motive').catch(() => {});
+
+  return NextResponse.redirect(`${baseUrl}/dashboard/integrations?motive=connected`);
 }

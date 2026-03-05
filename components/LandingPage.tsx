@@ -701,7 +701,7 @@ export function LandingPage({ isAuthenticated = false, navbarRole = null }: Land
             viewport={{ once: true, amount: 0.2 }}
             className="text-soft-cloud/60 text-center mb-12"
           >
-            Coming soon: one place for the filings that keep you legal.
+            One place for the filings that keep you legal.
           </motion.p>
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -716,20 +716,23 @@ export function LandingPage({ isAuthenticated = false, navbarRole = null }: Land
                 title: 'BOC-3 Process Agents',
                 why: 'Designate process agents in every state you operate—no more missed service of process.',
                 Icon: Scale,
+                comingSoon: true,
               },
               {
                 id: 'mcs150' as const,
                 title: 'MCS-150 Biennial Update',
                 why: 'Avoid $1k+ fines with automated biennial updates and reminders.',
                 Icon: FileText,
+                comingSoon: true,
               },
               {
                 id: 'ifta' as const,
                 title: 'IFTA Fuel Tax',
                 why: 'File and track IFTA fuel tax in one place. Stay audit-ready.',
                 Icon: Fuel,
+                comingSoon: false,
               },
-            ].map(({ id, title, why, Icon }) => (
+            ].map(({ id, title, why, Icon, comingSoon }) => (
               <div
                 key={id}
                 className="group relative rounded-xl border-2 border-dashed border-amber-500/40 bg-white/[0.04] backdrop-blur-sm p-6 transition-all duration-300 hover:border-amber-500/70 hover:shadow-[0_0_40px_-8px_rgba(245,158,11,0.35)] hover:bg-white/[0.06]"
@@ -742,19 +745,38 @@ export function LandingPage({ isAuthenticated = false, navbarRole = null }: Land
                   </div>
                   <h3 className="text-lg font-semibold text-soft-cloud">{title}</h3>
                 </div>
-                <p className="text-sm text-soft-cloud/60 mb-3 line-clamp-2">
-                  Under construction. Get notified when this power-up launches.
-                </p>
-                <p className="mb-4 min-h-[2.5rem] opacity-0 group-hover:opacity-100 transition-opacity duration-200 text-xs text-amber-300/95 rounded-lg px-3 py-2 border border-amber-500/20 bg-amber-500/5">
-                  <span className="font-medium text-amber-400/90">Why it matters:</span> {why}
-                </p>
-                <button
-                  type="button"
-                  onClick={() => setEarlyAccessModal(id)}
-                  className="w-full py-2.5 rounded-lg border border-amber-500/50 bg-amber-500/10 text-amber-400 text-sm font-medium hover:bg-amber-500/20 hover:border-amber-500/60 transition-colors"
-                >
-                  Get Early Access
-                </button>
+                {comingSoon ? (
+                  <>
+                    <p className="text-sm text-soft-cloud/60 mb-3 line-clamp-2">
+                      Under construction. Get notified when this power-up launches.
+                    </p>
+                    <p className="mb-4 min-h-[2.5rem] opacity-0 group-hover:opacity-100 transition-opacity duration-200 text-xs text-amber-300/95 rounded-lg px-3 py-2 border border-amber-500/20 bg-amber-500/5">
+                      <span className="font-medium text-amber-400/90">Why it matters:</span> {why}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setEarlyAccessModal(id)}
+                      className="w-full py-2.5 rounded-lg border border-amber-500/50 bg-amber-500/10 text-amber-400 text-sm font-medium hover:bg-amber-500/20 hover:border-amber-500/60 transition-colors"
+                    >
+                      Get Early Access
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-sm text-soft-cloud/60 mb-3 line-clamp-2">
+                      {why}
+                    </p>
+                    <p className="mb-4 min-h-[2.5rem] opacity-0 group-hover:opacity-100 transition-opacity duration-200 text-xs text-amber-300/95 rounded-lg px-3 py-2 border border-amber-500/20 bg-amber-500/5">
+                      <span className="font-medium text-amber-400/90">Why it matters:</span> {why}
+                    </p>
+                    <Link
+                      href={isAuthenticated ? '/dashboard/ifta' : '/signup'}
+                      className="block w-full py-2.5 rounded-lg border border-amber-500/50 bg-amber-500/10 text-amber-400 text-sm font-medium hover:bg-amber-500/20 hover:border-amber-500/60 transition-colors text-center"
+                    >
+                      {isAuthenticated ? 'Go to IFTA' : 'Get started'}
+                    </Link>
+                  </>
+                )}
               </div>
             ))}
           </motion.div>
@@ -1011,39 +1033,53 @@ export function LandingPage({ isAuthenticated = false, navbarRole = null }: Land
                 title: 'One-Click Federal Authority',
                 text: 'Instant 50-state process agent coverage. Stay legal and avoid the $1,000+ paperwork trap.',
                 Icon: ShieldCheck,
+                comingSoon: true,
               },
               {
                 title: 'Biennial Updates on Autopilot',
                 text: 'We use your real-time fleet activity to pre-fill your census data. Never face a Deactivated status again.',
                 Icon: CalendarClock,
+                comingSoon: true,
               },
               {
                 title: 'Quarterly IFTA Prep',
-                text: 'Stop the spreadsheets. Automatically calculate state-by-state mileage directly from your Samsara GPS data.',
+                text: 'Stop the spreadsheets. Automated fuel tax reporting based on GPS mileage. Connect Motive to auto-generate state-by-state data.',
                 Icon: Gauge,
+                comingSoon: false,
               },
-            ].map(({ title, text, Icon }) => (
+            ].map(({ title, text, Icon, comingSoon }) => (
               <div
                 key={title}
                 className="relative rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md p-6"
               >
-                <span className="absolute top-3 right-3 rounded-md bg-amber-500 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-midnight-ink">
-                  COMING SOON
-                </span>
-                <div className="flex items-center gap-3 mb-3 pr-20">
+                {comingSoon && (
+                  <span className="absolute top-3 right-3 rounded-md bg-amber-500 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-midnight-ink">
+                    COMING SOON
+                  </span>
+                )}
+                <div className={`flex items-center gap-3 mb-3 ${comingSoon ? 'pr-20' : ''}`}>
                   <div className="p-2 rounded-lg bg-amber-500/20 border border-amber-500/30">
                     <Icon className="size-5 text-amber-500" />
                   </div>
                   <h3 className="text-lg font-semibold text-soft-cloud">{title}</h3>
                 </div>
                 <p className="text-sm text-soft-cloud/70 mb-6">{text}</p>
-                <button
-                  type="button"
-                  onClick={() => setRoadmapSectionModalOpen(true)}
-                  className="w-full py-2.5 rounded-xl border border-amber-500/40 bg-amber-500/10 text-amber-500 text-sm font-medium hover:bg-amber-500/20 hover:border-amber-500/50 transition-colors"
-                >
-                  Join Waitlist
-                </button>
+                {comingSoon ? (
+                  <button
+                    type="button"
+                    onClick={() => setRoadmapSectionModalOpen(true)}
+                    className="w-full py-2.5 rounded-xl border border-amber-500/40 bg-amber-500/10 text-amber-500 text-sm font-medium hover:bg-amber-500/20 hover:border-amber-500/50 transition-colors"
+                  >
+                    Join Waitlist
+                  </button>
+                ) : (
+                  <Link
+                    href={isAuthenticated ? '/dashboard/ifta' : '/signup'}
+                    className="block w-full py-2.5 rounded-xl border border-amber-500/40 bg-amber-500/10 text-amber-500 text-sm font-medium hover:bg-amber-500/20 hover:border-amber-500/50 transition-colors text-center"
+                  >
+                    {isAuthenticated ? 'Go to IFTA' : 'Get started'}
+                  </Link>
+                )}
               </div>
             ))}
           </motion.div>
