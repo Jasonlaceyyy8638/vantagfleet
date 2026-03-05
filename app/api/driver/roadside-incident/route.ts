@@ -28,7 +28,7 @@ async function getDispatcherEmails(admin: ReturnType<typeof createAdminClient>, 
       // skip
     }
   }
-  return [...new Set(emails)];
+  return Array.from(new Set(emails));
 }
 
 /** GET: last 30 days of incident reports for the current user (driver). */
