@@ -8,9 +8,8 @@ import { createPortal } from 'react-dom';
 import { Navbar } from '@/components/Navbar';
 import { Pricing } from '@/components/Pricing';
 import { HeroLoginCard } from '@/components/HeroLoginCard';
-import { FileCheck, Users, Truck, Shield, ArrowRight, Plug, Quote, MapPin, X, Scale, FileText, Fuel, ShieldCheck, CalendarClock, Gauge, Mail } from 'lucide-react';
+import { FileCheck, Users, Truck, Shield, ArrowRight, Plug, Quote, MapPin, X, Scale, FileText, Fuel, ShieldCheck, CalendarClock, Gauge } from 'lucide-react';
 import type { NavbarRole } from '@/lib/admin';
-import { EMAIL_SUPPORT } from '@/lib/email-addresses';
 
 const glassCardClass =
   'backdrop-blur-lg border border-white/10 rounded-2xl shadow-[0_0_40px_-12px_rgba(255,176,0,0.15)]';
@@ -78,10 +77,15 @@ export function LandingPage({ isAuthenticated = false, navbarRole = null }: Land
   const [waitlistSuccess, setWaitlistSuccess] = useState(false);
   const [waitlistError, setWaitlistError] = useState<string | null>(null);
   useEffect(() => {
-    fetch('/api/beta-spots')
-      .then((res) => res.json())
-      .then((data: { remaining?: number }) => setBetaSpotsRemaining(data?.remaining ?? null))
-      .catch(() => setBetaSpotsRemaining(null));
+    const fetchBeta = () => {
+      fetch('/api/beta-spots')
+        .then((res) => res.json())
+        .then((data: { remaining?: number }) => setBetaSpotsRemaining(data?.remaining ?? null))
+        .catch(() => setBetaSpotsRemaining(null));
+    };
+    fetchBeta();
+    const interval = setInterval(fetchBeta, 45000);
+    return () => clearInterval(interval);
   }, []);
   const betaOpen = betaSpotsRemaining != null && betaSpotsRemaining > 0;
   const betaFull = betaSpotsRemaining !== null && betaSpotsRemaining === 0;
@@ -346,46 +350,65 @@ export function LandingPage({ isAuthenticated = false, navbarRole = null }: Land
     }
   };
 
+  const scrollToContact = () => {
+    const el = document.getElementById('contact');
+    el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  const announcementBarHeight = 44;
+  const showAnnouncement = betaSpotsRemaining !== null;
+
   return (
     <div className="min-h-screen min-h-[100dvh] bg-midnight-ink overflow-x-hidden w-full max-w-[100vw]">
+      {/* Sticky announcement bar: fixed at very top, always visible when scrolling */}
+      {showAnnouncement && (
+        <motion.div
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+          className="fixed top-0 left-0 right-0 z-[60] flex items-center justify-center gap-3 sm:gap-4 px-3 py-2.5 sm:py-3 min-h-[44px] border-b border-white/10"
+          style={{
+            backgroundColor: betaOpen ? '#c2410c' : '#1e3a5f',
+            paddingTop: 'max(0.5rem, env(safe-area-inset-top, 0px))',
+          }}
+          aria-live="polite"
+        >
+          <span className="text-sm sm:text-base font-semibold text-white text-center flex-1 min-w-0">
+            {betaOpen ? (
+              <>
+                🚀 FOUNDER&apos;S SPECIAL: First <span className="tabular-nums font-bold">{betaSpotsRemaining}</span> carrier{betaSpotsRemaining === 1 ? '' : 's'} get 90 days of Fleet Master FREE. Click here to learn more.
+              </>
+            ) : (
+              <>Founder Beta is now FULL. Start your 7-day free trial today.</>
+            )}
+          </span>
+          <button
+            type="button"
+            onClick={scrollToContact}
+            className="shrink-0 px-4 py-2 rounded-lg bg-white text-[#1e293b] font-bold text-sm hover:bg-white/95 active:scale-[0.98] transition-all shadow-md"
+          >
+            Apply Now
+          </button>
+        </motion.div>
+      )}
+
       <Navbar
         isAuthenticated={isAuthenticated}
         signupHref={betaOpen ? '/signup' : '/pricing'}
         signupLabel={betaOpen ? 'Sign Up' : 'Start Your Fleet'}
+        topOffsetPx={showAnnouncement ? announcementBarHeight : 0}
       />
 
-      {/* Spacer so content starts below fixed navbar; safe-area for notches */}
+      {/* Spacer: announcement bar (if shown) + navbar height so content starts below both */}
       <div
-        className="h-14 sm:h-16"
-        style={{ minHeight: 'calc(3.5rem + env(safe-area-inset-top, 0px))' }}
+        className="w-full"
+        style={{
+          minHeight: showAnnouncement
+            ? `calc(${announcementBarHeight}px + 3.5rem + env(safe-area-inset-top, 0px))`
+            : 'calc(3.5rem + env(safe-area-inset-top, 0px))',
+        }}
         aria-hidden
       />
-
-      {/* Sticky beta strip: sits below navbar, stays visible when scrolling */}
-      {betaOpen && (
-        <motion.div
-          initial={{ opacity: 0, y: -4 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4 }}
-          className="sticky z-[99] w-full"
-          style={{ top: 'calc(3.5rem + env(safe-area-inset-top, 0px))' }}
-        >
-          <div className="flex justify-center items-center px-3 py-2.5 sm:py-3 bg-gradient-to-r from-amber-500 via-[#FFBF00] to-orange-400 shadow-[0_4px_20px_rgba(251,191,36,0.5),0_0_40px_rgba(251,191,36,0.15)] border-b border-amber-300/40">
-            <motion.span
-              animate={{ opacity: [1, 0.85, 1] }}
-              transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-              className="mr-1.5 text-lg sm:text-xl shrink-0"
-              aria-hidden
-            >
-              🔥
-            </motion.span>
-            <span className="text-sm sm:text-base font-bold text-black drop-shadow-sm tracking-tight">
-              <span className="tabular-nums">{betaSpotsRemaining}</span> Beta Spot{betaSpotsRemaining === 1 ? '' : 's'} Remaining
-            </span>
-            <span className="hidden sm:inline ml-2 text-black/90 text-sm font-semibold">— Claim yours free</span>
-          </div>
-        </motion.div>
-      )}
 
       {/* Hero: video when it loads; gradient fallback so it's never plain black */}
       <section className="relative min-h-[100dvh] sm:min-h-screen flex flex-col items-center justify-center overflow-hidden bg-midnight-ink">
@@ -482,18 +505,6 @@ export function LandingPage({ isAuthenticated = false, navbarRole = null }: Land
                     )}
                 </p>
               </motion.div>
-              <motion.a
-                href={`mailto:${EMAIL_SUPPORT}`}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.5, delay: 0.4 }}
-                title="Contact Support"
-                aria-label="Contact Support"
-                className="mt-6 inline-flex items-center justify-center gap-2 p-3 rounded-xl backdrop-blur-2xl bg-black/40 border border-white/10 shadow-[0_0_50px_-12px_rgba(255,191,0,0.25)] text-cyber-amber hover:bg-black/50 hover:border-cyber-amber/40 transition-colors touch-manipulation"
-              >
-                <Mail className="size-5" />
-                <span className="sr-only">Contact Support</span>
-              </motion.a>
             </>
           ) : (
             <motion.div
@@ -513,15 +524,6 @@ export function LandingPage({ isAuthenticated = false, navbarRole = null }: Land
                   : 'Go to Dashboard'}
                 <ArrowRight className="size-5" />
               </Link>
-              <a
-                href={`mailto:${EMAIL_SUPPORT}`}
-                title="Contact Support"
-                aria-label="Contact Support"
-                className="inline-flex items-center justify-center gap-2 p-3 rounded-xl backdrop-blur-2xl bg-black/40 border border-white/10 shadow-[0_0_50px_-12px_rgba(255,191,0,0.25)] text-cyber-amber hover:bg-black/50 hover:border-cyber-amber/40 transition-colors"
-              >
-                <Mail className="size-5" />
-                <span className="sr-only">Contact Support</span>
-              </a>
             </motion.div>
           )}
         </div>
@@ -1717,7 +1719,7 @@ function CTASection({
   betaOpen: boolean;
 }) {
   return (
-    <section className="relative py-16 sm:py-24 md:py-28 px-4 sm:px-6 bg-midnight-ink border-t border-white/10">
+    <section id="contact" className="relative py-16 sm:py-24 md:py-28 px-4 sm:px-6 bg-midnight-ink border-t border-white/10 scroll-mt-24">
       <motion.div
         className="max-w-4xl mx-auto text-center"
         initial={{ opacity: 0, y: 20 }}

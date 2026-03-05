@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react';
 import { Logo } from '@/components/Logo';
 import { createClient } from '@/lib/supabase/client';
 import { LogOut } from 'lucide-react';
-import { EMAIL_SUPPORT, EMAIL_BILLING } from '@/lib/email-addresses';
+import { EMAIL_SUPPORT, EMAIL_BILLING, EMAIL_INFO } from '@/lib/email-addresses';
 import { SystemStatusIndicator, type SystemStatus } from '@/components/SystemStatusIndicator';
 
 const ADMIN_OWNER_ID = 'ae175e55-72b4-4441-9e3c-02ecd8225bf7';
@@ -38,7 +38,8 @@ export function Navbar({
   isAuthenticated: initialAuth = false,
   signupHref = '/signup',
   signupLabel = 'Sign Up',
-}: { isAuthenticated?: boolean; signupHref?: string; signupLabel?: string }) {
+  topOffsetPx = 0,
+}: { isAuthenticated?: boolean; signupHref?: string; signupLabel?: string; topOffsetPx?: number }) {
   const pathname = usePathname();
   const router = useRouter();
   const [auth, setAuth] = useState(initialAuth);
@@ -110,16 +111,20 @@ export function Navbar({
 
   return (
     <header
-      className="fixed top-0 left-0 right-0 z-50 flex flex-col min-w-0 max-w-[100vw] bg-midnight-ink/95 backdrop-blur-md border-b border-white/10"
+      className="fixed left-0 right-0 z-50 flex flex-col min-w-0 max-w-[100vw] bg-midnight-ink/95 backdrop-blur-md border-b border-white/10"
       style={{
+        top: topOffsetPx,
         pointerEvents: 'auto',
         paddingTop: 'max(0.5rem, env(safe-area-inset-top, 0px))',
         paddingLeft: 'max(0.75rem, env(safe-area-inset-left, 0px))',
         paddingRight: 'max(0.75rem, env(safe-area-inset-right, 0px))',
       }}
     >
-      {/* Top bar: Support & Billing text links aligned right */}
+      {/* Top bar: General, Support & Billing text links aligned right */}
       <div className="flex items-center justify-end gap-4 py-1.5 px-0 text-xs text-soft-cloud/80">
+        <a href={`mailto:${EMAIL_INFO}`} className="hover:text-cyber-amber transition-colors whitespace-nowrap">
+          General
+        </a>
         <a href={`mailto:${EMAIL_SUPPORT}`} className="hover:text-cyber-amber transition-colors whitespace-nowrap">
           Support
         </a>
