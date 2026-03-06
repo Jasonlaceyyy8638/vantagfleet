@@ -21,7 +21,7 @@ export async function changePasswordAndClearRequired(
   const existing = (user.user_metadata as Record<string, unknown>) ?? {};
   const { error } = await admin.auth.admin.updateUserById(user.id, {
     password: trimmed,
-    data: { ...existing, must_change_password: false },
+    user_metadata: { ...existing, must_change_password: false },
   });
   if (error) return { error: error.message };
   return { ok: true };

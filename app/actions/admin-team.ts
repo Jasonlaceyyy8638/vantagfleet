@@ -181,7 +181,7 @@ export async function addVantagStaffMember(
       email: trimmed,
       password: tempPassword,
       email_confirm: true,
-      data: { must_change_password: true },
+      user_metadata: { must_change_password: true },
     });
     if (createError) return { error: createError.message };
     if (!newUser.user) return { error: 'Failed to create user.' };
