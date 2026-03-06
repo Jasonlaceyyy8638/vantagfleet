@@ -75,8 +75,8 @@ export default async function DispatcherPage() {
     driver_id: string | null;
   }>;
 
-  const userIds = [...new Set(reports.map((r) => r.reported_by_user_id))];
-  const driverIds = [...new Set(reports.map((r) => r.driver_id).filter(Boolean))] as string[];
+  const userIds = Array.from(new Set(reports.map((r) => r.reported_by_user_id)));
+  const driverIds = Array.from(new Set(reports.map((r) => r.driver_id).filter(Boolean))) as string[];
 
   let profileByUser: Record<string, { profile_image_url: string | null }> = {};
   if (userIds.length > 0) {
@@ -97,7 +97,7 @@ export default async function DispatcherPage() {
       .from('drivers')
       .select('id, assigned_vehicle_id')
       .in('id', driverIds);
-    const vehicleIds = [...new Set((drivers ?? []).map((d) => (d as { assigned_vehicle_id: string | null }).assigned_vehicle_id).filter(Boolean))] as string[];
+    const vehicleIds = Array.from(new Set((drivers ?? []).map((d) => (d as { assigned_vehicle_id: string | null }).assigned_vehicle_id).filter(Boolean))) as string[];
     let vehicleUnit: Record<string, string | null> = {};
     if (vehicleIds.length > 0) {
       const { data: vehicles } = await supabase
