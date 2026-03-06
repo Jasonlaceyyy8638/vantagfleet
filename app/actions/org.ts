@@ -5,8 +5,7 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { sendEmail } from '@/lib/mail';
-import { getDispatcherInviteEmail, getDriverInviteEmail, getWelcomeToTeamEmail, getAddedToTeamEmail } from '@/lib/invite-email';
-import { randomBytes } from 'crypto';
+import { getDispatcherInviteEmail, getDriverInviteEmail, getTeamInviteSetPasswordEmail, getAddedToTeamEmail } from '@/lib/invite-email';
 import { canImpersonateCarrier, isAdmin } from '@/lib/admin';
 
 const ORG_COOKIE = 'vantag-current-org-id';
@@ -148,7 +147,7 @@ export async function setOrgMemberPassword(
   return { ok: true };
 }
 
-/** Add a team member by email with role. Name and phone are required. If they don't have an account, one is created and a welcome email with temporary password and logo is sent. Uses SendGrid (SENDGRID_API_KEY); if missing, new-user flow returns an error with the temp password to share. Allowed: org Owner/Admin/Safety_Manager or VantagFleet Admin/Support with full carrier control. */
+/** Add a team member by email with role. Name and phone are required. New users get an invite email with a link to set their own password; existing users get an email to sign in with their existing password. Allowed: org Owner/Admin/Safety_Manager or VantagFleet Admin/Support with full carrier control. */
 export async function addOrgMemberByEmail(
   orgId: string,
   email: string,
@@ -182,28 +181,28 @@ export async function addOrgMemberByEmail(
   const { data: { users }, error: listError } = await admin.auth.admin.listUsers({ perPage: 1000 });
   if (listError) return { error: listError.message };
 
-  let found = users?.find((u) => u.email?.toLowerCase() === trimmed);
-  let isNewUser = false;
+  const existingUser = users?.find((u) => u.email?.toLowerCase() === trimmed);
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://vantagfleet.com';
   const loginUrl = `${appUrl}/login`;
 
-  if (!found) {
-    isNewUser = true;
-    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
-    const tempPassword = Array.from({ length: 12 }, () => chars[randomBytes(1)[0]! % chars.length]).join('');
-    const { data: newUser, error: createError } = await admin.auth.admin.createUser({
+  if (!existingUser) {
+    // New user: create org_invite and send email with link to set their own password (no temp password).
+    const token = crypto.randomUUID().replace(/-/g, '') + crypto.randomUUID().replace(/-/g, '').slice(0, 8);
+    const { error: insertInviteErr } = await admin.from('org_invites').insert({
+      org_id: orgId,
+      token,
+      created_by: user.id,
+      invite_role: role,
       email: trimmed,
-      password: tempPassword,
-      email_confirm: true,
-      user_metadata: { must_change_password: true },
+      full_name: fullName,
+      phone: phoneTrimmed,
     });
-    if (createError) return { error: createError.message };
-    if (!newUser.user) return { error: 'Failed to create user.' };
-    found = newUser.user;
+    if (insertInviteErr) return { error: insertInviteErr.message };
 
     const { data: org } = await admin.from('organizations').select('name').eq('id', orgId).single();
     const companyName = (org as { name?: string } | null)?.name ?? 'your fleet';
-    const { subject, text, html } = getWelcomeToTeamEmail(loginUrl, tempPassword, role, { name: fullName, companyName, isVantagStaff: false });
+    const inviteLink = `${appUrl}/invite?token=${token}`;
+    const { subject, text, html } = getTeamInviteSetPasswordEmail(inviteLink, { companyName, name: fullName, isVantagStaff: false });
     const sent = await sendEmail({
       to: trimmed,
       department: 'APP_NOTIFICATION_SUPPORT',
@@ -212,13 +211,15 @@ export async function addOrgMemberByEmail(
       html,
     });
     if ('error' in sent) {
-      return { error: `Account created but welcome email failed: ${sent.error}. Share this temporary password securely: ${tempPassword}` };
+      return { error: `Invite created but email failed: ${sent.error}. Share this link: ${inviteLink}` };
     }
+    return { ok: true };
   }
 
+  // Existing user: add to org and send "sign in with your existing password".
   const { error: insertError } = await admin.from('profiles').insert({
-    id: found.id,
-    user_id: found.id,
+    id: existingUser.id,
+    user_id: existingUser.id,
     org_id: orgId,
     role,
     full_name: fullName,
@@ -229,36 +230,18 @@ export async function addOrgMemberByEmail(
     return { error: insertError.message };
   }
 
-  let emailWarning: string | undefined;
-  if (!isNewUser) {
-    const { data: org } = await admin.from('organizations').select('name').eq('id', orgId).single();
-    const companyName = (org as { name?: string } | null)?.name ?? 'your fleet';
-    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
-    const tempPassword = Array.from({ length: 12 }, () => chars[randomBytes(1)[0]! % chars.length]).join('');
-    const { error: updateErr } = await admin.auth.admin.updateUserById(found.id, {
-      password: tempPassword,
-      user_metadata: { ...((found.user_metadata as Record<string, unknown>) ?? {}), must_change_password: true },
-    });
-    if (updateErr) {
-      emailWarning = `Could not set temporary password. Share the sign-in link: ${loginUrl}`;
-    } else {
-      const { subject, text, html } = getWelcomeToTeamEmail(loginUrl, tempPassword, role, { name: fullName, companyName, isVantagStaff: false });
-      const sent = await sendEmail({
-        to: trimmed,
-        department: 'APP_NOTIFICATION_SUPPORT',
-        subject,
-        text,
-        html,
-      });
-      if ('error' in sent) {
-        emailWarning = `Welcome email with temporary password could not be sent (${sent.error}). Share this password securely: ${tempPassword} and link: ${loginUrl}`;
-      }
-    }
-  }
-
-  return { ok: true, warning: emailWarning };
+  const { subject, text, html } = getAddedToTeamEmail(loginUrl, role, { name: fullName, isVantagStaff: false });
+  await sendEmail({
+    to: trimmed,
+    department: 'APP_NOTIFICATION_SUPPORT',
+    subject,
+    text,
+    html,
+  });
+  return { ok: true };
 }
 
+/** Accept invite when already signed in (existing account). */
 export async function acceptInvite(token: string): Promise<{ error?: string }> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -267,20 +250,64 @@ export async function acceptInvite(token: string): Promise<{ error?: string }> {
   const row = Array.isArray(inviteRows) ? inviteRows[0] : inviteRows;
   if (!row?.org_id) return { error: 'Invalid or expired invite' };
   const inviteRole = (row as { invite_role?: string }).invite_role;
-  const profileRole = ['Dispatcher', 'Safety_Manager', 'Driver_Manager'].includes(inviteRole ?? '') ? inviteRole! : 'Driver';
-  let admin;
-  try {
-    admin = createAdminClient();
-  } catch {
-    return { error: 'Service is temporarily unavailable. Please try again later.' };
-  }
+  const profileRole = ['Dispatcher', 'Safety_Manager', 'Driver_Manager', 'Admin'].includes(inviteRole ?? '') ? inviteRole! : 'Driver';
+  const fullName = (row as { full_name?: string | null }).full_name ?? null;
+  const phone = (row as { phone?: string | null }).phone ?? null;
+  const admin = createAdminClient();
   const { error } = await admin.from('profiles').insert({
+    id: user.id,
     user_id: user.id,
     org_id: row.org_id,
     role: profileRole,
-    full_name: null,
+    full_name: fullName,
+    phone,
   });
   if (error) return { error: error.message };
+  await admin.from('org_invites').update({ used_at: new Date().toISOString() }).eq('token', token);
   if (profileRole !== 'Driver') redirect('/dashboard');
   redirect('/mobile/fuel-upload');
+}
+
+/** Create account and join org from team invite (email + set password). Returns email so client can sign in. */
+export async function acceptInviteWithPassword(
+  token: string,
+  password: string
+): Promise<{ ok: true; email: string } | { error: string }> {
+  const trimmed = password?.trim();
+  if (!trimmed || trimmed.length < 8) return { error: 'Password must be at least 8 characters.' };
+
+  const supabase = await createClient();
+  const { data: inviteRows } = await supabase.rpc('get_invite_by_token', { invite_token: token });
+  const row = Array.isArray(inviteRows) ? inviteRows[0] : inviteRows;
+  if (!row?.org_id) return { error: 'Invalid or expired invite.' };
+  const email = (row as { email?: string }).email;
+  if (!email) return { error: 'This invite link is for signing in. Use the form below.' };
+
+  const admin = createAdminClient();
+  const { data: newUser, error: createError } = await admin.auth.admin.createUser({
+    email: email.trim().toLowerCase(),
+    password: trimmed,
+    email_confirm: true,
+  });
+  if (createError) return { error: createError.message };
+  if (!newUser.user) return { error: 'Failed to create account.' };
+
+  const inviteRole = (row as { invite_role?: string }).invite_role;
+  const profileRole = ['Dispatcher', 'Safety_Manager', 'Driver_Manager', 'Admin'].includes(inviteRole ?? '') ? inviteRole! : 'Driver';
+  const fullName = (row as { full_name?: string | null }).full_name ?? null;
+  const phone = (row as { phone?: string | null }).phone ?? null;
+
+  const { error: profileErr } = await admin.from('profiles').insert({
+    id: newUser.user.id,
+    user_id: newUser.user.id,
+    org_id: row.org_id,
+    role: profileRole,
+    full_name: fullName,
+    phone,
+  });
+  if (profileErr) return { error: profileErr.message };
+
+  await admin.from('org_invites').update({ used_at: new Date().toISOString() }).eq('token', token);
+
+  return { ok: true, email: newUser.user.email ?? email };
 }

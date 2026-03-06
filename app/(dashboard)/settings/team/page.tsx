@@ -66,6 +66,7 @@ export default async function TeamPage() {
     .from('org_invites')
     .select('id, email, invite_role, created_at')
     .eq('org_id', orgId)
+    .is('used_at', null)
     .order('created_at', { ascending: false });
   const pendingInvites: PendingInvite[] = (invites ?? []).map((i) => ({
     id: (i as { id: string }).id,

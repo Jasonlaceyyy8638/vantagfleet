@@ -32,6 +32,9 @@ export default async function InvitePage({ searchParams }: Props) {
     );
   }
 
+  const inviteEmail = (row as { email?: string | null }).email?.trim() ?? null;
+  const isTeamInvite = !!inviteEmail;
+
   const { data: { user } } = await supabase.auth.getUser();
   if (user) {
     const { data: existing } = await supabase
@@ -41,6 +44,31 @@ export default async function InvitePage({ searchParams }: Props) {
       .eq('org_id', row.org_id)
       .maybeSingle();
     if (existing) redirect('/dashboard');
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4 bg-deep-ink">
+        <div className="w-full max-w-md rounded-xl border border-[#30363d] bg-card p-6 shadow-xl">
+          <h1 className="text-xl font-bold text-cloud-dancer mb-1">Join team</h1>
+          <p className="text-cloud-dancer/70 text-sm mb-6">
+            You've been invited to join <span className="text-cloud-dancer font-medium">{row.org_name}</span>. Click below to join.
+          </p>
+          <InviteAcceptForm token={token} orgName={row.org_name} />
+        </div>
+      </div>
+    );
+  }
+
+  if (isTeamInvite) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4 bg-deep-ink">
+        <div className="w-full max-w-md rounded-xl border border-[#30363d] bg-card p-6 shadow-xl">
+          <h1 className="text-xl font-bold text-cloud-dancer mb-1">Create your password</h1>
+          <p className="text-cloud-dancer/70 text-sm mb-6">
+            You've been invited to join <span className="text-cloud-dancer font-medium">{row.org_name}</span>. Choose a password to create your account.
+          </p>
+          <InviteAcceptForm token={token} orgName={row.org_name} inviteEmail={inviteEmail} />
+        </div>
+      </div>
+    );
   }
 
   return (

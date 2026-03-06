@@ -28,8 +28,22 @@ export async function middleware(request: NextRequest) {
 
   const isPublic = PUBLIC_PATHS.some((p) => pathname.startsWith(p));
 
-  // Refresh Supabase session and get current user (and staff status for /admin)
-  const { response, user, isAdmin, isSuperAdmin, isStaff } = await updateSession(request, pathname);
+  let response: NextResponse;
+  let user: { id: string } | null = null;
+  let isStaff: boolean | undefined;
+  let isAdmin: boolean | undefined;
+  let isSuperAdmin: boolean | undefined;
+
+  try {
+    const session = await updateSession(request, pathname);
+    response = session.response;
+    user = session.user;
+    isStaff = session.isStaff;
+    isAdmin = session.isAdmin;
+    isSuperAdmin = session.isSuperAdmin;
+  } catch {
+    response = NextResponse.next({ request });
+  }
 
   // Allow public paths and auth callback without requiring user
   if (isPublic || pathname === '/' || pathname.startsWith('/pricing') || pathname === '/privacy' || pathname === '/terms' || pathname === '/contact' || pathname === '/download' || pathname.startsWith('/releases') || pathname.startsWith('/roadside/view') || pathname.startsWith('/inspect/') || pathname.startsWith('/forgot-password')) {

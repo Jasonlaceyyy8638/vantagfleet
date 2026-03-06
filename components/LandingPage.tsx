@@ -16,7 +16,7 @@ const glassCardClass =
 
 type LandingPageProps = { isAuthenticated?: boolean; navbarRole?: NavbarRole | null };
 
-// Hero video: env URL first (for production), then local, then Supabase, then Mixkit
+// Hero video: env URL first (for production), then local, then Supabase, then Mixkit. Dedupe so React keys are unique.
 const HERO_VIDEO_SOURCES = [
   ...(typeof process !== 'undefined' && process.env.NEXT_PUBLIC_HERO_VIDEO_URL
     ? [process.env.NEXT_PUBLIC_HERO_VIDEO_URL]
@@ -24,16 +24,20 @@ const HERO_VIDEO_SOURCES = [
   '/videos/hero-truck.mp4',
   'https://dmejysrnxvpjenutdypx.supabase.co/storage/v1/object/public/hero-assets/hero-truck.mp4',
   'https://assets.mixkit.co/videos/preview/mixkit-highway-traffic-at-night-with-long-exposure-4010-large.mp4',
-].filter(Boolean);
+]
+  .filter(Boolean)
+  .filter((url, i, arr) => arr.indexOf(url) === i);
 
-// Founder story: env URL first (use Supabase when set), then local, then hardcoded Supabase
+// Founder story: env URL first (use Supabase when set), then local, then hardcoded Supabase. Dedupe for unique keys.
 const FOUNDER_VIDEO_SOURCES = [
   ...(typeof process !== 'undefined' && process.env.NEXT_PUBLIC_FOUNDER_VIDEO_URL
     ? [process.env.NEXT_PUBLIC_FOUNDER_VIDEO_URL]
     : []),
   '/videos/founder-story.mp4',
   'https://dmejysrnxvpjenutdypx.supabase.co/storage/v1/object/public/hero-assets/founder-story.mp4',
-].filter(Boolean);
+]
+  .filter(Boolean)
+  .filter((url, i, arr) => arr.indexOf(url) === i);
 
 export function LandingPage({ isAuthenticated = false, navbarRole = null }: LandingPageProps) {
   const searchParams = useSearchParams();

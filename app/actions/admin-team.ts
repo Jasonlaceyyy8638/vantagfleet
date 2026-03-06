@@ -4,8 +4,8 @@ import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getPlatformRole, isPlatformStaff, isAdmin } from '@/lib/admin';
 import { sendEmail } from '@/lib/mail';
-import { getWelcomeToTeamEmail, getAddedToTeamEmail } from '@/lib/invite-email';
-import { randomBytes, randomUUID } from 'crypto';
+import { getTeamInviteSetPasswordEmail, getAddedToTeamEmail } from '@/lib/invite-email';
+import { randomUUID } from 'crypto';
 
 export type StaffRow = { user_id: string; role: string; email: string | null };
 
@@ -146,7 +146,7 @@ export async function removeStaff(userId: string): Promise<{ error?: string }> {
   return {};
 }
 
-/** Add employee to vantag_staff by email and assign role. Name and phone are required. If user does not exist, only Admin can create account and send welcome email with temporary password. */
+/** Add employee to vantag_staff by email and assign role. Name and phone are required. New users get an invite email with a link to set their own password; existing users get an email to sign in with their existing password. */
 export async function addVantagStaffMember(
   email: string,
   role: VantagStaffRole,
@@ -167,40 +167,28 @@ export async function addVantagStaffMember(
   const { data: { users }, error: listError } = await admin.auth.admin.listUsers({ perPage: 1000 });
   if (listError) return { error: listError.message };
 
-  let found = users?.find((u) => u.email?.toLowerCase() === trimmed);
+  const existingUser = users?.find((u) => u.email?.toLowerCase() === trimmed);
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://vantagfleet.com';
+  const loginUrl = `${appUrl}/login`;
 
-  if (!found) {
+  if (!existingUser) {
     const supabase = await createClient();
     const callerIsAdmin = await isAdmin(supabase);
     if (!callerIsAdmin) {
-      return { error: 'No account found with that email. Only Admins can create new accounts and send a welcome email.' };
+      return { error: 'No account found with that email. Only Admins can invite new staff (they will set their password via the email link).' };
     }
-    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
-    const tempPassword = Array.from({ length: 12 }, () => chars[randomBytes(1)[0]! % chars.length]).join('');
-    const { data: newUser, error: createError } = await admin.auth.admin.createUser({
+    const token = randomUUID().replace(/-/g, '') + randomUUID().replace(/-/g, '').slice(0, 8);
+    const { error: insertErr } = await admin.from('vantag_staff_invites').insert({
+      token,
       email: trimmed,
-      password: tempPassword,
-      email_confirm: true,
-      user_metadata: { must_change_password: true },
-    });
-    if (createError) return { error: createError.message };
-    if (!newUser.user) return { error: 'Failed to create user.' };
-    found = newUser.user;
-
-    const platformRole = toPlatformRole(role);
-    const { error: staffErr } = await admin.from('vantag_staff').insert({
-      id: found.id,
-      user_id: found.id,
       role,
       full_name: fullName,
       phone: phoneTrimmed,
     });
-    if (staffErr) return { error: staffErr.message };
-    await admin.from('platform_roles').upsert({ user_id: found.id, role: platformRole }, { onConflict: 'user_id' });
+    if (insertErr) return { error: insertErr.message };
 
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://vantagfleet.com';
-    const loginUrl = `${appUrl}/login`;
-    const { subject, text, html } = getWelcomeToTeamEmail(loginUrl, tempPassword, role, { name: fullName, isVantagStaff: true });
+    const inviteLink = `${appUrl}/invite/staff?token=${token}`;
+    const { subject, text, html } = getTeamInviteSetPasswordEmail(inviteLink, { name: fullName, isVantagStaff: true });
     const sent = await sendEmail({
       to: trimmed,
       department: 'APP_NOTIFICATION_SUPPORT',
@@ -209,20 +197,20 @@ export async function addVantagStaffMember(
       html,
     });
     if ('error' in sent) {
-      return { error: `User created and added to team, but welcome email failed: ${sent.error}. Share this temporary password securely: ${tempPassword}` };
+      return { error: `Invite created but email failed: ${sent.error}. Share this link: ${inviteLink}` };
     }
     return { ok: true };
   }
 
   const platformRole = toPlatformRole(role);
-  const { data: existing } = await admin.from('vantag_staff').select('id').eq('user_id', found.id).maybeSingle();
+  const { data: existing } = await admin.from('vantag_staff').select('id').eq('user_id', existingUser.id).maybeSingle();
   if (existing) {
-    const { error: updateErr } = await admin.from('vantag_staff').update({ role, full_name: fullName, phone: phoneTrimmed }).eq('user_id', found.id);
+    const { error: updateErr } = await admin.from('vantag_staff').update({ role, full_name: fullName, phone: phoneTrimmed }).eq('user_id', existingUser.id);
     if (updateErr) return { error: updateErr.message };
   } else {
     const { error: insertErr } = await admin.from('vantag_staff').insert({
-      id: found.id,
-      user_id: found.id,
+      id: existingUser.id,
+      user_id: existingUser.id,
       role,
       full_name: fullName,
       phone: phoneTrimmed,
@@ -232,28 +220,63 @@ export async function addVantagStaffMember(
 
   await admin
     .from('platform_roles')
-    .upsert({ user_id: found.id, role: platformRole }, { onConflict: 'user_id' });
+    .upsert({ user_id: existingUser.id, role: platformRole }, { onConflict: 'user_id' });
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://vantagfleet.com';
-  const loginUrl = `${appUrl}/login`;
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
-  const tempPassword = Array.from({ length: 12 }, () => chars[randomBytes(1)[0]! % chars.length]).join('');
-  const { error: updateAuthErr } = await admin.auth.admin.updateUserById(found.id, {
-    password: tempPassword,
-    user_metadata: { ...((found.user_metadata as Record<string, unknown>) ?? {}), must_change_password: true },
+  const { subject, text, html } = getAddedToTeamEmail(loginUrl, role, { name: fullName, isVantagStaff: true });
+  await sendEmail({
+    to: trimmed,
+    department: 'APP_NOTIFICATION_SUPPORT',
+    subject,
+    text,
+    html,
   });
-  if (updateAuthErr) {
-    const { subject, text, html } = getAddedToTeamEmail(loginUrl, role, { name: fullName, isVantagStaff: true });
-    await sendEmail({ to: trimmed, department: 'APP_NOTIFICATION_SUPPORT', subject, text, html });
-  } else {
-    const { subject, text, html } = getWelcomeToTeamEmail(loginUrl, tempPassword, role, { name: fullName, isVantagStaff: true });
-    const sent = await sendEmail({ to: trimmed, department: 'APP_NOTIFICATION_SUPPORT', subject, text, html });
-    if ('error' in sent) {
-      return { error: `Team updated but welcome email failed. Share this temporary password securely: ${tempPassword}` };
-    }
-  }
-
   return { ok: true };
+}
+
+/** Accept Vantag staff invite: create account with chosen password and add to vantag_staff. Callable by anyone with valid token. */
+export async function acceptStaffInviteWithPassword(
+  token: string,
+  password: string
+): Promise<{ ok: true; email: string } | { error: string }> {
+  const trimmed = password?.trim();
+  if (!trimmed || trimmed.length < 8) return { error: 'Password must be at least 8 characters.' };
+
+  const supabase = await createClient();
+  const { data: inviteRows } = await supabase.rpc('get_vantag_staff_invite_by_token', { invite_token: token });
+  const row = Array.isArray(inviteRows) ? inviteRows[0] : inviteRows;
+  if (!row?.email) return { error: 'Invalid or expired invite.' };
+
+  const admin = createAdminClient();
+  const email = (row as { email: string }).email.trim().toLowerCase();
+  const { data: newUser, error: createError } = await admin.auth.admin.createUser({
+    email,
+    password: trimmed,
+    email_confirm: true,
+  });
+  if (createError) return { error: createError.message };
+  if (!newUser.user) return { error: 'Failed to create account.' };
+
+  const role = (row as { role: string }).role as VantagStaffRole;
+  const fullName = (row as { full_name?: string | null }).full_name ?? null;
+  const phone = (row as { phone?: string | null }).phone ?? null;
+
+  const { error: staffErr } = await admin.from('vantag_staff').insert({
+    id: newUser.user.id,
+    user_id: newUser.user.id,
+    role,
+    full_name: fullName,
+    phone,
+  });
+  if (staffErr) return { error: staffErr.message };
+
+  await admin.from('platform_roles').upsert(
+    { user_id: newUser.user.id, role: toPlatformRole(role) },
+    { onConflict: 'user_id' }
+  );
+
+  await admin.from('vantag_staff_invites').update({ used_at: new Date().toISOString() }).eq('token', token);
+
+  return { ok: true, email: newUser.user.email ?? email };
 }
 
 /** Update a VantagFleet staff member's role (and sync platform_roles). */

@@ -118,7 +118,49 @@ ${content}
 </html>`;
 }
 
-/** Welcome email when adding a team member with a temporary password (VantagFleet staff or carrier org). */
+/** Team invite email: recipient clicks link to set their own password (no temp password). Carrier or Vantag staff. */
+export function getTeamInviteSetPasswordEmail(
+  inviteLink: string,
+  options: { companyName?: string; name?: string; isVantagStaff?: boolean }
+): { subject: string; text: string; html: string } {
+  const { companyName = 'your team', name, isVantagStaff = false } = options;
+  const greeting = name ? `Hi ${name},` : 'Hi,';
+  const intro = isVantagStaff
+    ? "You've been invited to join the VantagFleet team."
+    : `You've been invited to join ${companyName} on VantagFleet.`;
+  const cta = 'Click the link below to create your password and get started.';
+
+  const subject = isVantagStaff ? 'Join the VantagFleet Team' : `You're invited to join ${companyName}`;
+  const text = [
+    name ? `Hi ${name},` : 'Hi,',
+    '',
+    intro,
+    '',
+    cta,
+    '',
+    inviteLink,
+    '',
+    '— VantagFleet',
+  ].join('\n');
+
+  const logoUrl = getEmailLogoUrl();
+  const logoBlock = logoUrl
+    ? `<p style="margin:0 0 20px;text-align:center;"><img src="${escapeHtml(logoUrl)}" alt="VantagFleet" width="120" height="120" style="display:block;margin:0 auto;max-width:120px;height:auto;" /></p>`
+    : `<p style="margin:0 0 20px;font-size:24px;font-weight:700;color:${EMAIL_AMBER};text-align:center;letter-spacing:0.05em;">VANTAGFLEET</p>`;
+  const body = `
+          ${logoBlock}
+          <h1 style="margin:0 0 16px;font-size:22px;font-weight:700;color:${EMAIL_AMBER};text-align:center;">You're Invited</h1>
+          <p style="margin:0 0 12px;font-size:16px;line-height:1.5;color:${EMAIL_TEXT};">${greeting}</p>
+          <p style="margin:0 0 16px;font-size:16px;line-height:1.5;color:${EMAIL_TEXT};">${intro}</p>
+          <p style="margin:0 0 16px;font-size:16px;line-height:1.5;color:${EMAIL_TEXT};">${cta}</p>
+          <p style="margin:0 0 24px;text-align:center;"><a href="${escapeHtml(inviteLink)}" style="display:inline-block;padding:12px 24px;background-color:${EMAIL_AMBER};color:${EMAIL_BG};font-weight:600;text-decoration:none;border-radius:8px;">Create your password</a></p>
+          <p style="margin:0;font-size:14px;color:${EMAIL_MUTED};">— VantagFleet</p>`;
+  const html = emailWrapper(body);
+
+  return { subject, text, html };
+}
+
+/** Welcome email when adding a team member with a temporary password (VantagFleet staff or carrier org). Kept for backward compat; prefer getTeamInviteSetPasswordEmail. */
 export function getWelcomeToTeamEmail(
   loginLink: string,
   tempPassword: string,

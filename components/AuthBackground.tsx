@@ -9,7 +9,9 @@ const HERO_VIDEO_SOURCES = [
   '/videos/hero-truck.mp4',
   'https://dmejysrnxvpjenutdypx.supabase.co/storage/v1/object/public/hero-assets/hero-truck.mp4',
   'https://assets.mixkit.co/videos/preview/mixkit-highway-traffic-at-night-with-long-exposure-4010-large.mp4',
-].filter(Boolean);
+]
+  .filter(Boolean)
+  .filter((url, i, arr) => arr.indexOf(url) === i);
 
 export function AuthBackground({ children }: { children: React.ReactNode }) {
   const videoRef = useRef<HTMLVideoElement>(null);
