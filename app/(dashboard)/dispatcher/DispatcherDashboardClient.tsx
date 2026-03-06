@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
+import Image from 'next/image';
 import Link from 'next/link';
-import { MapPin, FileText, Fuel, ExternalLink, RefreshCw } from 'lucide-react';
+import { MapPin, FileText, Fuel, ExternalLink, RefreshCw, Truck } from 'lucide-react';
 
 const FleetMapDynamic = dynamic(
   () => import('@/components/FleetMapDynamic').then((m) => ({ default: m.FleetMapDynamic })),
@@ -17,6 +18,8 @@ export type RoadsideIncidentRow = {
   latitude: number | null;
   longitude: number | null;
   created_at: string;
+  driver_profile_image_url?: string | null;
+  driver_truck_number?: string | null;
 };
 
 export type PendingIftaRow = {
@@ -95,8 +98,30 @@ export function DispatcherDashboardClient({
             ) : (
               <ul className="divide-y divide-white/5">
                 {incidents.map((r) => (
-                  <li key={r.id} className="px-4 py-3 hover:bg-white/5">
-                    <div className="flex flex-wrap items-start justify-between gap-2">
+                  <li key={r.id} className="px-4 py-3 hover:bg-white/5 flex items-start gap-3">
+                    {(r.driver_profile_image_url || r.driver_truck_number) && (
+                      <div className="flex flex-col items-center gap-1 shrink-0">
+                        {r.driver_profile_image_url ? (
+                          <div className="relative w-10 h-10 rounded-full overflow-hidden border border-white/10 bg-midnight-ink">
+                            <Image
+                              src={r.driver_profile_image_url}
+                              alt="Driver"
+                              fill
+                              className="object-cover"
+                              unoptimized
+                            />
+                          </div>
+                        ) : (
+                          <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center">
+                            <Truck className="size-5 text-soft-cloud/50" />
+                          </div>
+                        )}
+                        {r.driver_truck_number && (
+                          <span className="text-[10px] text-cyber-amber font-medium">#{r.driver_truck_number}</span>
+                        )}
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0 flex flex-wrap items-start justify-between gap-2">
                       <div>
                         <p className="font-medium text-soft-cloud">{r.incident_type}</p>
                         <p className="text-xs text-soft-cloud/60 mt-0.5">{formatDate(r.created_at)}</p>

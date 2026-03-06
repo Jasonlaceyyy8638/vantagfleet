@@ -5,7 +5,8 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { sendEmail } from '@/lib/mail';
-import { getDispatcherInviteEmail, getDriverInviteEmail, getTeamInviteSetPasswordEmail, getAddedToTeamEmail } from '@/lib/invite-email';
+import { getFromEmail, EMAIL_SUPPORT } from '@/lib/email-addresses';
+import { getDispatcherInviteEmail, getDriverInviteEmail, getTeamInviteSetPasswordEmail, getAddedToTeamEmail, getDispatcherSetPasswordInviteEmail, getDriverSetPasswordInviteEmail } from '@/lib/invite-email';
 import { canImpersonateCarrier, isAdmin } from '@/lib/admin';
 
 const ORG_COOKIE = 'vantag-current-org-id';
@@ -201,17 +202,21 @@ export async function addOrgMemberByEmail(
 
     const { data: org } = await admin.from('organizations').select('name').eq('id', orgId).single();
     const companyName = (org as { name?: string } | null)?.name ?? 'your fleet';
-    const inviteLink = `${appUrl}/invite?token=${token}`;
-    const { subject, text, html } = getTeamInviteSetPasswordEmail(inviteLink, { companyName, name: fullName, isVantagStaff: false });
+    const setPasswordLink = `${appUrl}/set-password?token=${token}`;
+    const isDriver = role === 'Driver';
+    const { subject, text, html } = isDriver
+      ? getDriverSetPasswordInviteEmail(setPasswordLink, companyName, fullName)
+      : getDispatcherSetPasswordInviteEmail(setPasswordLink, companyName, fullName);
     const sent = await sendEmail({
       to: trimmed,
-      department: 'APP_NOTIFICATION_SUPPORT',
+      from: getFromEmail('MARKETING'),
+      replyTo: EMAIL_SUPPORT,
       subject,
       text,
       html,
     });
     if ('error' in sent) {
-      return { error: `Invite created but email failed: ${sent.error}. Share this link: ${inviteLink}` };
+      return { error: `Invite created but email failed: ${sent.error}. Share this link: ${setPasswordLink}` };
     }
     return { ok: true };
   }

@@ -109,7 +109,7 @@ export function TeamManagementClient({ orgId, members, pendingInvites, currentUs
     <div className="space-y-8">
       <section className="rounded-xl border border-white/10 bg-card p-6">
         <h2 className="text-lg font-semibold text-soft-cloud mb-2">Add team member by email</h2>
-        <p className="text-sm text-soft-cloud/60 mb-4">Creates an account if needed and sends a welcome email with logo and temporary password. They can sign in and change their password in Settings.</p>
+        <p className="text-sm text-soft-cloud/60 mb-4">Invite by email with a role (Driver or Dispatcher). They receive a secure link to set their password and join. New users get a one-time set-password link; existing users get a sign-in notice.</p>
         <form onSubmit={handleAddByEmail} className="flex flex-wrap items-end gap-3">
           <div className="min-w-[200px]">
             <label className="block text-sm font-medium text-soft-cloud/80 mb-1">Email *</label>
@@ -163,7 +163,7 @@ export function TeamManagementClient({ orgId, members, pendingInvites, currentUs
             disabled={addLoading}
             className="px-4 py-2 rounded-lg bg-cyber-amber text-midnight-ink font-semibold hover:bg-cyber-amber/90 disabled:opacity-50"
           >
-            {addLoading ? 'Adding…' : 'Add & send welcome email'}
+            {addLoading ? 'Sending…' : 'Invite'}
           </button>
         </form>
         {addError && <p className="mt-2 text-sm text-red-400">{addError}</p>}
@@ -180,7 +180,8 @@ export function TeamManagementClient({ orgId, members, pendingInvites, currentUs
       </section>
 
       <section className="rounded-xl border border-white/10 bg-card p-6">
-        <h2 className="text-lg font-semibold text-soft-cloud mb-4">Team members</h2>
+        <h2 className="text-lg font-semibold text-soft-cloud mb-4">Team list</h2>
+        <p className="text-sm text-soft-cloud/60 mb-4">Active = has set password and joined. Pending = invite sent, awaiting set-password link.</p>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
@@ -188,6 +189,7 @@ export function TeamManagementClient({ orgId, members, pendingInvites, currentUs
                 <th className="pb-2 pr-4">Name</th>
                 <th className="pb-2 pr-4">Email / Phone</th>
                 <th className="pb-2 pr-4">Role</th>
+                <th className="pb-2 pr-4">Status</th>
                 <th className="pb-2 pr-4 text-right">Actions</th>
               </tr>
             </thead>
@@ -214,6 +216,11 @@ export function TeamManagementClient({ orgId, members, pendingInvites, currentUs
                       ))}
                     </select>
                   </td>
+                  <td className="py-3 pr-4">
+                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-electric-teal/20 text-electric-teal">
+                      Active
+                    </span>
+                  </td>
                   <td className="py-3 pr-4 text-right">
                     <button
                       type="button"
@@ -223,6 +230,21 @@ export function TeamManagementClient({ orgId, members, pendingInvites, currentUs
                       Reset password
                     </button>
                   </td>
+                </tr>
+              ))}
+              {pendingInvites.map((inv) => (
+                <tr key={`pending-${inv.id}`} className="border-b border-white/5 bg-white/[0.02]">
+                  <td className="py-3 pr-4 text-soft-cloud">{inv.full_name ?? '—'}</td>
+                  <td className="py-3 pr-4">
+                    {inv.email ? <span className="text-soft-cloud block">{inv.email}</span> : '—'}
+                  </td>
+                  <td className="py-3 pr-4 text-soft-cloud/90">{roleLabel(inv.invite_role)}</td>
+                  <td className="py-3 pr-4">
+                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-cyber-amber/20 text-cyber-amber">
+                      Pending
+                    </span>
+                  </td>
+                  <td className="py-3 pr-4 text-right text-soft-cloud/50 text-xs">Awaiting set password</td>
                 </tr>
               ))}
             </tbody>

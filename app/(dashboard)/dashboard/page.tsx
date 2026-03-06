@@ -29,6 +29,7 @@ import { getDashboardOrgId, isSuperAdminImpersonating } from '@/lib/admin';
 import { getEffectiveOrgFeatures } from '@/app/actions/admin';
 import { userHasAccess, hasFullAccess, getBetaDaysRemaining, canSeeMap } from '@/lib/userHasAccess';
 import { BetaExpirationBanner } from '@/components/BetaExpirationBanner';
+import { OnboardingChecklist } from './OnboardingChecklist';
 
 const ALERT_DAYS = 30;
 
@@ -184,6 +185,11 @@ export default async function DashboardPage() {
       <Suspense fallback={null}>
         <DashboardWelcomeBanner />
       </Suspense>
+      <OnboardingChecklist
+        driverCount={driverList.length}
+        vehicleCount={vehicleList.length}
+        docCount={docList.length}
+      />
       {betaDaysRemaining != null && betaDaysRemaining > 0 && (
         <BetaExpirationBanner daysRemaining={betaDaysRemaining} />
       )}

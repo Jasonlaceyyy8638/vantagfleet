@@ -8,7 +8,7 @@ import { createPortal } from 'react-dom';
 import { Navbar } from '@/components/Navbar';
 import { Pricing } from '@/components/Pricing';
 import { HeroLoginCard } from '@/components/HeroLoginCard';
-import { FileCheck, Users, Truck, Shield, ArrowRight, Plug, Quote, MapPin, X, Scale, FileText, Fuel, ShieldCheck, CalendarClock, Gauge } from 'lucide-react';
+import { FileCheck, Users, Truck, Shield, ArrowRight, Plug, Quote, MapPin, X, Scale, FileText, Fuel, ChevronDown, Smartphone, Monitor } from 'lucide-react';
 import type { NavbarRole } from '@/lib/admin';
 
 const glassCardClass =
@@ -354,62 +354,21 @@ export function LandingPage({ isAuthenticated = false, navbarRole = null }: Land
     }
   };
 
-  const scrollToContact = () => {
-    const el = document.getElementById('contact');
-    el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  };
-
-  const announcementBarHeight = 44;
-  const showAnnouncement = betaSpotsRemaining !== null;
-
   return (
     <div className="min-h-screen min-h-[100dvh] bg-midnight-ink overflow-x-hidden w-full max-w-[100vw]">
-      {/* Sticky announcement bar: fixed at very top, always visible when scrolling */}
-      {showAnnouncement && (
-        <motion.div
-          initial={{ opacity: 0, y: -8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3 }}
-          className="fixed top-0 left-0 right-0 z-[60] flex items-center justify-center gap-3 sm:gap-4 px-3 py-2.5 sm:py-3 min-h-[44px] border-b border-white/10"
-          style={{
-            backgroundColor: betaOpen ? '#c2410c' : '#1e3a5f',
-            paddingTop: 'max(0.5rem, env(safe-area-inset-top, 0px))',
-          }}
-          aria-live="polite"
-        >
-          <span className="text-sm sm:text-base font-semibold text-white text-center flex-1 min-w-0">
-            {betaOpen ? (
-              <>
-                🚀 FOUNDER&apos;S SPECIAL: First <span className="tabular-nums font-bold">{betaSpotsRemaining}</span> carrier{betaSpotsRemaining === 1 ? '' : 's'} get 90 days of Fleet Master FREE. Click here to learn more.
-              </>
-            ) : (
-              <>Founder Beta is now FULL. Start your 7-day free trial today.</>
-            )}
-          </span>
-          <button
-            type="button"
-            onClick={scrollToContact}
-            className="shrink-0 px-4 py-2 rounded-lg bg-white text-[#1e293b] font-bold text-sm hover:bg-white/95 active:scale-[0.98] transition-all shadow-md"
-          >
-            Apply Now
-          </button>
-        </motion.div>
-      )}
-
       <Navbar
         isAuthenticated={isAuthenticated}
-        signupHref={betaOpen ? '/signup' : '/pricing'}
-        signupLabel={betaOpen ? 'Sign Up' : 'Start Your Fleet'}
-        topOffsetPx={showAnnouncement ? announcementBarHeight : 0}
+        signupHref="/signup"
+        signupLabel="Get Started"
+        topOffsetPx={0}
+        showAnnouncementInBar
       />
 
-      {/* Spacer: announcement bar (if shown) + navbar height so content starts below both */}
+      {/* Spacer: navbar height so content starts below it */}
       <div
         className="w-full"
         style={{
-          minHeight: showAnnouncement
-            ? `calc(${announcementBarHeight}px + 3.5rem + env(safe-area-inset-top, 0px))`
-            : 'calc(3.5rem + env(safe-area-inset-top, 0px))',
+          minHeight: 'calc(3.5rem + env(safe-area-inset-top, 0px))',
         }}
         aria-hidden
       />
@@ -461,26 +420,38 @@ export function LandingPage({ isAuthenticated = false, navbarRole = null }: Land
             VantagFleet is the first compliance dashboard that understands the road. No more audit
             anxiety. Just clean logs and a moving fleet.
           </motion.p>
+          {!isAuthenticated && (
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.4 }}
+              className="mt-4"
+            >
+              <button
+                type="button"
+                onClick={() => document.getElementById('compliance-score')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                className="text-sm text-cyber-amber/90 hover:text-cyber-amber underline underline-offset-2"
+              >
+                See your compliance score →
+              </button>
+            </motion.p>
+          )}
           {!isAuthenticated ? (
             <>
               <div className="mt-10 w-full flex justify-center flex-col items-center gap-6">
-                {betaOpen ? (
-                  <Link
-                    href="/signup"
-                    className="inline-flex items-center justify-center gap-2 min-h-[48px] sm:min-h-[52px] px-6 sm:px-8 py-4 rounded-xl bg-[#FFBF00] text-midnight-ink font-bold text-base sm:text-lg hover:bg-[#FFBF00]/90 active:scale-[0.98] transition-all shadow-lg shadow-[#FFBF00]/20 touch-manipulation"
-                  >
-                    Claim Free Beta Spot
-                    <ArrowRight className="size-5 shrink-0" />
-                  </Link>
-                ) : (
-                  <Link
-                    href="/pricing"
-                    className="inline-flex items-center justify-center gap-2 min-h-[48px] sm:min-h-[52px] px-6 sm:px-8 py-4 rounded-xl bg-[#FFBF00] text-midnight-ink font-bold text-base sm:text-lg hover:bg-[#FFBF00]/90 active:scale-[0.98] transition-all shadow-lg shadow-[#FFBF00]/20 touch-manipulation"
-                  >
-                    Start Your Fleet
-                    <ArrowRight className="size-5 shrink-0" />
-                  </Link>
-                )}
+                <Link
+                  href="/signup"
+                  className="inline-flex items-center justify-center gap-2 min-h-[52px] sm:min-h-[56px] px-8 sm:px-10 py-4 rounded-xl bg-cyber-amber text-midnight-ink font-bold text-base sm:text-lg hover:bg-cyber-amber/90 active:scale-[0.98] transition-all shadow-lg shadow-cyber-amber/25 touch-manipulation border border-cyber-amber/30"
+                >
+                  Get Started
+                  <ArrowRight className="size-5 shrink-0" />
+                </Link>
+                <a
+                  href="mailto:info@vantagfleet.com"
+                  className="inline-flex items-center justify-center min-h-[48px] px-6 py-3 rounded-xl border-2 border-white/30 text-white font-semibold hover:border-cyber-amber/50 hover:text-cyber-amber transition-colors no-underline"
+                >
+                  Contact Sales
+                </a>
                 <HeroLoginCard redirectTo="/dashboard" />
               </div>
               <motion.div
@@ -489,24 +460,11 @@ export function LandingPage({ isAuthenticated = false, navbarRole = null }: Land
                 transition={{ duration: 0.5, delay: 0.3 }}
                 className="mt-6 flex flex-wrap items-center justify-center gap-4"
               >
-                <p className="text-sm text-soft-cloud/70">
-                  {betaOpen
-                    ? (
-                      <>
-                        Don&apos;t have an account?{' '}
-                        <Link href="/signup" className="text-[#FFBF00] hover:underline font-medium">
-                          Claim Free Beta Spot
-                        </Link>
-                      </>
-                    )
-                    : (
-                      <>
-                        Already have an account?{' '}
-                        <Link href="/login" className="text-[#FFBF00] hover:underline font-medium">
-                          Sign in
-                        </Link>
-                      </>
-                    )}
+                <p className="text-sm text-slate-300">
+                  Already have an account?{' '}
+                  <Link href="/login" className="text-cyber-amber hover:underline font-medium">
+                    Sign in
+                  </Link>
                 </p>
               </motion.div>
             </>
@@ -534,27 +492,21 @@ export function LandingPage({ isAuthenticated = false, navbarRole = null }: Land
       </section>
 
       {/* Truth / Why — three columns */}
-      <section className="relative py-24 px-4 bg-midnight-ink border-t border-white/5">
+      <section className="relative py-24 px-4 bg-[#0f172a] border-t border-slate-600/30">
         <div className="max-w-6xl mx-auto">
           <motion.h2
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, amount: 0.2 }}
-            className="text-3xl sm:text-4xl font-bold text-soft-cloud text-center mb-4"
+            className="text-3xl sm:text-4xl font-bold text-white text-center mb-4 tracking-tight"
           >
             The <span className="text-cyber-amber">Truth</span>
           </motion.h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-12">
             {[
-              {
-                text: "The Auditor doesn't care about your excuses. We make sure they don't have a reason to.",
-              },
-              {
-                text: 'Motive + Motus + IFTA: The holy trinity of compliance, automated.',
-              },
-              {
-                text: 'Desktop App Performance: Built with Tauri for 2026 speed.',
-              },
+              { text: "The Auditor doesn't care about your excuses. We make sure they don't have a reason to." },
+              { text: 'Motive + Motus + IFTA: The holy trinity of compliance, automated.' },
+              { text: 'Desktop App Performance: Built with Tauri for 2026 speed.' },
             ].map((item, i) => (
               <motion.div
                 key={i}
@@ -562,9 +514,9 @@ export function LandingPage({ isAuthenticated = false, navbarRole = null }: Land
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, amount: 0.2 }}
                 transition={{ duration: 0.6, delay: i * 0.1 }}
-                className={`p-6 ${glassCardClass} bg-white/5 text-center`}
+                className="p-6 rounded-2xl border border-slate-600/50 bg-slate-800/40 text-center"
               >
-                <p className="text-soft-cloud/90 text-lg leading-relaxed">{item.text}</p>
+                <p className="text-slate-200 text-lg font-medium leading-relaxed">{item.text}</p>
               </motion.div>
             ))}
           </div>
@@ -697,22 +649,22 @@ export function LandingPage({ isAuthenticated = false, navbarRole = null }: Land
         </div>
       </section>
 
-      {/* Future of Compliance — blueprint feature preview cards */}
-      <section className="relative py-24 px-4 bg-midnight-ink/80 border-t border-white/5">
+      {/* Compliance Suite — single clean set: Audit, BOC-3, MCS-150, IFTA */}
+      <section className="relative py-24 px-4 bg-[#0f172a] border-t border-slate-600/30">
         <div className="max-w-5xl mx-auto">
           <motion.h2
             initial={{ opacity: 0, y: 16 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, amount: 0.2 }}
-            className="text-3xl sm:text-4xl font-bold text-soft-cloud text-center mb-2"
+            className="text-3xl sm:text-4xl font-bold text-white text-center mb-2 tracking-tight"
           >
-            Future of <span className="text-cyber-amber">Compliance</span>
+            Compliance <span className="text-cyber-amber">Suite</span>
           </motion.h2>
           <motion.p
             initial={{ opacity: 0, y: 12 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, amount: 0.2 }}
-            className="text-soft-cloud/60 text-center mb-12"
+            className="text-slate-300 text-center mb-12 font-medium"
           >
             One place for the filings that keep you legal.
           </motion.p>
@@ -724,89 +676,34 @@ export function LandingPage({ isAuthenticated = false, navbarRole = null }: Land
             className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
           >
             {[
-              {
-                id: 'audit' as const,
-                title: 'One-Click Audit Protection',
-                why: 'Stop sweating IFTA audits. VantagFleet compiles your ELD bread-crumbs, state-line crossings, and fuel receipts into a professional, watermarked ZIP bundle. Hand it to an auditor with confidence.',
-                Icon: Shield,
-                comingSoon: false,
-                badge: 'Certified' as const,
-              },
-              {
-                id: 'boc3' as const,
-                title: 'BOC-3 Process Agents',
-                why: 'Designate process agents in every state you operate—no more missed service of process.',
-                Icon: Scale,
-                comingSoon: true,
-                badge: null,
-              },
-              {
-                id: 'mcs150' as const,
-                title: 'MCS-150 Biennial Update',
-                why: 'Avoid $1k+ fines with automated biennial updates and reminders.',
-                Icon: FileText,
-                comingSoon: true,
-                badge: null,
-              },
-              {
-                id: 'ifta' as const,
-                title: 'Automated IFTA Reporting',
-                why: 'Audit-ready IFTA logs. File and track IFTA fuel tax in one place with ELD sync.',
-                Icon: Fuel,
-                comingSoon: false,
-                badge: 'Certified' as const,
-              },
+              { id: 'audit' as const, title: 'One-Click Audit Protection', why: 'Professional, watermarked ZIP bundle for auditors. ELD breadcrumbs, state-line crossings, fuel receipts.', Icon: Shield, comingSoon: false, badge: 'Certified' as const },
+              { id: 'boc3' as const, title: 'BOC-3 Process Agents', why: 'Designate process agents in every state you operate—no missed service of process.', Icon: Scale, comingSoon: true, badge: null },
+              { id: 'mcs150' as const, title: 'MCS-150 Biennial Update', why: 'Avoid $1k+ fines with automated biennial updates and reminders.', Icon: FileText, comingSoon: true, badge: null },
+              { id: 'ifta' as const, title: 'Automated IFTA Reporting', why: 'Audit-ready IFTA logs. File and track IFTA fuel tax with ELD sync.', Icon: Fuel, comingSoon: false, badge: 'Certified' as const },
             ].map(({ id, title, why, Icon, comingSoon, badge }) => (
-              <div
-                key={id}
-                className="group relative rounded-xl border-2 border-dashed border-amber-500/40 bg-white/[0.04] backdrop-blur-sm p-6 transition-all duration-300 hover:border-amber-500/70 hover:shadow-[0_0_40px_-8px_rgba(245,158,11,0.35)] hover:bg-white/[0.06]"
-                title={why}
-              >
+              <div key={id} className="group relative rounded-xl border border-slate-500/40 bg-slate-800/40 backdrop-blur-sm p-6 transition-all duration-300 hover:border-cyber-amber/40 hover:bg-slate-800/60">
                 <div className="absolute top-3 right-3 flex items-center gap-2">
-                  {badge && (
-                    <span className="rounded-md bg-electric-teal/20 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-electric-teal">
-                      {badge}
-                    </span>
-                  )}
-                  <span className="h-2 w-2 rounded-full bg-amber-500/60 group-hover:bg-amber-400" aria-hidden />
+                  {badge && <span className="rounded bg-electric-teal/20 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-electric-teal">Certified</span>}
                 </div>
                 <div className="flex items-center gap-3 mb-3">
-                  <div className="p-2 rounded-lg border border-amber-500/30 bg-amber-500/10">
-                    <Icon className="size-5 text-amber-400" />
+                  <div className="p-2 rounded-lg border border-cyber-amber/30 bg-cyber-amber/10">
+                    <Icon className="size-5 text-cyber-amber" />
                   </div>
-                  <h3 className="text-lg font-semibold text-soft-cloud">{title}</h3>
+                  <h3 className="text-lg font-semibold text-white">{title}</h3>
                 </div>
+                <p className="text-sm text-slate-400 mb-4 line-clamp-2">{why}</p>
                 {comingSoon ? (
-                  <>
-                    <p className="text-sm text-soft-cloud/60 mb-3 line-clamp-2">
-                      Under construction. Get notified when this power-up launches.
-                    </p>
-                    <p className="mb-4 min-h-[2.5rem] opacity-0 group-hover:opacity-100 transition-opacity duration-200 text-xs text-amber-300/95 rounded-lg px-3 py-2 border border-amber-500/20 bg-amber-500/5">
-                      <span className="font-medium text-amber-400/90">Why it matters:</span> {why}
-                    </p>
-                    <button
-                      type="button"
-                      onClick={() => setEarlyAccessModal(id)}
-                      className="w-full py-2.5 rounded-lg border border-amber-500/50 bg-amber-500/10 text-amber-400 text-sm font-medium hover:bg-amber-500/20 hover:border-amber-500/60 transition-colors"
-                    >
-                      Get notified when available
-                    </button>
-                  </>
+                  <button type="button" onClick={() => setEarlyAccessModal(id)} className="w-full py-2.5 rounded-lg border border-slate-500/50 bg-slate-700/30 text-slate-300 text-sm font-medium hover:border-cyber-amber/50 hover:text-cyber-amber transition-colors">
+                    Get notified when available
+                  </button>
+                ) : id === 'audit' ? (
+                  <Link href={isAuthenticated ? '/dashboard' : '/signup'} className="block w-full py-2.5 rounded-lg border border-slate-500/50 bg-slate-700/30 text-slate-300 text-sm font-semibold hover:border-cyber-amber/50 hover:text-cyber-amber text-center transition-colors">
+                    {isAuthenticated ? 'View audit export' : 'Get started'}
+                  </Link>
                 ) : (
-                  <>
-                    <p className="text-sm text-soft-cloud/60 mb-3 line-clamp-2">
-                      {why}
-                    </p>
-                    <p className="mb-4 min-h-[2.5rem] opacity-0 group-hover:opacity-100 transition-opacity duration-200 text-xs text-amber-300/95 rounded-lg px-3 py-2 border border-amber-500/20 bg-amber-500/5">
-                      <span className="font-medium text-amber-400/90">Why it matters:</span> {why}
-                    </p>
-                    <Link
-                      href={isAuthenticated ? '/dashboard/ifta' : '/signup'}
-                      className="block w-full py-2.5 rounded-lg border border-amber-500/50 bg-amber-500/10 text-amber-400 text-sm font-medium hover:bg-amber-500/20 hover:border-amber-500/60 transition-colors text-center"
-                    >
-                      {isAuthenticated ? 'Go to IFTA' : 'Get started'}
-                    </Link>
-                  </>
+                  <Link href={isAuthenticated ? '/dashboard/ifta' : '/signup'} className="block w-full py-2.5 rounded-lg border border-cyber-amber/50 bg-cyber-amber/10 text-cyber-amber text-sm font-semibold hover:bg-cyber-amber/20 text-center transition-colors">
+                    {isAuthenticated ? 'Go to IFTA' : 'Get started'}
+                  </Link>
                 )}
               </div>
             ))}
@@ -814,134 +711,109 @@ export function LandingPage({ isAuthenticated = false, navbarRole = null }: Land
         </div>
       </section>
 
-      {/* The Future of VantagFleet — three glassmorphism cards + Compliance Alpha waitlist */}
-      <section className="relative py-24 px-4 bg-midnight-ink border-t border-white/5">
-        <div className="max-w-5xl mx-auto">
+      {/* The Enterprise Pillar — Audit-Ready, Always */}
+      <section className="relative py-24 px-4 bg-midnight-ink border-t border-slate-600/30">
+        <div className="max-w-6xl mx-auto">
           <motion.h2
             initial={{ opacity: 0, y: 16 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, amount: 0.2 }}
-            className="text-3xl sm:text-4xl font-bold text-soft-cloud text-center mb-2"
+            className="text-3xl sm:text-4xl md:text-[2.5rem] font-bold text-white text-center mb-3 tracking-tight"
           >
-            The Future of <span className="text-cyber-amber">VantagFleet</span>
+            The VantagFleet Standard: Audit-Ready, Always.
+          </motion.h2>
+          <motion.div
+            initial={{ opacity: 0, y: 24 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.15 }}
+            className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-14"
+          >
+            <div className="rounded-2xl border border-slate-600/50 bg-slate-900/50 p-8 flex flex-col">
+              <div className="w-12 h-12 rounded-xl bg-cyber-amber/15 border border-cyber-amber/30 flex items-center justify-center mb-5">
+                <svg className="w-6 h-6 text-cyber-amber" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>
+              </div>
+              <h3 className="text-xl font-bold text-white mb-2">Asset Protection</h3>
+              <p className="text-slate-400 text-sm mb-4 flex-1">Engine diagnostics and real-time GPS keep your fleet visible and your assets protected. Know where every unit is, every minute.</p>
+              <ul className="text-slate-300 text-sm space-y-1.5">
+                <li className="flex items-center gap-2"><span className="text-cyber-amber">•</span> Real-time GPS tracking</li>
+                <li className="flex items-center gap-2"><span className="text-cyber-amber">•</span> Engine diagnostics</li>
+              </ul>
+            </div>
+            <div className="rounded-2xl border border-slate-600/50 bg-slate-900/50 p-8 flex flex-col">
+              <div className="w-12 h-12 rounded-xl bg-electric-teal/15 border border-electric-teal/30 flex items-center justify-center mb-5">
+                <svg className="w-6 h-6 text-electric-teal" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /><polyline points="10 9 9 9 8 9" /></svg>
+              </div>
+              <h3 className="text-xl font-bold text-white mb-2">Regulatory Shield</h3>
+              <p className="text-slate-400 text-sm mb-4 flex-1">IFTA automation and BOC-3 / MCS-150 management in one place. Stay current with filings and avoid fines.</p>
+              <ul className="text-slate-300 text-sm space-y-1.5">
+                <li className="flex items-center gap-2"><span className="text-electric-teal">•</span> IFTA automation</li>
+                <li className="flex items-center gap-2"><span className="text-electric-teal">•</span> BOC-3 & MCS-150</li>
+              </ul>
+            </div>
+            <div className="rounded-2xl border border-slate-600/50 bg-slate-900/50 p-8 flex flex-col">
+              <div className="w-12 h-12 rounded-xl bg-cyber-amber/15 border border-cyber-amber/30 flex items-center justify-center mb-5">
+                <svg className="w-6 h-6 text-cyber-amber" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
+              </div>
+              <h3 className="text-xl font-bold text-white mb-2">Liability Defense</h3>
+              <p className="text-slate-400 text-sm mb-4 flex-1">Roadside Inspection Mode and incident reporting give you a clear record when it matters most. DOT-ready at the scale.</p>
+              <ul className="text-slate-300 text-sm space-y-1.5">
+                <li className="flex items-center gap-2"><span className="text-cyber-amber">•</span> Roadside inspection mode</li>
+                <li className="flex items-center gap-2"><span className="text-cyber-amber">•</span> Incident reporting</li>
+              </ul>
+            </div>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Compliance Status — Fleet Compliance Score A+ */}
+      <section id="compliance-score" className="relative py-24 px-4 bg-[#0f172a] border-t border-slate-600/30 overflow-hidden scroll-mt-24">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_70%_50%_at_50%_50%,rgba(255,176,0,0.06),transparent)] pointer-events-none" aria-hidden />
+        <div className="relative max-w-4xl mx-auto text-center">
+          <motion.h2
+            initial={{ opacity: 0, y: 16 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.2 }}
+            className="text-2xl sm:text-3xl font-bold text-white mb-2 tracking-tight"
+          >
+            Fleet Compliance Score
           </motion.h2>
           <motion.p
             initial={{ opacity: 0, y: 12 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, amount: 0.2 }}
-            className="text-soft-cloud/60 text-center mb-12"
+            className="text-slate-400 text-lg mb-10 font-medium max-w-xl mx-auto"
           >
-            Compliance tools that work as hard as you do.
+            Built for fleets that can&apos;t afford a single minute of downtime or a single DOT fine.
           </motion.p>
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, amount: 0.15 }}
+            initial={{ opacity: 0, scale: 0.95 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true, amount: 0.3 }}
             transition={{ duration: 0.5 }}
-            className="grid grid-cols-1 md:grid-cols-3 gap-6"
+            className="inline-flex flex-col items-center justify-center rounded-2xl border-2 border-cyber-amber/50 bg-slate-800/60 backdrop-blur-sm px-12 py-10 shadow-[0_0_60px_-12px_rgba(255,176,0,0.2)]"
           >
-            {[
-              {
-                title: 'BOC-3 Authority Link',
-                subtext: 'Instant 50-state process agent coverage. Stay legal, stay moving.',
-                Icon: Scale,
-                ctaLink: null,
-              },
-              {
-                title: 'Automated MCS-150',
-                subtext: 'Never miss a biennial update. We pre-fill your census data from your ELD activity.',
-                Icon: FileText,
-                ctaLink: null,
-              },
-              {
-                title: 'Automated IFTA Reporting',
-                subtext: 'Audit-ready IFTA logs. Automated fuel tax reporting based on GPS mileage.',
-                Icon: Fuel,
-                ctaLink: isAuthenticated ? '/dashboard/ifta' : '/signup',
-              },
-            ].map(({ title, subtext, Icon, ctaLink }) => (
-              <div
-                key={title}
-                className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl shadow-[0_0_40px_-12px_rgba(255,176,0,0.12)] p-6 flex flex-col"
-              >
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="p-2 rounded-lg bg-amber-500/20 border border-amber-500/30">
-                    <Icon className="size-5 text-amber-400" />
-                  </div>
-                  <h3 className="text-lg font-semibold text-soft-cloud">{title}</h3>
-                </div>
-                <p className="text-sm text-soft-cloud/70 mb-6 flex-1">{subtext}</p>
-                {ctaLink ? (
-                  <Link
-                    href={ctaLink}
-                    className="w-full py-2.5 rounded-xl border border-amber-500/40 bg-amber-500/10 text-amber-400 text-sm font-medium hover:bg-amber-500/20 hover:border-amber-500/50 transition-colors text-center"
-                  >
-                    Get started
-                  </Link>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => setRoadmapModalOpen(true)}
-                    className="w-full py-2.5 rounded-xl border border-amber-500/40 bg-amber-500/10 text-amber-400 text-sm font-medium hover:bg-amber-500/20 hover:border-amber-500/50 transition-colors"
-                  >
-                    Get notified when available
-                  </button>
-                )}
-              </div>
-            ))}
+            <span className="text-6xl sm:text-7xl md:text-8xl font-black text-cyber-amber tracking-tighter leading-none">A+</span>
+            <span className="text-slate-400 text-sm font-semibold uppercase tracking-widest mt-3">Audit-ready</span>
           </motion.div>
         </div>
       </section>
 
-      {/* Trust Bar — Motive, Motus, Geotab, Samsara (Soon) */}
-      <section className="relative py-16 px-4 border-y border-white/10 bg-white/[0.02]">
-        <motion.p
-          initial={{ opacity: 0, y: 12 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, amount: 0.2 }}
-          className="text-center text-soft-cloud/50 text-sm uppercase tracking-wider mb-10"
-        >
-          Integrated with the tools you already run
-        </motion.p>
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, amount: 0.2 }}
-          transition={{ duration: 0.6 }}
-          className="max-w-4xl mx-auto flex flex-wrap items-center justify-center gap-8 sm:gap-12"
-        >
-          {[
-            { name: 'Motive', soon: false },
-            { name: 'Motus', soon: false },
-            { name: 'Geotab', soon: false },
-            { name: 'Samsara', soon: true },
-          ].map((partner, i) => (
-            <div
-              key={partner.name}
-              className="flex items-center gap-2 px-6 py-3 rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm"
-            >
-              <Plug className={`size-5 ${partner.soon ? 'text-soft-cloud/40' : 'text-cyber-amber'}`} />
-              <span className={`font-semibold ${partner.soon ? 'text-soft-cloud/50' : 'text-soft-cloud'}`}>
-                {partner.name}
-              </span>
-              {partner.soon && (
-                <span className="rounded bg-cyber-amber/20 px-2 py-0.5 text-[10px] font-semibold uppercase text-cyber-amber">
-                  Coming Soon
-                </span>
-              )}
-            </div>
-          ))}
-        </motion.div>
-      </section>
-
-      {/* Truth / Why — three columns */}
-      <section className="relative py-24 px-4 bg-midnight-ink border-t border-white/5">
+      {/* Integrations — single premium section */}
+      <section id="integrations" className="relative py-24 sm:py-28 px-4 bg-[#0f172a] border-t border-slate-600/30 scroll-mt-24">
         <div className="max-w-5xl mx-auto">
+          <motion.p
+            initial={{ opacity: 0, y: 8 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.2 }}
+            className="text-center text-cyber-amber text-xs font-semibold uppercase tracking-[0.2em] mb-4"
+          >
+            Telematics & compliance in one place
+          </motion.p>
           <motion.h2
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 16 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="text-3xl sm:text-4xl font-bold text-soft-cloud text-center mb-2"
+            className="text-3xl sm:text-4xl md:text-[2.25rem] font-bold text-white text-center mb-2 tracking-tight"
           >
             One dashboard. Every integration.
           </motion.h2>
@@ -949,66 +821,75 @@ export function LandingPage({ isAuthenticated = false, navbarRole = null }: Land
             initial={{ opacity: 0, y: 12 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="text-soft-cloud/60 text-center mb-12"
+            className="text-slate-400 text-center mb-14 font-medium max-w-xl mx-auto"
           >
-            Connect your telematics and compliance data in one place.
+            Connect your ELD and telematics. One source of truth for fleet and compliance.
           </motion.p>
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="grid grid-cols-1 md:grid-cols-3 gap-4"
+            viewport={{ once: true, amount: 0.15 }}
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5"
           >
-            {/* Motive — primary, larger feel */}
             <Link
               href={isAuthenticated ? '/dashboard/integrations' : '/signup'}
-              className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-sm p-6 flex flex-col justify-between min-h-[180px] hover:border-cyber-amber/40 hover:bg-white/[0.07] transition-all group"
+              className="rounded-xl border border-slate-600/50 bg-slate-800/50 p-6 flex flex-col justify-between min-h-[160px] hover:border-cyber-amber/40 hover:bg-slate-800/70 transition-all duration-200 group"
             >
               <div className="flex items-center gap-3 mb-3">
-                <div className="p-2 rounded-lg bg-cyber-amber/20">
-                  <Plug className="size-6 text-cyber-amber" />
+                <div className="p-2.5 rounded-lg bg-cyber-amber/15 border border-cyber-amber/25">
+                  <Plug className="size-5 text-cyber-amber" strokeWidth={2} />
                 </div>
-                <h3 className="text-lg font-semibold text-soft-cloud">Motive</h3>
+                <h3 className="text-base font-bold text-white">Motive</h3>
               </div>
-              <p className="text-sm text-soft-cloud/60">
-                Connect with sign-in. Fleet and HOS in one click.
-              </p>
-              <span className="mt-4 inline-flex items-center gap-1 text-cyber-amber text-sm font-medium group-hover:gap-2 transition-all">
+              <p className="text-sm text-slate-400 mb-4">Fleet and HOS in one click.</p>
+              <span className="inline-flex items-center gap-1.5 text-cyber-amber text-sm font-semibold group-hover:gap-2 transition-all">
                 Connect <ArrowRight className="size-4" />
               </span>
             </Link>
-            {/* Geotab — connect */}
             <Link
               href={isAuthenticated ? '/dashboard/integrations' : '/signup'}
-              className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-sm p-6 flex flex-col justify-between min-h-[180px] hover:border-cyber-amber/40 hover:bg-white/[0.07] transition-all group"
+              className="rounded-xl border border-slate-600/50 bg-slate-800/50 p-6 flex flex-col justify-between min-h-[160px] hover:border-cyber-amber/40 hover:bg-slate-800/70 transition-all duration-200 group"
             >
               <div className="flex items-center gap-3 mb-3">
-                <div className="p-2 rounded-lg bg-cyber-amber/20">
-                  <Plug className="size-6 text-cyber-amber" />
+                <div className="p-2.5 rounded-lg bg-cyber-amber/15 border border-cyber-amber/25">
+                  <Plug className="size-5 text-cyber-amber" strokeWidth={2} />
                 </div>
-                <h3 className="text-lg font-semibold text-soft-cloud">Geotab</h3>
+                <h3 className="text-base font-bold text-white">Motus</h3>
               </div>
-              <p className="text-sm text-soft-cloud/60">
-                Connect with server, database, and credentials. Fleet and IFTA in one place.
-              </p>
-              <span className="mt-4 inline-flex items-center gap-1 text-cyber-amber text-sm font-medium group-hover:gap-2 transition-all">
+              <p className="text-sm text-slate-400 mb-4">Fuel and mileage data.</p>
+              <span className="inline-flex items-center gap-1.5 text-cyber-amber text-sm font-semibold group-hover:gap-2 transition-all">
                 Connect <ArrowRight className="size-4" />
               </span>
             </Link>
-            {/* Samsara — coming soon */}
-            <div className="rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-sm p-6 flex flex-col justify-between min-h-[180px] opacity-90">
+            <Link
+              href={isAuthenticated ? '/dashboard/integrations' : '/signup'}
+              className="rounded-xl border border-slate-600/50 bg-slate-800/50 p-6 flex flex-col justify-between min-h-[160px] hover:border-cyber-amber/40 hover:bg-slate-800/70 transition-all duration-200 group"
+            >
               <div className="flex items-center gap-3 mb-3">
-                <div className="p-2 rounded-lg bg-cyber-amber/10" style={{ filter: 'grayscale(0.6)' }}>
-                  <Plug className="size-6 text-cyber-amber/70" />
+                <div className="p-2.5 rounded-lg bg-cyber-amber/15 border border-cyber-amber/25">
+                  <Plug className="size-5 text-cyber-amber" strokeWidth={2} />
+                </div>
+                <h3 className="text-base font-bold text-white">Geotab</h3>
+              </div>
+              <p className="text-sm text-slate-400 mb-4">Fleet and IFTA in one place.</p>
+              <span className="inline-flex items-center gap-1.5 text-cyber-amber text-sm font-semibold group-hover:gap-2 transition-all">
+                Connect <ArrowRight className="size-4" />
+              </span>
+            </Link>
+            <div className="rounded-xl border border-slate-600/40 bg-slate-800/30 p-6 flex flex-col justify-between min-h-[160px]">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="p-2.5 rounded-lg bg-slate-600/30 border border-slate-500/30">
+                  <Plug className="size-5 text-slate-500" strokeWidth={2} />
                 </div>
                 <div className="flex items-center gap-2">
-                  <h3 className="text-lg font-semibold text-soft-cloud/80">Samsara</h3>
+                  <h3 className="text-base font-bold text-slate-300">Samsara</h3>
                   <span className="rounded bg-cyber-amber/20 px-2 py-0.5 text-[10px] font-semibold uppercase text-cyber-amber">
                     Soon
                   </span>
                 </div>
               </div>
-              <p className="text-sm text-soft-cloud/50">Cameras and ELD. Notify when ready.</p>
+              <p className="text-sm text-slate-500 mb-4">Cameras and ELD. Notify when ready.</p>
+              <span className="text-slate-500 text-sm font-medium">Coming soon</span>
             </div>
           </motion.div>
         </div>
@@ -1047,158 +928,108 @@ export function LandingPage({ isAuthenticated = false, navbarRole = null }: Land
       {/* Features: glassmorphism cards */}
       <FeaturesSection />
 
-      {/* Compliance Roadmap — The Future of Fleet Compliance */}
-      <section className="relative py-24 px-4 overflow-hidden">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_0%,rgba(245,158,11,0.08),transparent)] pointer-events-none" aria-hidden />
-        <div className="relative max-w-5xl mx-auto">
-          <motion.h2
-            initial={{ opacity: 0, y: 16 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, amount: 0.2 }}
-            className="text-3xl sm:text-4xl font-bold text-amber-500 text-center mb-2"
-          >
-            The Future of Fleet Compliance
-          </motion.h2>
-          <motion.p
-            initial={{ opacity: 0, y: 12 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, amount: 0.2 }}
-            className="text-soft-cloud/60 text-center mb-12"
-          >
-            Revolutionizing the back-office so you can focus on the road.
-          </motion.p>
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, amount: 0.15 }}
-            transition={{ duration: 0.5 }}
-            className="grid grid-cols-1 md:grid-cols-3 gap-6"
-          >
-            {[
-              {
-                title: 'One-Click Federal Authority',
-                text: 'Instant 50-state process agent coverage. Stay legal and avoid the $1,000+ paperwork trap.',
-                Icon: ShieldCheck,
-                comingSoon: true,
-              },
-              {
-                title: 'Biennial Updates on Autopilot',
-                text: 'We use your real-time fleet activity to pre-fill your census data. Never face a Deactivated status again.',
-                Icon: CalendarClock,
-                comingSoon: true,
-              },
-              {
-                title: 'Automated IFTA Reporting',
-                text: 'Audit-ready IFTA logs. Automated fuel tax reporting based on GPS mileage. Connect your ELD (Motive, Geotab, Samsara) to auto-generate state-by-state data.',
-                Icon: Gauge,
-                comingSoon: false,
-              },
-            ].map(({ title, text, Icon, comingSoon }) => (
-              <div
-                key={title}
-                className="relative rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md p-6"
-              >
-                {comingSoon && (
-                  <span className="absolute top-3 right-3 rounded-md bg-amber-500 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-midnight-ink">
-                    COMING SOON
-                  </span>
-                )}
-                {!comingSoon && title.includes('IFTA') && (
-                  <span className="absolute top-3 right-3 rounded-md bg-electric-teal/20 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-electric-teal">
-                    Certified
-                  </span>
-                )}
-                <div className={`flex items-center gap-3 mb-3 ${comingSoon ? 'pr-20' : ''} ${!comingSoon && title.includes('IFTA') ? 'pr-20' : ''}`}>
-                  <div className="p-2 rounded-lg bg-amber-500/20 border border-amber-500/30">
-                    <Icon className="size-5 text-amber-500" />
-                  </div>
-                  <h3 className="text-lg font-semibold text-soft-cloud">{title}</h3>
-                </div>
-                <p className="text-sm text-soft-cloud/70 mb-6">{text}</p>
-                {comingSoon ? (
-                  <button
-                    type="button"
-                    onClick={() => setRoadmapSectionModalOpen(true)}
-                    className="w-full py-2.5 rounded-xl border border-amber-500/40 bg-amber-500/10 text-amber-500 text-sm font-medium hover:bg-amber-500/20 hover:border-amber-500/50 transition-colors"
-                  >
-                    Get notified when available
-                  </button>
-                ) : (
-                  <Link
-                    href={isAuthenticated ? '/dashboard/ifta' : '/signup'}
-                    className="block w-full py-2.5 rounded-xl border border-amber-500/40 bg-amber-500/10 text-amber-500 text-sm font-medium hover:bg-amber-500/20 hover:border-amber-500/50 transition-colors text-center"
-                  >
-                    {isAuthenticated ? 'Go to IFTA' : 'Get started'}
-                  </Link>
-                )}
-              </div>
-            ))}
-          </motion.div>
-        </div>
-      </section>
-
-      <section className="py-16 px-4 border-t border-white/5">
+      <section id="pricing" className="py-16 px-4 border-t border-slate-600/30 bg-[#0f172a] scroll-mt-24">
         <div className="max-w-5xl mx-auto">
-          <h2 className="text-2xl font-bold text-soft-cloud text-center mb-2">Solo Pro, Fleet Master & Enterprise</h2>
-          <p className="text-soft-cloud/60 text-center mb-10">One dashboard. Choose what fits your fleet.</p>
+          <h2 className="text-2xl sm:text-3xl font-bold text-white text-center mb-2 tracking-tight">Solo Pro, Fleet Master & Enterprise</h2>
+          <p className="text-slate-400 text-center mb-10 font-medium">Enterprise grade. One dashboard. Choose what fits your fleet.</p>
           <Pricing />
         </div>
       </section>
 
-      {/* Driver App — Coming Soon */}
-      <section className="relative py-24 px-4 bg-midnight-ink border-t border-white/5">
-        <div className="max-w-4xl mx-auto text-center">
+      {/* Driver app — PWA: Add to Home Screen */}
+      <section id="driver-app" className="relative py-24 px-4 bg-midnight-ink border-t border-slate-600/30 scroll-mt-24">
+        <div className="max-w-3xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, amount: 0.2 }}
             transition={{ duration: 0.6 }}
+            className="text-center"
           >
-            <p className="text-cyber-amber font-semibold text-sm uppercase tracking-wider mb-3">Coming Soon</p>
-            <h2 className="text-2xl sm:text-3xl font-bold text-soft-cloud mb-4">
-              The VantagFleet Driver App
-            </h2>
-            <p className="text-soft-cloud/80 text-lg mb-6 max-w-2xl mx-auto">
-              Your Roadside Shield in your pocket. Coming Q3 2026.
-            </p>
-            <div className="flex flex-wrap items-center justify-center gap-6 mb-8">
-              <a
-                href="#"
-                onClick={(e) => e.preventDefault()}
-                className="opacity-50 grayscale pointer-events-none inline-block"
-                aria-label="Download on the App Store (coming soon)"
-              >
-                <img
-                  src="https://tools.applemediaservices.com/api/badges/download-on-the-app-store/black/en-us?size=250x83"
-                  alt="Download on the App Store"
-                  className="h-10 w-auto object-contain"
-                />
-              </a>
-              <a
-                href="#"
-                onClick={(e) => e.preventDefault()}
-                className="opacity-50 grayscale pointer-events-none inline-block"
-                aria-label="Get it on Google Play (coming soon)"
-              >
-                <img
-                  src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png"
-                  alt="Get it on Google Play"
-                  className="h-12 w-auto object-contain"
-                />
-              </a>
+            <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-cyber-amber/15 border border-cyber-amber/30 mb-6">
+              <Smartphone className="size-7 text-cyber-amber" />
             </div>
-            <button
-              type="button"
-              onClick={() => setDriverAppNotifyOpen(true)}
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl border-2 border-cyber-amber/60 bg-cyber-amber/10 text-cyber-amber font-semibold hover:bg-cyber-amber/20 hover:border-cyber-amber/80 transition-colors"
-            >
-              Notify Me
-            </button>
+            <h2 className="text-2xl sm:text-3xl font-bold text-white mb-2 tracking-tight">
+              Get VantagFleet on your phone
+            </h2>
+            <p className="text-slate-400 font-medium mb-10 max-w-xl mx-auto">
+              Drivers: open this site on your phone, then add it to your home screen. You’ll get the full app experience—Roadside Shield, DOT logs, and incident reporting—without the app store.
+            </p>
+            <div className="text-left rounded-2xl border border-slate-600/50 bg-slate-800/40 p-6 sm:p-8 space-y-6">
+              <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                <span className="rounded-full w-8 h-8 flex items-center justify-center bg-cyber-amber/20 text-cyber-amber text-sm">1</span>
+                Open VantagFleet in your phone’s browser
+              </h3>
+              <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                <span className="rounded-full w-8 h-8 flex items-center justify-center bg-cyber-amber/20 text-cyber-amber text-sm">2</span>
+                Add to Home Screen
+              </h3>
+              <ul className="space-y-4 pl-10 text-slate-300 font-medium">
+                <li className="flex items-start gap-3">
+                  <span className="text-cyber-amber mt-0.5">iPhone:</span>
+                  <span>Tap the <strong className="text-white">Share</strong> icon (square with arrow) at the bottom of Safari, scroll down, then tap <strong className="text-white">Add to Home Screen</strong>. Name it “VantagFleet” and tap Add.</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <span className="text-cyber-amber mt-0.5">Android:</span>
+                  <span>Tap the <strong className="text-white">three dots</strong> (⋮) in the top right of Chrome, then tap <strong className="text-white">Add to Home screen</strong> or <strong className="text-white">Install app</strong>. Confirm and the VantagFleet icon will appear on your home screen.</span>
+                </li>
+              </ul>
+              <p className="text-slate-400 text-sm pt-2">
+                Once added, open VantagFleet from your home screen like any other app. Log in with your driver account to access Roadside Shield and DOT inspection tools.
+              </p>
+            </div>
           </motion.div>
         </div>
       </section>
 
-      <CTASection isAuthenticated={isAuthenticated} navbarRole={navbarRole} betaOpen={betaOpen} />
+      {/* FAQ */}
+      <FAQSection />
+
+      {/* Native app — Coming soon with store badges */}
+      <section className="relative py-16 px-4 border-t border-slate-600/30 bg-[#0f172a]">
+        <div className="max-w-2xl mx-auto text-center">
+          <p className="text-cyber-amber font-semibold text-sm uppercase tracking-wider mb-3">Coming Soon</p>
+          <h2 className="text-2xl sm:text-3xl font-bold text-white mb-2">The VantagFleet Driver App</h2>
+          <p className="text-slate-400 text-lg mb-6">
+            Native App Store apps coming later. Get notified when they launch.
+          </p>
+          <div className="flex flex-wrap items-center justify-center gap-6 mb-6">
+            <a
+              href="#"
+              onClick={(e) => e.preventDefault()}
+              className="opacity-50 grayscale pointer-events-none inline-block"
+              aria-label="Download on the App Store (coming soon)"
+            >
+              <img
+                src="https://tools.applemediaservices.com/api/badges/download-on-the-app-store/black/en-us?size=250x83"
+                alt="Download on the App Store"
+                className="h-10 w-auto object-contain"
+              />
+            </a>
+            <a
+              href="#"
+              onClick={(e) => e.preventDefault()}
+              className="opacity-50 grayscale pointer-events-none inline-block"
+              aria-label="Get it on Google Play (coming soon)"
+            >
+              <img
+                src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png"
+                alt="Get it on Google Play"
+                className="h-12 w-auto object-contain"
+              />
+            </a>
+          </div>
+          <button
+            type="button"
+            onClick={() => setDriverAppNotifyOpen(true)}
+            className="text-cyber-amber text-sm font-semibold hover:underline"
+          >
+            Notify me when the Driver App launches
+          </button>
+        </div>
+      </section>
+
+      <CTASection isAuthenticated={isAuthenticated} navbarRole={navbarRole} />
 
       {/* Founder story video modal */}
       <AnimatePresence>
@@ -1675,7 +1506,7 @@ function FeaturesSection() {
   ];
 
   return (
-    <section className="relative py-24 px-4 bg-midnight-ink">
+    <section className="relative py-24 px-4 bg-midnight-ink border-t border-slate-600/30">
       <motion.div
         className="max-w-6xl mx-auto"
         initial={{ opacity: 0, y: 20 }}
@@ -1683,13 +1514,10 @@ function FeaturesSection() {
         viewport={{ once: true, amount: 0.2 }}
         transition={{ duration: 0.8 }}
       >
-        <h2 className="text-3xl sm:text-4xl font-bold text-soft-cloud text-center mb-2">
+        <h2 className="text-3xl sm:text-4xl font-bold text-white text-center mb-2 tracking-tight">
           Our Features
         </h2>
-        <p className="text-soft-cloud/70 text-center max-w-2xl mx-auto mb-4 text-lg">
-          Built for fleets that move
-        </p>
-        <p className="text-soft-cloud/70 text-center max-w-2xl mx-auto mb-16">
+        <p className="text-slate-400 text-center max-w-2xl mx-auto mb-16 font-medium">
           Alerts, scores, and docs in one dashboard. No spreadsheets.
         </p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -1700,11 +1528,11 @@ function FeaturesSection() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, amount: 0.2 }}
               transition={{ duration: 0.8, delay: i * 0.1 }}
-              className={`p-6 ${glassCardClass} bg-white/5`}
+              className="p-6 rounded-2xl border border-slate-600/50 bg-slate-800/40"
             >
-              <item.icon className="size-10 text-cyber-amber mb-4" />
-              <h3 className="text-xl font-semibold text-soft-cloud mb-2">{item.title}</h3>
-              <p className="text-soft-cloud/70">{item.description}</p>
+              <item.icon className="size-10 text-cyber-amber mb-4" strokeWidth={2} />
+              <h3 className="text-xl font-bold text-white mb-2">{item.title}</h3>
+              <p className="text-slate-400 font-medium">{item.description}</p>
             </motion.div>
           ))}
         </div>
@@ -1713,17 +1541,92 @@ function FeaturesSection() {
   );
 }
 
+const FAQ_ITEMS: { q: string; a: string }[] = [
+  {
+    q: 'What is IFTA?',
+    a: 'IFTA (International Fuel Tax Agreement) lets you file one fuel tax report for all member jurisdictions. VantagFleet pulls mileage and fuel data from your ELD so you can generate IFTA-ready reports and stay compliant across states.',
+  },
+  {
+    q: 'How does the audit export work?',
+    a: 'From your dashboard you can export a full audit package: logs, inspections, documents, and compliance status. One click gives you a downloadable bundle to hand to auditors or keep on file.',
+  },
+  {
+    q: 'Do you integrate with my ELD?',
+    a: 'We integrate with Motive, Motus, Geotab, and Samsara (coming soon). If you use one of these, connect it in Settings to sync logs and mileage. More integrations are on the roadmap.',
+  },
+];
+
+function FAQSection() {
+  const [openIndex, setOpenIndex] = useState<number | null>(0);
+  return (
+    <section className="relative py-24 px-4 bg-[#0f172a] border-t border-slate-600/30">
+      <div className="max-w-2xl mx-auto">
+        <motion.h2
+          initial={{ opacity: 0, y: 12 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="text-3xl font-bold text-white text-center mb-2 tracking-tight"
+        >
+          Frequently Asked Questions
+        </motion.h2>
+        <motion.p
+          initial={{ opacity: 0, y: 8 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="text-slate-400 text-center mb-12 font-medium"
+        >
+          Quick answers about compliance and the platform.
+        </motion.p>
+        <div className="space-y-2">
+          {FAQ_ITEMS.map((item, i) => (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, y: 8 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="rounded-xl border border-slate-600/50 bg-slate-800/40 overflow-hidden"
+            >
+              <button
+                type="button"
+                onClick={() => setOpenIndex(openIndex === i ? null : i)}
+                className="w-full flex items-center justify-between gap-4 px-5 py-4 text-left text-white font-semibold hover:bg-slate-700/30 transition-colors"
+              >
+                {item.q}
+                <ChevronDown
+                  className={`size-5 shrink-0 text-slate-400 transition-transform ${openIndex === i ? 'rotate-180' : ''}`}
+                />
+              </button>
+              <AnimatePresence initial={false}>
+                {openIndex === i && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.25 }}
+                    className="overflow-hidden"
+                  >
+                    <p className="px-5 pb-4 pt-0 text-slate-400 font-medium">{item.a}</p>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function CTASection({
   isAuthenticated,
   navbarRole,
-  betaOpen,
 }: {
   isAuthenticated: boolean;
   navbarRole?: NavbarRole | null;
-  betaOpen: boolean;
+  betaOpen?: boolean;
 }) {
   return (
-    <section id="contact" className="relative py-16 sm:py-24 md:py-28 px-4 sm:px-6 bg-midnight-ink border-t border-white/10 scroll-mt-24">
+    <section id="contact" className="relative py-20 sm:py-28 md:py-32 px-4 sm:px-6 bg-[#0f172a] border-t border-slate-600/30 scroll-mt-24">
       <motion.div
         className="max-w-4xl mx-auto text-center"
         initial={{ opacity: 0, y: 20 }}
@@ -1731,37 +1634,41 @@ function CTASection({
         viewport={{ once: true, amount: 0.2 }}
         transition={{ duration: 0.8 }}
       >
-        <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-soft-cloud mb-4">
+        <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-4 tracking-tight">
           Compliance Made Simple
         </h2>
-        <p className="text-soft-cloud/80 text-lg mb-12">
-          Join fleets that stay DOT-ready with VantagFleet.
+        <p className="text-slate-400 text-lg mb-12 font-medium">
+          Enterprise grade. Join fleets that stay DOT-ready with VantagFleet.
         </p>
         <motion.div
-          animate={{ scale: [1, 1.02, 1] }}
-          transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+          className="flex flex-wrap items-center justify-center gap-4"
+          animate={{ scale: [1, 1.01, 1] }}
+          transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
         >
           <Link
-            href={
-              isAuthenticated
-                ? navbarRole === 'ADMIN' || navbarRole === 'EMPLOYEE'
-                  ? '/admin'
-                  : '/dashboard'
-                : betaOpen
-                  ? '/signup'
-                  : '/pricing'
-            }
-            className="inline-flex items-center justify-center gap-3 min-h-[48px] sm:min-h-[56px] px-6 sm:px-12 py-4 sm:py-5 rounded-2xl bg-cyber-amber text-midnight-ink font-bold text-lg sm:text-xl hover:bg-cyber-amber/90 active:scale-[0.98] transition-all shadow-[0_0_60px_-8px_rgba(255,176,0,0.5)] touch-manipulation"
+            href={isAuthenticated ? (navbarRole === 'ADMIN' || navbarRole === 'EMPLOYEE' ? '/admin' : '/dashboard') : '/signup'}
+            className="inline-flex items-center justify-center gap-3 min-h-[52px] sm:min-h-[56px] px-8 sm:px-12 py-4 sm:py-5 rounded-2xl bg-cyber-amber text-midnight-ink font-bold text-lg sm:text-xl hover:bg-cyber-amber/90 active:scale-[0.98] transition-all shadow-[0_0_40px_-8px_rgba(255,176,0,0.5)] touch-manipulation border border-cyber-amber/30"
           >
-            {isAuthenticated
-              ? navbarRole === 'ADMIN' || navbarRole === 'EMPLOYEE'
-                ? 'Admin Console'
-                : 'Go to Dashboard'
-              : betaOpen
-                ? 'Claim Free Beta Spot'
-                : 'Start Your Fleet'}
+            {isAuthenticated ? (navbarRole === 'ADMIN' || navbarRole === 'EMPLOYEE' ? 'Admin Console' : 'Go to Dashboard') : 'Get Started'}
             <ArrowRight className="size-6" />
           </Link>
+          {!isAuthenticated && (
+            <>
+              <a
+                href="mailto:info@vantagfleet.com"
+                className="inline-flex items-center justify-center min-h-[52px] px-8 py-4 rounded-2xl border-2 border-slate-500/50 text-white font-bold text-lg hover:border-cyber-amber/50 hover:text-cyber-amber transition-colors no-underline"
+              >
+                Contact Sales
+              </a>
+              <Link
+                href="/download"
+                className="inline-flex items-center justify-center gap-2 min-h-[52px] px-8 py-4 rounded-2xl border-2 border-cyber-amber/50 bg-cyber-amber/10 text-cyber-amber font-bold text-lg hover:bg-cyber-amber/20 hover:border-cyber-amber transition-colors"
+              >
+                <Monitor className="size-5 shrink-0" aria-hidden />
+                Download Desktop App
+              </Link>
+            </>
+          )}
         </motion.div>
       </motion.div>
     </section>

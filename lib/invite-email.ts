@@ -29,6 +29,42 @@ export function getDispatcherInviteEmail(loginLink: string, companyName: string)
   return { subject, text, html };
 }
 
+/** Dispatcher invite with set-password link. Subject: 🛡️ Access Granted: [Carrier Name] Command Center. */
+export function getDispatcherSetPasswordInviteEmail(
+  setPasswordLink: string,
+  companyName: string,
+  name: string
+): { subject: string; text: string; html: string } {
+  const subject = `🛡️ Access Granted: ${companyName} Command Center`;
+  const greeting = name ? `Hi ${name},` : 'Hi,';
+  const text = [
+    greeting,
+    '',
+    `you have been added as a Dispatcher for ${companyName} on VantagFleet.`,
+    '',
+    'Your account is ready. Click the link below to set your password and access the Live Fleet Map and Roadside Incident Dashboard.',
+    '',
+    setPasswordLink,
+    '',
+    'Welcome to the team.',
+    '',
+    '— VantagFleet',
+  ].join('\n');
+
+  const body = `
+          <p style="margin:0 0 8px;font-size:12px;text-transform:uppercase;letter-spacing:0.1em;color:${EMAIL_AMBER};">VantagFleet</p>
+          <h1 style="margin:0 0 16px;font-size:22px;font-weight:700;color:${EMAIL_AMBER};">Access Granted: Command Center</h1>
+          <p style="margin:0 0 12px;font-size:16px;line-height:1.6;color:${EMAIL_TEXT};">${escapeHtml(greeting)}</p>
+          <p style="margin:0 0 16px;font-size:16px;line-height:1.6;color:${EMAIL_TEXT};">You have been added as a Dispatcher for <strong>${escapeHtml(companyName)}</strong> on VantagFleet.</p>
+          <p style="margin:0 0 16px;font-size:16px;line-height:1.6;color:${EMAIL_TEXT};">Your account is ready. Click the link below to set your password and access the Live Fleet Map and Roadside Incident Dashboard.</p>
+          <p style="margin:0 0 24px;text-align:center;"><a href="${escapeHtml(setPasswordLink)}" style="display:inline-block;padding:12px 24px;background-color:${EMAIL_AMBER};color:${EMAIL_BG};font-weight:600;text-decoration:none;border-radius:8px;">Set Password &amp; Login</a></p>
+          <p style="margin:0 0 8px;font-size:16px;color:${EMAIL_TEXT};">Welcome to the team.</p>
+          <p style="margin:0;font-size:14px;color:${EMAIL_MUTED};">— VantagFleet</p>`;
+  const html = emailWrapper(body);
+
+  return { subject, text, html };
+}
+
 export function getDriverInviteEmail(loginLink: string, companyName: string): { subject: string; text: string; html: string } {
   const subject = 'Your VantagFleet Driver Tools';
   const text = [
@@ -60,6 +96,43 @@ export function getDriverInviteEmail(loginLink: string, companyName: string): { 
           <p style="margin:0 0 8px;font-size:15px;color:${EMAIL_TEXT};"><strong>For iPhone:</strong> Tap the &quot;Share&quot; icon (square with arrow) at the bottom, scroll down, and tap &quot;Add to Home Screen&quot;.</p>
           <p style="margin:0 0 16px;font-size:15px;color:${EMAIL_TEXT};"><strong>For Android:</strong> Tap the three dots (top right) and tap &quot;Install App&quot; or &quot;Add to Home Screen&quot;.</p>
           <p style="margin:0 0 24px;font-size:16px;line-height:1.6;color:${EMAIL_TEXT};">Once added, you can open VantagFleet directly from your home screen like any other app!</p>
+          <p style="margin:0;font-size:14px;color:${EMAIL_MUTED};">— VantagFleet</p>`;
+  const html = emailWrapper(body);
+
+  return { subject, text, html };
+}
+
+/** Driver invite with set-password link. Subject: 🚛 Your VantagFleet Driver Tool-Kit. Includes PWA instructions. */
+export function getDriverSetPasswordInviteEmail(
+  setPasswordLink: string,
+  companyName: string,
+  name: string
+): { subject: string; text: string; html: string } {
+  const subject = '🚛 Your VantagFleet Driver Tool-Kit';
+  const greeting = name ? `Hi ${name},` : 'Hi,';
+  const text = [
+    greeting,
+    '',
+    `your fleet owner at ${companyName} has invited you to the VantagFleet mobile portal.`,
+    '',
+    'This tool allows you to show DOT logs instantly, report incidents, and find truck stops.',
+    '',
+    setPasswordLink,
+    '',
+    'Once you log in on your phone, remember to tap "Add to Home Screen" (Share icon on iPhone, 3-dots on Android) to install the VantagFleet app icon.',
+    '',
+    '— VantagFleet',
+  ].join('\n');
+
+  const body = `
+          <p style="margin:0 0 8px;font-size:12px;text-transform:uppercase;letter-spacing:0.1em;color:${EMAIL_AMBER};">VantagFleet</p>
+          <h1 style="margin:0 0 16px;font-size:22px;font-weight:700;color:${EMAIL_AMBER};">Your VantagFleet Driver Tool-Kit</h1>
+          <p style="margin:0 0 12px;font-size:16px;line-height:1.6;color:${EMAIL_TEXT};">${escapeHtml(greeting)}</p>
+          <p style="margin:0 0 16px;font-size:16px;line-height:1.6;color:${EMAIL_TEXT};">Your fleet owner at <strong>${escapeHtml(companyName)}</strong> has invited you to the VantagFleet mobile portal.</p>
+          <p style="margin:0 0 16px;font-size:16px;line-height:1.6;color:${EMAIL_TEXT};">This tool allows you to show DOT logs instantly, report incidents, and find truck stops.</p>
+          <p style="margin:0 0 24px;text-align:center;"><a href="${escapeHtml(setPasswordLink)}" style="display:inline-block;padding:12px 24px;background-color:${EMAIL_AMBER};color:${EMAIL_BG};font-weight:600;text-decoration:none;border-radius:8px;">Set Password &amp; Get Started</a></p>
+          <p style="margin:0 0 8px;font-size:14px;font-weight:600;color:${EMAIL_TEXT};">PWA: Add to Home Screen</p>
+          <p style="margin:0 0 16px;font-size:14px;line-height:1.5;color:${EMAIL_MUTED};">Once you log in on your phone, tap &quot;Add to Home Screen&quot; (Share icon on iPhone, 3-dots on Android) to install the VantagFleet app icon.</p>
           <p style="margin:0;font-size:14px;color:${EMAIL_MUTED};">— VantagFleet</p>`;
   const html = emailWrapper(body);
 

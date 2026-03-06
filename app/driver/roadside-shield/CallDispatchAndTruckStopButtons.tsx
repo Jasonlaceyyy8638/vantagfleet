@@ -1,11 +1,21 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 import { Phone, Fuel } from 'lucide-react';
 
-type Props = { dispatchPhone: string | null };
+type DispatcherInfo = {
+  fullName: string | null;
+  profileImageUrl: string | null;
+  status: string | null;
+};
 
-export function CallDispatchAndTruckStopButtons({ dispatchPhone }: Props) {
+type Props = {
+  dispatchPhone: string | null;
+  dispatcher?: DispatcherInfo | null;
+};
+
+export function CallDispatchAndTruckStopButtons({ dispatchPhone, dispatcher }: Props) {
   const [geoError, setGeoError] = useState<string | null>(null);
   const [geoLoading, setGeoLoading] = useState(false);
 
@@ -38,8 +48,28 @@ export function CallDispatchAndTruckStopButtons({ dispatchPhone }: Props) {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
       <div className="rounded-2xl border border-white/10 bg-[#1e293b] p-4 flex flex-col items-center justify-center text-center">
-        <Phone className="size-8 text-amber-400 mb-2" aria-hidden />
-        <h3 className="text-base font-semibold text-amber-400 mb-1">Call Dispatch</h3>
+        <div className="flex items-center gap-3 mb-2">
+          {dispatcher?.profileImageUrl ? (
+            <div className="relative w-10 h-10 rounded-full overflow-hidden border border-amber-500/30 shrink-0">
+              <Image
+                src={dispatcher.profileImageUrl}
+                alt={dispatcher.fullName ?? 'Dispatcher'}
+                fill
+                className="object-cover"
+                unoptimized
+              />
+            </div>
+          ) : null}
+          <div className="text-left">
+            <h3 className="text-base font-semibold text-amber-400">Call Dispatch</h3>
+            {dispatcher?.fullName && (
+              <p className="text-xs text-[#94a3b8]">{dispatcher.fullName}</p>
+            )}
+            {dispatcher?.status && (
+              <p className="text-xs text-emerald-400 mt-0.5">{dispatcher.status}</p>
+            )}
+          </div>
+        </div>
         {hasDispatchPhone && telHref ? (
           <a
             href={telHref}

@@ -6,7 +6,6 @@ import { useEffect, useState } from 'react';
 import { Logo } from '@/components/Logo';
 import { createClient } from '@/lib/supabase/client';
 import { LogOut } from 'lucide-react';
-import { EMAIL_SUPPORT, EMAIL_BILLING, EMAIL_INFO } from '@/lib/email-addresses';
 import { SystemStatusIndicator, type SystemStatus } from '@/components/SystemStatusIndicator';
 
 const ADMIN_OWNER_ID = 'ae175e55-72b4-4441-9e3c-02ecd8225bf7';
@@ -39,8 +38,11 @@ export function Navbar({
   signupHref = '/signup',
   signupLabel = 'Sign Up',
   topOffsetPx = 0,
-}: { isAuthenticated?: boolean; signupHref?: string; signupLabel?: string; topOffsetPx?: number }) {
+  showAnnouncementInBar = false,
+}: { isAuthenticated?: boolean; signupHref?: string; signupLabel?: string; topOffsetPx?: number; showAnnouncementInBar?: boolean }) {
   const pathname = usePathname();
+  const isLanding = pathname === '/';
+  const showInBar = showAnnouncementInBar || isLanding;
   const router = useRouter();
   const [auth, setAuth] = useState(initialAuth);
   const [role, setRole] = useState<NavRole>(null);
@@ -120,20 +122,7 @@ export function Navbar({
         paddingRight: 'max(0.75rem, env(safe-area-inset-right, 0px))',
       }}
     >
-      {/* Top bar: General, Support & Billing text links aligned right */}
-      <div className="flex items-center justify-end gap-4 py-1.5 px-0 text-xs text-soft-cloud/80">
-        <a href={`mailto:${EMAIL_INFO}`} className="hover:text-cyber-amber transition-colors whitespace-nowrap">
-          General
-        </a>
-        <a href={`mailto:${EMAIL_SUPPORT}`} className="hover:text-cyber-amber transition-colors whitespace-nowrap">
-          Support
-        </a>
-        <a href={`mailto:${EMAIL_BILLING}`} className="hover:text-cyber-amber transition-colors whitespace-nowrap">
-          Billing
-        </a>
-      </div>
-
-      {/* Main nav */}
+      {/* Main nav — clean single row, no email/contact strip */}
       <div className="flex items-center justify-between gap-2 pb-2 sm:pb-3 min-h-[3rem] sm:min-h-[3.5rem]">
         <Link
           href="/"
@@ -146,6 +135,12 @@ export function Navbar({
           </span>
         </Link>
 
+        {showInBar && (
+          <span className="hidden md:inline text-base lg:text-lg font-semibold text-slate-200 truncate max-w-[320px] lg:max-w-sm">
+            Enterprise Grade fleet compliance. Audit-ready, always.
+          </span>
+        )}
+
         <div
           className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0 min-w-0 justify-end flex-nowrap"
           style={{ pointerEvents: 'auto' }}
@@ -156,20 +151,20 @@ export function Navbar({
         {ready && !auth && (
           <>
             <SystemStatusIndicator status={systemStatus} lastSyncedAt={lastSyncedAt} />
+            {showInBar && (
+              <a
+                href="mailto:info@vantagfleet.com"
+                className="shrink-0 px-4 py-2 rounded-lg bg-cyber-amber text-midnight-ink font-bold text-sm hover:bg-cyber-amber/90 transition-colors no-underline hidden sm:inline-flex"
+              >
+                Contact Sales
+              </a>
+            )}
             <Link
               href="/login"
               className="glass-btn min-h-[44px] inline-flex items-center px-3 sm:px-4 py-2.5 rounded-lg font-medium text-sm sm:text-base text-soft-cloud hover:text-soft-cloud transition-colors touch-manipulation whitespace-nowrap"
             >
               Sign In
             </Link>
-            {!isTauri && (
-              <Link
-                href="/download"
-                className="hidden md:inline-flex items-center min-h-[44px] bg-amber-500 text-black px-4 py-2 rounded-md font-bold hover:bg-amber-600 transition-colors"
-              >
-                Download App
-              </Link>
-            )}
             <Link
               href={signupHref}
               className="glass-btn min-h-[44px] inline-flex items-center px-3 sm:px-5 py-2.5 rounded-lg font-bold text-sm sm:text-base text-soft-cloud border-cyber-amber/30 hover:border-cyber-amber/50 hover:shadow-[0_0_20px_-4px_rgba(255,176,0,0.25)] transition-all touch-manipulation whitespace-nowrap"
@@ -227,13 +222,13 @@ export function Navbar({
               </Link>
             )}
             <SystemStatusIndicator status={systemStatus} lastSyncedAt={lastSyncedAt} />
-            {!isTauri && (
-              <Link
-                href="/download"
-                className="hidden md:inline-flex bg-amber-500 text-black px-4 py-2 rounded-md font-bold hover:bg-amber-600 transition-colors"
+            {showInBar && (
+              <a
+                href="mailto:info@vantagfleet.com"
+                className="shrink-0 px-4 py-2 rounded-lg bg-cyber-amber text-midnight-ink font-bold text-sm hover:bg-cyber-amber/90 transition-colors no-underline hidden sm:inline-flex"
               >
-                Download App
-              </Link>
+                Contact Sales
+              </a>
             )}
             <button
               type="button"

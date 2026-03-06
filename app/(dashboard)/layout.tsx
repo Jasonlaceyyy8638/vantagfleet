@@ -52,6 +52,7 @@ export default async function DashboardLayout({
             showAdminGearInTauri={true}
             canSeeMap={true}
             isFounder={isFounderImpersonating}
+            fullName={null}
           />
           <main className="flex-1 min-h-0 overflow-auto overflow-x-hidden pt-14 md:pt-0">
             {children}
@@ -93,7 +94,7 @@ export default async function DashboardLayout({
       .order('name'),
     supabase
       .from('profiles')
-      .select('is_beta_tester, beta_expires_at, ifta_enabled, subscription_status, is_founder')
+      .select('is_beta_tester, beta_expires_at, ifta_enabled, subscription_status, is_founder, full_name')
       .eq('user_id', user.id)
       .eq('org_id', currentOrgId)
       .single(),
@@ -108,7 +109,8 @@ export default async function DashboardLayout({
   const currentProfile = (profiles ?? []).find((p) => p.org_id === currentOrgId);
   const isDriverOnly = currentProfile?.role === 'Driver';
   const isDispatcher = currentProfile?.role === 'Dispatcher' || currentProfile?.role === 'Driver_Manager';
-  const profileForAccess = profileRow as { is_beta_tester?: boolean; beta_expires_at?: string | null; ifta_enabled?: boolean; subscription_status?: string | null; is_founder?: boolean } | null;
+  const profileForAccess = profileRow as { is_beta_tester?: boolean; beta_expires_at?: string | null; ifta_enabled?: boolean; subscription_status?: string | null; is_founder?: boolean; full_name?: string | null } | null;
+  const fullName = profileForAccess?.full_name ?? null;
   const orgForAccess = orgRow as { subscription_status?: string | null; tier?: string | null } | null;
   const fullAccess = hasFullAccess(profileForAccess, orgForAccess);
   const showBetaRibbonFlag = showBetaRibbon(profileForAccess, orgForAccess);
@@ -132,6 +134,7 @@ export default async function DashboardLayout({
         showBetaRibbon={showBetaRibbonFlag}
         canSeeMap={mapAccess}
         isFounder={profileForAccess?.is_founder === true}
+        fullName={fullName}
       />
       <main className="flex-1 min-h-0 overflow-auto flex flex-col overflow-x-hidden pt-14 md:pt-0">
         <BetaCountdownBanner

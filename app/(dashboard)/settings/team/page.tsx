@@ -17,6 +17,7 @@ export type TeamMember = {
 export type PendingInvite = {
   id: string;
   email: string | null;
+  full_name: string | null;
   invite_role: string;
   created_at: string;
 };
@@ -64,13 +65,14 @@ export default async function TeamPage() {
 
   const { data: invites } = await admin
     .from('org_invites')
-    .select('id, email, invite_role, created_at')
+    .select('id, email, full_name, invite_role, created_at')
     .eq('org_id', orgId)
     .is('used_at', null)
     .order('created_at', { ascending: false });
   const pendingInvites: PendingInvite[] = (invites ?? []).map((i) => ({
     id: (i as { id: string }).id,
     email: (i as { email?: string | null }).email ?? null,
+    full_name: (i as { full_name?: string | null }).full_name ?? null,
     invite_role: (i as { invite_role: string }).invite_role,
     created_at: (i as { created_at: string }).created_at,
   }));

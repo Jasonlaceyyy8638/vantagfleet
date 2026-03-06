@@ -38,9 +38,16 @@ export default async function RoadsideShieldPage({
     );
   }
 
-  const [{ data: org }, { data: docs }, summary] = await Promise.all([
+  const [{ data: org }, { data: docs }, { data: dispatcherProfile }, summary] = await Promise.all([
     supabase.from('organizations').select('name, usdot_number, dispatch_phone').eq('id', orgId).single(),
     supabase.from('compliance_docs').select('id, doc_type, file_path').eq('org_id', orgId),
+    supabase
+      .from('profiles')
+      .select('full_name, profile_image_url, dispatcher_status')
+      .eq('org_id', orgId)
+      .in('role', ['Dispatcher', 'Driver_Manager'])
+      .limit(1)
+      .maybeSingle(),
     getRoadsideSummaryForOrg(orgId),
   ]);
 
@@ -63,6 +70,13 @@ export default async function RoadsideShieldPage({
   const carrierName = (org as { name?: string } | null)?.name ?? 'Carrier';
   const usdot = (org as { usdot_number?: string | null } | null)?.usdot_number ?? '—';
   const dispatchPhone = (org as { dispatch_phone?: string | null } | null)?.dispatch_phone ?? null;
+  const dispatcher = dispatcherProfile
+    ? {
+        fullName: (dispatcherProfile as { full_name?: string | null }).full_name ?? null,
+        profileImageUrl: (dispatcherProfile as { profile_image_url?: string | null }).profile_image_url ?? null,
+        status: (dispatcherProfile as { dispatcher_status?: string | null }).dispatcher_status ?? null,
+      }
+    : null;
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-[#e2e8f0]">
@@ -149,7 +163,7 @@ export default async function RoadsideShieldPage({
 
           {/* Call Dispatch & Find Truck Stop — side-by-side below DOT Inspection */}
           <div className="mt-6">
-            <CallDispatchAndTruckStopButtons dispatchPhone={dispatchPhone} />
+            <CallDispatchAndTruckStopButtons dispatchPhone={dispatchPhone} dispatcher={dispatcher} />
           </div>
         </section>
 

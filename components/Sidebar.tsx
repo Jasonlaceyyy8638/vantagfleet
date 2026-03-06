@@ -10,6 +10,7 @@ import {
   LayoutDashboard,
   Users,
   UserPlus,
+  User,
   Truck,
   FileCheck,
   Settings,
@@ -70,9 +71,13 @@ const dispatcherNav = [
 
 /** Drivers see only these; no Dispatch, no Trailers. */
 const driverNav = [
+  { href: '/profile', label: 'Profile', icon: User },
   { href: '/documents', label: 'My Uploads', icon: Upload },
   { href: '/driver/roadside-shield', label: 'Roadside', icon: Smartphone },
 ];
+
+/** Profile link for non-driver nav (dispatcher / full nav). */
+const profileNavItem = { href: '/profile', label: 'Profile', icon: User };
 
 export function Sidebar({
   organizations,
@@ -84,6 +89,7 @@ export function Sidebar({
   showBetaRibbon = false,
   canSeeMap = true,
   isFounder = false,
+  fullName = null,
 }: {
   organizations: Organization[];
   currentOrgId: string | null;
@@ -94,6 +100,7 @@ export function Sidebar({
   showBetaRibbon?: boolean;
   canSeeMap?: boolean;
   isFounder?: boolean;
+  fullName?: string | null;
 }) {
   const pathname = usePathname();
   const [isTauri, setIsTauri] = useState(false);
@@ -104,7 +111,7 @@ export function Sidebar({
 
   const closeMobile = () => setMobileOpen(false);
 
-  const navFiltered = isDispatcher ? dispatcherNav : nav;
+  const navFiltered = isDispatcher ? [profileNavItem, ...dispatcherNav] : [profileNavItem, ...nav];
   const showMapLock = !canSeeMap;
 
   useEffect(() => {
@@ -152,6 +159,9 @@ export function Sidebar({
           </span>
         </Link>
         <p className="text-xs text-soft-cloud/60 mt-0.5 ml-11">Compliance</p>
+        {fullName && (
+          <p className="text-sm text-soft-cloud/80 mt-2 ml-11">Welcome back, {fullName}</p>
+        )}
       </div>
       {!isDriverOnly && (
         <div className="p-3 border-b border-border">

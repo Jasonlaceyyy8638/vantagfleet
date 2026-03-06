@@ -50,7 +50,7 @@ export default async function DispatcherPage() {
   ] = await Promise.all([
     supabase
       .from('roadside_incident_reports')
-      .select('id, incident_type, notes, latitude, longitude, created_at')
+      .select('id, incident_type, notes, latitude, longitude, created_at, reported_by_user_id, driver_id')
       .eq('org_id', orgId)
       .gte('created_at', sinceIso)
       .order('created_at', { ascending: false }),
@@ -64,13 +64,66 @@ export default async function DispatcherPage() {
       .order('receipt_date', { ascending: false }),
   ]);
 
-  const initialIncidents = (incidentRows ?? []).map((r) => ({
-    id: (r as { id: string }).id,
-    incident_type: (r as { incident_type: string }).incident_type,
-    notes: (r as { notes?: string | null }).notes ?? null,
-    latitude: (r as { latitude?: number | null }).latitude ?? null,
-    longitude: (r as { longitude?: number | null }).longitude ?? null,
-    created_at: (r as { created_at: string }).created_at,
+  const reports = (incidentRows ?? []) as Array<{
+    id: string;
+    incident_type: string;
+    notes: string | null;
+    latitude: number | null;
+    longitude: number | null;
+    created_at: string;
+    reported_by_user_id: string;
+    driver_id: string | null;
+  }>;
+
+  const userIds = [...new Set(reports.map((r) => r.reported_by_user_id))];
+  const driverIds = [...new Set(reports.map((r) => r.driver_id).filter(Boolean))] as string[];
+
+  let profileByUser: Record<string, { profile_image_url: string | null }> = {};
+  if (userIds.length > 0) {
+    const { data: profilesForIncidents } = await supabase
+      .from('profiles')
+      .select('user_id, profile_image_url')
+      .eq('org_id', orgId)
+      .in('user_id', userIds);
+    for (const p of profilesForIncidents ?? []) {
+      const row = p as { user_id: string; profile_image_url: string | null };
+      profileByUser[row.user_id] = { profile_image_url: row.profile_image_url };
+    }
+  }
+
+  let truckByDriver: Record<string, string | null> = {};
+  if (driverIds.length > 0) {
+    const { data: drivers } = await supabase
+      .from('drivers')
+      .select('id, assigned_vehicle_id')
+      .in('id', driverIds);
+    const vehicleIds = [...new Set((drivers ?? []).map((d) => (d as { assigned_vehicle_id: string | null }).assigned_vehicle_id).filter(Boolean))] as string[];
+    let vehicleUnit: Record<string, string | null> = {};
+    if (vehicleIds.length > 0) {
+      const { data: vehicles } = await supabase
+        .from('vehicles')
+        .select('id, unit_number')
+        .in('id', vehicleIds);
+      for (const v of vehicles ?? []) {
+        const row = v as { id: string; unit_number: string | null };
+        vehicleUnit[row.id] = row.unit_number;
+      }
+    }
+    for (const d of drivers ?? []) {
+      const row = d as { id: string; assigned_vehicle_id: string | null };
+      truckByDriver[row.id] = row.assigned_vehicle_id ? vehicleUnit[row.assigned_vehicle_id] ?? null : null;
+    }
+  }
+
+  const initialIncidents = reports.map((r) => ({
+    id: r.id,
+    incident_type: r.incident_type,
+    notes: r.notes,
+    latitude: r.latitude,
+    longitude: r.longitude,
+    created_at: r.created_at,
+    driver_profile_image_url: profileByUser[r.reported_by_user_id]?.profile_image_url ?? null,
+    driver_truck_number: r.driver_id ? truckByDriver[r.driver_id] ?? null : null,
   }));
 
   const pendingIfta = (receiptRows ?? []).map((r) => ({

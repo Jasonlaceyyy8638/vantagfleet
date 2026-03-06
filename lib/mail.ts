@@ -9,6 +9,8 @@ export function isMailConfigured(): boolean {
 export type SendEmailOptions = {
   to: string;
   from?: string;
+  /** Reply-To header (e.g. support@vantagfleet.com). */
+  replyTo?: string;
   /** Department type for default "from" when `from` is not set. */
   department?: EmailDepartment;
   subject: string;
@@ -35,13 +37,15 @@ export async function sendEmail(options: SendEmailOptions): Promise<{ ok: true }
   sgMail.setApiKey(key);
 
   try {
-    await sgMail.send({
+    const msg: Parameters<typeof sgMail.send>[0] = {
       to: options.to,
       from,
       subject: options.subject,
       text: options.text,
       html: options.html ?? options.text.replace(/\n/g, '<br>'),
-    });
+    };
+    if (options.replyTo) msg.replyTo = options.replyTo;
+    await sgMail.send(msg);
     return { ok: true };
   } catch (err) {
     const message = err instanceof Error ? err.message : 'SendGrid send failed';

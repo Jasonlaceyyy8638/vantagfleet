@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Mail } from 'lucide-react';
+import { Mail, Monitor } from 'lucide-react';
 import { EMAIL_SUPPORT, EMAIL_INFO, EMAIL_BILLING } from '@/lib/email-addresses';
 
 export function Footer() {
@@ -22,6 +22,25 @@ export function Footer() {
               className="text-soft-cloud/80 hover:text-cyber-amber transition-colors py-2 min-h-[44px] inline-flex items-center"
             >
               Terms of Service
+            </Link>
+            <Link
+              href="/#pricing"
+              className="text-soft-cloud/80 hover:text-cyber-amber transition-colors py-2 min-h-[44px] inline-flex items-center"
+            >
+              Pricing
+            </Link>
+            <Link
+              href="/#integrations"
+              className="text-soft-cloud/80 hover:text-cyber-amber transition-colors py-2 min-h-[44px] inline-flex items-center"
+            >
+              Integrations
+            </Link>
+            <Link
+              href="/download"
+              className="inline-flex items-center gap-2 text-soft-cloud/80 hover:text-cyber-amber transition-colors py-2 min-h-[44px]"
+            >
+              <Monitor className="size-4" aria-hidden />
+              Download Desktop App
             </Link>
           </nav>
           <div className="order-3 flex flex-wrap items-center justify-center gap-4">
