@@ -1,19 +1,21 @@
 'use client';
 
-import { useState } from 'react';
-import { createInviteLink, updateMemberRole } from '@/app/actions/org';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { updateMemberRole, addOrgMemberByEmail } from '@/app/actions/org';
 import type { TeamMember, PendingInvite } from './page';
 
 const ROLE_OPTIONS = [
-  { value: 'Owner', label: 'Admin' },
+  { value: 'Owner', label: 'Owner' },
+  { value: 'Admin', label: 'Terminal Manager' },
   { value: 'Safety_Manager', label: 'Safety Manager' },
   { value: 'Driver_Manager', label: 'Driver Manager' },
   { value: 'Dispatcher', label: 'Dispatcher' },
   { value: 'Driver', label: 'Driver' },
 ] as const;
 
-type RoleValue = 'Owner' | 'Safety_Manager' | 'Driver_Manager' | 'Dispatcher' | 'Driver';
-type InviteRole = 'Driver' | 'Dispatcher' | 'Safety_Manager' | 'Driver_Manager';
+type RoleValue = 'Owner' | 'Admin' | 'Safety_Manager' | 'Driver_Manager' | 'Dispatcher' | 'Driver';
+type AddRole = 'Admin' | 'Safety_Manager' | 'Driver_Manager' | 'Dispatcher' | 'Driver';
 
 type Props = {
   orgId: string;
@@ -23,39 +25,42 @@ type Props = {
 };
 
 export function TeamManagementClient({ orgId, members, pendingInvites, currentUserId }: Props) {
-  const [email, setEmail] = useState('');
-  const [inviteRole, setInviteRole] = useState<InviteRole>('Driver');
-  const [inviteLoading, setInviteLoading] = useState(false);
-  const [inviteError, setInviteError] = useState('');
-  const [inviteLink, setInviteLink] = useState<string | null>(null);
+  const router = useRouter();
+  const [addEmail, setAddEmail] = useState('');
+  const [addName, setAddName] = useState('');
+  const [addPhone, setAddPhone] = useState('');
+  const [addRole, setAddRole] = useState<AddRole>('Driver');
+  const [addLoading, setAddLoading] = useState(false);
+  const [addError, setAddError] = useState('');
+  const [addWarning, setAddWarning] = useState('');
+  const [addSuccess, setAddSuccess] = useState(false);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [memberList, setMemberList] = useState(members);
-  const [pendingList, setPendingList] = useState(pendingInvites);
+  useEffect(() => { setMemberList(members); }, [members]);
 
-  const handleInvite = async (e: React.FormEvent) => {
+  const handleAddByEmail = async (e: React.FormEvent) => {
     e.preventDefault();
-    const trimmed = email.trim();
+    const trimmed = addEmail.trim();
     if (!trimmed) return;
-    setInviteLoading(true);
-    setInviteError('');
-    setInviteLink(null);
-    const { link, error } = await createInviteLink(orgId, inviteRole, trimmed);
-    setInviteLoading(false);
-    if (error) {
-      setInviteError(error);
+    if (!addName.trim()) { setAddError('Full name is required.'); return; }
+    if (!addPhone.trim()) { setAddError('Phone number is required.'); return; }
+    setAddLoading(true);
+    setAddError('');
+    setAddWarning('');
+    setAddSuccess(false);
+    const result = await addOrgMemberByEmail(orgId, trimmed, addRole, addName.trim(), addPhone.trim());
+    setAddLoading(false);
+    if ('error' in result) {
+      setAddError(result.error);
       return;
     }
-    setInviteLink(link ?? null);
-    setPendingList((prev) => [
-      ...prev,
-      {
-        id: crypto.randomUUID(),
-        email: trimmed,
-        invite_role: inviteRole,
-        created_at: new Date().toISOString(),
-      },
-    ]);
-    setEmail('');
+    setAddSuccess(true);
+    setAddWarning(result.warning ?? '');
+    setAddEmail('');
+    setAddName('');
+    setAddPhone('');
+    setAddRole('Driver');
+    router.refresh();
   };
 
   const handleRoleChange = async (profileId: string, newRole: RoleValue) => {
@@ -74,44 +79,73 @@ export function TeamManagementClient({ orgId, members, pendingInvites, currentUs
   return (
     <div className="space-y-8">
       <section className="rounded-xl border border-white/10 bg-card p-6">
-        <h2 className="text-lg font-semibold text-soft-cloud mb-4">Invite by email</h2>
-        <form onSubmit={handleInvite} className="flex flex-wrap items-end gap-3">
-          <div className="flex-1 min-w-[200px]">
-            <label className="block text-sm font-medium text-soft-cloud/80 mb-1">Email</label>
+        <h2 className="text-lg font-semibold text-soft-cloud mb-2">Add team member by email</h2>
+        <p className="text-sm text-soft-cloud/60 mb-4">Creates an account if needed and sends a welcome email with logo and temporary password. They can sign in and change their password in Settings.</p>
+        <form onSubmit={handleAddByEmail} className="flex flex-wrap items-end gap-3">
+          <div className="min-w-[200px]">
+            <label className="block text-sm font-medium text-soft-cloud/80 mb-1">Email *</label>
             <input
               type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              value={addEmail}
+              onChange={(e) => setAddEmail(e.target.value)}
               placeholder="user@example.com"
+              required
+              className="w-full px-3 py-2 rounded-lg bg-deep-ink border border-white/10 text-soft-cloud placeholder-soft-cloud/40"
+            />
+          </div>
+          <div className="min-w-[140px]">
+            <label className="block text-sm font-medium text-soft-cloud/80 mb-1">Name *</label>
+            <input
+              type="text"
+              value={addName}
+              onChange={(e) => setAddName(e.target.value)}
+              placeholder="Full name"
+              required
+              className="w-full px-3 py-2 rounded-lg bg-deep-ink border border-white/10 text-soft-cloud placeholder-soft-cloud/40"
+            />
+          </div>
+          <div className="min-w-[160px]">
+            <label className="block text-sm font-medium text-soft-cloud/80 mb-1">Phone *</label>
+            <input
+              type="tel"
+              value={addPhone}
+              onChange={(e) => setAddPhone(e.target.value)}
+              placeholder="e.g. +1 555-123-4567"
+              required
               className="w-full px-3 py-2 rounded-lg bg-deep-ink border border-white/10 text-soft-cloud placeholder-soft-cloud/40"
             />
           </div>
           <div className="w-40">
             <label className="block text-sm font-medium text-soft-cloud/80 mb-1">Role</label>
             <select
-              value={inviteRole}
-              onChange={(e) => setInviteRole(e.target.value as InviteRole)}
+              value={addRole}
+              onChange={(e) => setAddRole(e.target.value as AddRole)}
               className="w-full px-3 py-2 rounded-lg bg-deep-ink border border-white/10 text-soft-cloud"
             >
-              <option value="Driver">Driver</option>
-              <option value="Dispatcher">Dispatcher</option>
+              <option value="Admin">Terminal Manager</option>
               <option value="Safety_Manager">Safety Manager</option>
               <option value="Driver_Manager">Driver Manager</option>
+              <option value="Dispatcher">Dispatcher</option>
+              <option value="Driver">Driver</option>
             </select>
           </div>
           <button
             type="submit"
-            disabled={inviteLoading}
+            disabled={addLoading}
             className="px-4 py-2 rounded-lg bg-cyber-amber text-midnight-ink font-semibold hover:bg-cyber-amber/90 disabled:opacity-50"
           >
-            {inviteLoading ? 'Creating…' : 'Send invite'}
+            {addLoading ? 'Adding…' : 'Add & send welcome email'}
           </button>
         </form>
-        {inviteError && <p className="mt-2 text-sm text-red-400">{inviteError}</p>}
-        {inviteLink && (
-          <div className="mt-4 p-3 rounded-lg bg-white/5 border border-white/10">
-            <p className="text-xs text-soft-cloud/70 mb-2">Invite link (share securely):</p>
-            <code className="text-xs text-cyber-amber break-all">{inviteLink}</code>
+        {addError && <p className="mt-2 text-sm text-red-400">{addError}</p>}
+        {addSuccess && (
+          <div className="mt-2 space-y-1">
+            <p className="text-sm text-green-400">Team member added.</p>
+            {addWarning ? (
+              <p className="text-sm text-amber-400">{addWarning}</p>
+            ) : (
+              <p className="text-sm text-soft-cloud/70">Welcome or notification email was sent.</p>
+            )}
           </div>
         )}
       </section>
@@ -122,18 +156,19 @@ export function TeamManagementClient({ orgId, members, pendingInvites, currentUs
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-white/10 text-left text-soft-cloud/70">
-                <th className="pb-2 pr-4">Name / Email</th>
+                <th className="pb-2 pr-4">Name</th>
+                <th className="pb-2 pr-4">Email / Phone</th>
                 <th className="pb-2 pr-4">Role</th>
               </tr>
             </thead>
             <tbody>
               {memberList.map((m) => (
                 <tr key={m.id} className="border-b border-white/5">
+                  <td className="py-3 pr-4 text-soft-cloud">{m.full_name ?? '—'}</td>
                   <td className="py-3 pr-4">
-                    <span className="text-soft-cloud">{m.full_name || m.email || '—'}</span>
-                    {m.email && m.full_name && (
-                      <span className="text-soft-cloud/50 text-xs block">{m.email}</span>
-                    )}
+                    {m.email && <span className="text-soft-cloud block">{m.email}</span>}
+                    {m.phone && <span className="text-soft-cloud/70 text-xs block">{m.phone}</span>}
+                    {!m.email && !m.phone && '—'}
                   </td>
                   <td className="py-3">
                     <select
@@ -155,20 +190,6 @@ export function TeamManagementClient({ orgId, members, pendingInvites, currentUs
           </table>
         </div>
       </section>
-
-      {pendingList.length > 0 && (
-        <section className="rounded-xl border border-white/10 bg-card p-6">
-          <h2 className="text-lg font-semibold text-soft-cloud mb-4">Pending invites</h2>
-          <ul className="space-y-2 text-sm text-soft-cloud/90">
-            {pendingList.map((i) => (
-              <li key={i.id} className="flex items-center justify-between">
-                <span>{i.email ?? '—'}</span>
-                <span className="text-soft-cloud/60">{roleLabel(i.invite_role)}</span>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
     </div>
   );
 }

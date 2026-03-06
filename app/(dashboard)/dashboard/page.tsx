@@ -38,7 +38,7 @@ export default async function DashboardPage() {
   const orgId = await getDashboardOrgId(supabase, cookieStore);
   if (!orgId) {
     return (
-      <div className="p-8">
+      <div className="p-4 sm:p-8">
         <p className="text-cloud-dancer/70">No organization selected.</p>
       </div>
     );
@@ -180,7 +180,7 @@ export default async function DashboardPage() {
   const betaDaysRemaining = getBetaDaysRemaining(profileData);
 
   return (
-    <div className="p-6 md:p-8 max-w-6xl">
+    <div className="p-4 sm:p-6 md:p-8 max-w-6xl w-full overflow-x-hidden">
       <Suspense fallback={null}>
         <DashboardWelcomeBanner />
       </Suspense>

@@ -10,7 +10,7 @@ import {
   getCompliancePowerupWaitlistCounts,
 } from '@/app/actions/admin';
 import { getStripeStats } from '@/app/actions/stripe-stats';
-import { listStaff } from '@/app/actions/admin-team';
+import { listVantagStaff } from '@/app/actions/admin-team';
 import { AdminPageClient } from './AdminPageClient';
 import { ShieldCheck } from 'lucide-react';
 
@@ -28,7 +28,7 @@ export default async function AdminPage() {
   let stats = emptyStats;
   let carriers: Awaited<ReturnType<typeof getCarriersWithSubscription>> = [];
   let carrierIntegrations: Awaited<ReturnType<typeof listCarriersWithIntegrations>> = [];
-  let staff: Awaited<ReturnType<typeof listStaff>> = [];
+  let staff: Awaited<ReturnType<typeof listVantagStaff>> = [];
   let stripeStats = emptyStripeStats;
   let powerupWaitlist = { mcs150: 0, boc3: 0 };
   let loadError: string | null = null;
@@ -40,7 +40,7 @@ export default async function AdminPage() {
       getAdminStats(),
       getCarriersWithSubscription(),
       listCarriersWithIntegrations(),
-      listStaff(),
+      listVantagStaff(),
       getStripeStats(),
       getCompliancePowerupWaitlistCounts(),
     ]);

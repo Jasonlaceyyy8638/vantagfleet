@@ -9,9 +9,9 @@ import {
   listOrganizationsForAdmin,
 } from '@/app/actions/admin';
 import type { ProfileRow, AdminStats, CarrierRow, CarrierIntegrationsRow } from '@/lib/admin-types';
-import { addEmployeeByEmail, listStaff, type StaffRow } from '@/app/actions/admin-team';
+import { listVantagStaff, updateVantagStaffRole, removeVantagStaffMember, type VantagStaffRow, type VantagStaffRole } from '@/app/actions/admin-team';
 import type { StripeStats } from '@/app/actions/stripe-stats';
-import { Building2, Loader2, UserPlus, Users, DollarSign, Truck, UserCheck, CreditCard, TrendingUp, Plug, Gift, ChevronDown, FileText, Scale } from 'lucide-react';
+import { Building2, Loader2, UserPlus, Users, DollarSign, Truck, UserCheck, CreditCard, TrendingUp, Plug, Gift, ChevronDown, FileText, Scale, Trash2 } from 'lucide-react';
 
 type OrgOption = { id: string; name: string };
 
@@ -41,7 +41,7 @@ export function AdminPageClient({
   initialStripeStats: StripeStats;
   initialCarriers: CarrierRow[];
   initialCarrierIntegrations?: CarrierIntegrationsRow[];
-  initialStaff: StaffRow[];
+  initialStaff: VantagStaffRow[];
   powerupWaitlistCounts?: { mcs150: number; boc3: number };
   loadError?: string | null;
   /** Admin and Support can view carrier dashboard as that carrier; Billing cannot. */
@@ -49,11 +49,10 @@ export function AdminPageClient({
 }) {
   const [profiles, setProfiles] = useState<ProfileRow[]>(initialProfiles);
   const [orgs, setOrgs] = useState<OrgOption[]>(initialOrgs);
-  const [staff, setStaff] = useState<StaffRow[]>(initialStaff);
-  const [employeeEmail, setEmployeeEmail] = useState('');
-  const [employeeLoading, setEmployeeLoading] = useState(false);
-  const [employeeError, setEmployeeError] = useState<string | null>(null);
-  const [employeeSuccess, setEmployeeSuccess] = useState(false);
+  const [staff, setStaff] = useState<VantagStaffRow[]>(initialStaff);
+  const [staffRoleEdits, setStaffRoleEdits] = useState<Record<string, VantagStaffRole>>({});
+  const [staffSavingId, setStaffSavingId] = useState<string | null>(null);
+  const [staffMessage, setStaffMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [orgName, setOrgName] = useState('');
   const [dotNumber, setDotNumber] = useState('');
   const [orgLoading, setOrgLoading] = useState(false);
@@ -141,23 +140,30 @@ export function AdminPageClient({
     setAssignError(null);
   };
 
-  const handleAddEmployee = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setEmployeeError(null);
-    setEmployeeSuccess(false);
-    setEmployeeLoading(true);
-    try {
-      const result = await addEmployeeByEmail(employeeEmail.trim(), 'EMPLOYEE');
-      if ('error' in result) {
-        setEmployeeError(result.error);
-        return;
-      }
-      setEmployeeSuccess(true);
-      setEmployeeEmail('');
-      const next = await listStaff();
-      setStaff(next);
-    } finally {
-      setEmployeeLoading(false);
+  const handleStaffRoleSave = async (userId: string, newRole: VantagStaffRole) => {
+    setStaffMessage(null);
+    setStaffSavingId(userId);
+    const result = await updateVantagStaffRole(userId, newRole);
+    setStaffSavingId(null);
+    if ('ok' in result) {
+      setStaff((prev) => prev.map((s) => (s.user_id === userId ? { ...s, role: newRole } : s)));
+      setStaffRoleEdits((prev) => {
+        const next = { ...prev };
+        delete next[userId];
+        return next;
+      });
+      setStaffMessage({ type: 'success', text: 'Role updated.' });
+    } else setStaffMessage({ type: 'error', text: result.error });
+  };
+
+  const handleStaffRemove = async (userId: string) => {
+    if (!confirm('Remove this person from VantagFleet staff? They will lose access to the admin area.')) return;
+    setStaffMessage(null);
+    const result = await removeVantagStaffMember(userId);
+    if (result.error) setStaffMessage({ type: 'error', text: result.error });
+    else {
+      setStaff((prev) => prev.filter((s) => s.user_id !== userId));
+      setStaffMessage({ type: 'success', text: 'Removed from team.' });
     }
   };
 
@@ -264,41 +270,49 @@ export function AdminPageClient({
           </div>
           <div>
             <h2 className="font-semibold text-soft-cloud">VantagFleet Staff</h2>
-            <p className="text-sm text-soft-cloud/60">Add employees by email; they get EMPLOYEE role in platform_roles.</p>
+            <p className="text-sm text-soft-cloud/60">View and manage roles. Add new team members on the Team page.</p>
           </div>
         </div>
         <div className="p-6 space-y-4">
-          <form onSubmit={handleAddEmployee} className="flex flex-wrap items-end gap-3">
-            <div className="min-w-[200px]">
-              <label htmlFor="staff-email" className="block text-sm font-medium text-soft-cloud/80 mb-1">Employee email</label>
-              <input
-                id="staff-email"
-                type="email"
-                value={employeeEmail}
-                onChange={(e) => setEmployeeEmail(e.target.value)}
-                placeholder="email@vantagfleet.com"
-                className="w-full px-3 py-2 rounded-lg bg-midnight-ink border border-white/10 text-soft-cloud focus:outline-none focus:ring-2 focus:ring-cyber-amber"
-              />
-            </div>
-            <button
-              type="submit"
-              disabled={employeeLoading}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-cyber-amber text-midnight-ink font-semibold hover:bg-cyber-amber/90 disabled:opacity-60"
-            >
-              {employeeLoading ? <Loader2 className="size-4 animate-spin" /> : null}
-              Add Employee
-            </button>
-          </form>
-          {employeeError && <p className="text-sm text-red-400">{employeeError}</p>}
-          {employeeSuccess && <p className="text-sm text-green-400">Employee added.</p>}
+          {staffMessage && (
+            <p className={`text-sm ${staffMessage.type === 'success' ? 'text-green-400' : 'text-red-400'}`}>{staffMessage.text}</p>
+          )}
           <ul className="divide-y divide-white/10">
             {staff.length === 0 ? (
-              <li className="py-3 text-soft-cloud/50 text-sm">No staff yet.</li>
+              <li className="py-3 text-soft-cloud/50 text-sm">No staff yet. Add members from the Team page.</li>
             ) : (
               staff.map((s) => (
-                <li key={s.user_id} className="py-3 flex items-center justify-between">
+                <li key={s.user_id} className="py-3 flex flex-wrap items-center justify-between gap-2">
                   <span className="text-soft-cloud">{s.email ?? s.user_id}</span>
-                  <span className="text-xs px-2 py-0.5 rounded bg-cyber-amber/20 text-cyber-amber">{s.role}</span>
+                  <div className="flex items-center gap-2">
+                    <select
+                      value={staffRoleEdits[s.user_id] ?? s.role}
+                      onChange={(e) => setStaffRoleEdits((prev) => ({ ...prev, [s.user_id]: e.target.value as VantagStaffRole }))}
+                      className="px-2 py-1.5 rounded-lg bg-midnight-ink border border-white/10 text-soft-cloud text-sm"
+                    >
+                      <option value="Admin">Admin</option>
+                      <option value="Support">Support</option>
+                      <option value="Billing">Billing</option>
+                      <option value="Sales">Sales</option>
+                      <option value="Manager">Manager</option>
+                    </select>
+                    <button
+                      type="button"
+                      disabled={staffSavingId === s.user_id}
+                      onClick={() => handleStaffRoleSave(s.user_id, staffRoleEdits[s.user_id] ?? s.role)}
+                      className="px-3 py-1.5 rounded-lg bg-cyber-amber/20 text-cyber-amber text-sm font-medium hover:bg-cyber-amber/30 disabled:opacity-50"
+                    >
+                      {staffSavingId === s.user_id ? <Loader2 className="size-4 animate-spin inline" /> : 'Save'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleStaffRemove(s.user_id)}
+                      className="p-1.5 rounded-lg text-soft-cloud/50 hover:text-red-400 hover:bg-red-400/10"
+                      title="Remove from team"
+                    >
+                      <Trash2 className="size-4" />
+                    </button>
+                  </div>
                 </li>
               ))
             )}

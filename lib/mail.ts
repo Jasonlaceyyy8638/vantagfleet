@@ -1,10 +1,9 @@
 import sgMail from '@sendgrid/mail';
 import { getFromEmail, type EmailDepartment } from '@/lib/email-addresses';
 
-const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY;
-
 export function isMailConfigured(): boolean {
-  return !!SENDGRID_API_KEY?.trim();
+  const key = process.env.SENDGRID_API_KEY?.trim();
+  return !!key && key.length > 10;
 }
 
 export type SendEmailOptions = {
@@ -22,9 +21,11 @@ export type SendEmailOptions = {
  * From address: use options.from, or getFromEmail(options.department), or MARKETING (info@).
  */
 export async function sendEmail(options: SendEmailOptions): Promise<{ ok: true } | { error: string }> {
-  const key = SENDGRID_API_KEY?.trim();
-  if (!key) {
-    return { error: 'SendGrid is not configured (SENDGRID_API_KEY missing).' };
+  const key = process.env.SENDGRID_API_KEY?.trim();
+  if (!key || key.length < 10) {
+    return {
+      error: 'SendGrid is not configured. Add SENDGRID_API_KEY to .env.local (no quotes, no spaces), then restart the dev server (stop and run npm run dev again).',
+    };
   }
 
   const from =

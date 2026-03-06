@@ -51,7 +51,7 @@ export default async function SettingsPage() {
   }
 
   return (
-    <div className="p-6 md:p-8 max-w-2xl">
+    <div className="p-4 sm:p-6 md:p-8 max-w-2xl w-full overflow-x-hidden">
       <h1 className="text-2xl font-bold text-soft-cloud mb-2">Settings</h1>
       <p className="text-soft-cloud/70 mb-8">
         Organization and billing. Manage your subscription, payment method, or cancel anytime.

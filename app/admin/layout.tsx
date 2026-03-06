@@ -1,8 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { getPlatformRole, canAccessAdmin } from '@/lib/admin';
 import { redirect } from 'next/navigation';
-import { AdminSidebar } from './AdminSidebar';
-import { AdminHeader } from './AdminHeader';
+import { AdminShell } from './AdminShell';
 import { AdminPinGate } from '@/components/AdminPinGate';
 
 export default async function AdminLayout({
@@ -18,13 +17,7 @@ export default async function AdminLayout({
 
   return (
     <AdminPinGate>
-      <div className="min-h-screen bg-midnight-ink text-soft-cloud flex">
-        <AdminSidebar role={role ?? 'ADMIN'} />
-        <div className="flex-1 flex flex-col min-w-0">
-          <AdminHeader />
-          <main className="flex-1 p-6 md:p-8 overflow-auto">{children}</main>
-        </div>
-      </div>
+      <AdminShell role={role ?? 'ADMIN'}>{children}</AdminShell>
     </AdminPinGate>
   );
 }

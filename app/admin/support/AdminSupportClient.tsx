@@ -34,7 +34,10 @@ export function AdminSupportClient() {
 
   const [refundModal, setRefundModal] = useState<{ charge: ChargeRow; stripeCustomerId: string; orgId: string } | null>(null);
   const [refundReason, setRefundReason] = useState<string>(REFUND_REASONS[0]?.value ?? 'duplicate');
-  const [refundAmountCents, setRefundAmountCents] = useState<string>('');
+  type RefundMode = 'full' | 'percent' | 'dollar';
+  const [refundMode, setRefundMode] = useState<RefundMode>('full');
+  const [refundPercent, setRefundPercent] = useState<string>('');
+  const [refundDollar, setRefundDollar] = useState<string>('');
   const [refundSubmitting, setRefundSubmitting] = useState(false);
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
@@ -140,7 +143,9 @@ export function AdminSupportClient() {
   const openRefundModal = (charge: ChargeRow, stripeCustomerId: string, orgId: string) => {
     setRefundModal({ charge, stripeCustomerId, orgId });
     setRefundReason(REFUND_REASONS[0]?.value ?? 'duplicate');
-    setRefundAmountCents('');
+    setRefundMode('full');
+    setRefundPercent('');
+    setRefundDollar('');
   };
 
   const handleConfirmRefund = async (e: React.FormEvent) => {
@@ -148,12 +153,30 @@ export function AdminSupportClient() {
     if (!refundModal) return;
     setRefundSubmitting(true);
     try {
-      const amountCents = refundAmountCents.trim()
-        ? Math.round(Number(refundAmountCents) * 100)
-        : undefined;
-      if (refundAmountCents.trim() && (Number.isNaN(Number(refundAmountCents)) || (amountCents ?? 0) < 1)) {
-        showToast('error', 'Enter a valid amount.');
-        return;
+      const chargeAmountCents = refundModal.charge.amount;
+      let amountCents: number | undefined;
+      if (refundMode === 'percent') {
+        const pct = Number(refundPercent);
+        if (Number.isNaN(pct) || pct <= 0 || pct > 100) {
+          showToast('error', 'Enter a valid percentage (1–100).');
+          setRefundSubmitting(false);
+          return;
+        }
+        amountCents = Math.round((chargeAmountCents * pct) / 100);
+        if (amountCents < 1) amountCents = undefined;
+      } else if (refundMode === 'dollar') {
+        const dollars = Number(refundDollar);
+        if (Number.isNaN(dollars) || dollars <= 0) {
+          showToast('error', 'Enter a valid dollar amount.');
+          setRefundSubmitting(false);
+          return;
+        }
+        amountCents = Math.round(dollars * 100);
+        if (amountCents > chargeAmountCents) {
+          showToast('error', 'Refund amount cannot exceed the charge amount.');
+          setRefundSubmitting(false);
+          return;
+        }
       }
       const result = await createRefund({
         chargeId: refundModal.charge.id,
@@ -857,14 +880,95 @@ export function AdminSupportClient() {
             className="w-full max-w-md rounded-xl border border-white/10 bg-card p-6 shadow-xl"
             onClick={(e) => e.stopPropagation()}
           >
-            <h2 className="text-lg font-semibold text-soft-cloud mb-4">Confirm refund</h2>
+            <h2 className="text-lg font-semibold text-soft-cloud mb-4">Issue refund</h2>
             <p className="text-soft-cloud/80 mb-4">
-              Transaction amount:{' '}
+              Charge amount:{' '}
               <span className="font-semibold text-cyber-amber">
                 {(refundModal.charge.amount / 100).toFixed(2)} {refundModal.charge.currency.toUpperCase()}
               </span>
             </p>
             <form onSubmit={handleConfirmRefund} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-soft-cloud/80 mb-1">
+                  Refund type
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  <label className="inline-flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="refund-mode"
+                      checked={refundMode === 'full'}
+                      onChange={() => setRefundMode('full')}
+                      className="rounded border-white/20 text-cyber-amber focus:ring-cyber-amber"
+                    />
+                    <span className="text-soft-cloud text-sm">Full refund</span>
+                  </label>
+                  <label className="inline-flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="refund-mode"
+                      checked={refundMode === 'percent'}
+                      onChange={() => setRefundMode('percent')}
+                      className="rounded border-white/20 text-cyber-amber focus:ring-cyber-amber"
+                    />
+                    <span className="text-soft-cloud text-sm">Partial by %</span>
+                  </label>
+                  <label className="inline-flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="refund-mode"
+                      checked={refundMode === 'dollar'}
+                      onChange={() => setRefundMode('dollar')}
+                      className="rounded border-white/20 text-cyber-amber focus:ring-cyber-amber"
+                    />
+                    <span className="text-soft-cloud text-sm">Partial by $</span>
+                  </label>
+                </div>
+              </div>
+              {refundMode === 'percent' && (
+                <div>
+                  <label htmlFor="refund-percent" className="block text-sm font-medium text-soft-cloud/80 mb-1">
+                    Percentage (1–100)
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      id="refund-percent"
+                      type="number"
+                      min="1"
+                      max="100"
+                      step="0.01"
+                      placeholder="e.g. 50"
+                      value={refundPercent}
+                      onChange={(e) => setRefundPercent(e.target.value)}
+                      className="w-24 px-3 py-2 rounded-lg bg-midnight-ink border border-white/10 text-soft-cloud focus:outline-none focus:ring-2 focus:ring-cyber-amber"
+                    />
+                    <span className="text-soft-cloud/70 text-sm">%</span>
+                    {refundPercent.trim() && !Number.isNaN(Number(refundPercent)) && Number(refundPercent) > 0 && Number(refundPercent) <= 100 && (
+                      <span className="text-cyber-amber text-sm">
+                        = ${((refundModal.charge.amount * Number(refundPercent)) / 10000).toFixed(2)}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
+              {refundMode === 'dollar' && (
+                <div>
+                  <label htmlFor="refund-dollar" className="block text-sm font-medium text-soft-cloud/80 mb-1">
+                    Amount ($)
+                  </label>
+                  <input
+                    id="refund-dollar"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    max={refundModal.charge.amount / 100}
+                    placeholder={`Max ${(refundModal.charge.amount / 100).toFixed(2)}`}
+                    value={refundDollar}
+                    onChange={(e) => setRefundDollar(e.target.value)}
+                    className="w-full px-3 py-2 rounded-lg bg-midnight-ink border border-white/10 text-soft-cloud placeholder-soft-cloud/50 focus:outline-none focus:ring-2 focus:ring-cyber-amber"
+                  />
+                </div>
+              )}
               <div>
                 <label htmlFor="refund-reason" className="block text-sm font-medium text-soft-cloud/80 mb-1">
                   Reason for refund *
@@ -882,21 +986,6 @@ export function AdminSupportClient() {
                     </option>
                   ))}
                 </select>
-              </div>
-              <div>
-                <label htmlFor="refund-amount" className="block text-sm font-medium text-soft-cloud/80 mb-1">
-                  Amount (optional, $)
-                </label>
-                <input
-                  id="refund-amount"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  placeholder="Leave blank for full refund"
-                  value={refundAmountCents}
-                  onChange={(e) => setRefundAmountCents(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg bg-midnight-ink border border-white/10 text-soft-cloud placeholder-soft-cloud/50 focus:outline-none focus:ring-2 focus:ring-cyber-amber"
-                />
               </div>
               <div className="flex gap-3 pt-2">
                 <button

@@ -1,10 +1,15 @@
+import nextDynamic from 'next/dynamic';
 import { createClient } from '@/lib/supabase/server';
 import { canAccessAdmin, isAdmin } from '@/lib/admin';
 import { redirect } from 'next/navigation';
 import { listVantagStaff } from '@/app/actions/admin-team';
 import { listSupportTickets } from '@/app/actions/support-tickets';
 import { listMotiveDrivers } from '@/app/actions/admin';
-import { TeamClient } from './TeamClient';
+
+const TeamClient = nextDynamic(
+  () => import('./TeamClient').then((mod) => ({ default: mod.TeamClient })),
+  { ssr: true, loading: () => <div className="min-h-[320px] flex items-center justify-center text-soft-cloud/60">Loading…</div> }
+);
 
 export const dynamic = 'force-dynamic';
 

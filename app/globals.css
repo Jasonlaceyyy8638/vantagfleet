@@ -14,6 +14,17 @@
 body {
   color: var(--foreground);
   background: var(--background);
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Mobile: touch-friendly min sizes and safe spacing */
+@media (max-width: 767px) {
+  button:not(.no-touch-target),
+  a[role="button"],
+  [role="button"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
 }
 
 /* Safe area for notches (e.g. iPhone); use with pt-safe, pb-safe */

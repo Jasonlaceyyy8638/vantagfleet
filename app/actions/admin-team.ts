@@ -4,7 +4,8 @@ import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getPlatformRole, isPlatformStaff, isAdmin } from '@/lib/admin';
 import { sendEmail } from '@/lib/mail';
-import { randomBytes } from 'crypto';
+import { getWelcomeToTeamEmail, getAddedToTeamEmail } from '@/lib/invite-email';
+import { randomBytes, randomUUID } from 'crypto';
 
 export type StaffRow = { user_id: string; role: string; email: string | null };
 
@@ -16,6 +17,8 @@ export type VantagStaffRow = {
   user_id: string;
   role: VantagStaffRole;
   email: string | null;
+  full_name: string | null;
+  phone: string | null;
   created_at?: string;
 };
 
@@ -36,25 +39,40 @@ async function requireStaff() {
   if (!isPlatformStaff(role)) throw new Error('Forbidden');
 }
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+function isValidUuid(value: unknown): value is string {
+  return typeof value === 'string' && UUID_REGEX.test(value);
+}
+
 /** List all users from vantag_staff with emails from Auth. */
 export async function listVantagStaff(): Promise<VantagStaffRow[]> {
   await requireStaff();
   const admin = createAdminClient();
   const { data: rows, error } = await admin
     .from('vantag_staff')
-    .select('id, user_id, role, created_at')
+    .select('id, user_id, role, full_name, phone, created_at')
     .order('created_at', { ascending: false });
 
   if (error || !rows?.length) return [];
 
   const result: VantagStaffRow[] = [];
   for (const row of rows) {
-    const { data: { user } } = await admin.auth.admin.getUserById(row.user_id);
+    let email: string | null = null;
+    if (isValidUuid(row.user_id)) {
+      try {
+        const { data: { user } } = await admin.auth.admin.getUserById(row.user_id);
+        email = user?.email ?? null;
+      } catch {
+        // skip email if Auth call fails (e.g. user deleted)
+      }
+    }
     result.push({
       id: row.id,
       user_id: row.user_id,
       role: row.role as VantagStaffRole,
-      email: user?.email ?? null,
+      email,
+      full_name: (row as { full_name?: string | null }).full_name ?? null,
+      phone: (row as { phone?: string | null }).phone ?? null,
       created_at: row.created_at,
     });
   }
@@ -74,11 +92,19 @@ export async function listStaff(): Promise<StaffRow[]> {
 
   const result: StaffRow[] = [];
   for (const row of rows) {
-    const { data: { user } } = await admin.auth.admin.getUserById(row.user_id);
+    let email: string | null = null;
+    if (isValidUuid(row.user_id)) {
+      try {
+        const { data: { user } } = await admin.auth.admin.getUserById(row.user_id);
+        email = user?.email ?? null;
+      } catch {
+        // skip email if Auth call fails
+      }
+    }
     result.push({
       user_id: row.user_id,
       role: row.role,
-      email: user?.email ?? null,
+      email,
     });
   }
   return result;
@@ -120,14 +146,20 @@ export async function removeStaff(userId: string): Promise<{ error?: string }> {
   return {};
 }
 
-/** Add employee to vantag_staff by email and assign role. If user does not exist, only Admin can create account and send welcome email with temporary password. */
+/** Add employee to vantag_staff by email and assign role. Name and phone are required. If user does not exist, only Admin can create account and send welcome email with temporary password. */
 export async function addVantagStaffMember(
   email: string,
-  role: VantagStaffRole
+  role: VantagStaffRole,
+  name: string,
+  phone: string
 ): Promise<{ ok: true } | { error: string }> {
   await requireStaff();
   const trimmed = email?.trim().toLowerCase();
   if (!trimmed) return { error: 'Email is required.' };
+  const fullName = name?.trim();
+  if (!fullName) return { error: 'Full name is required.' };
+  const phoneTrimmed = phone?.trim();
+  if (!phoneTrimmed) return { error: 'Phone number is required.' };
   const validRoles: VantagStaffRole[] = ['Support', 'Sales', 'Manager', 'Admin', 'Billing'];
   if (!validRoles.includes(role)) return { error: 'Invalid role.' };
 
@@ -155,17 +187,25 @@ export async function addVantagStaffMember(
     found = newUser.user;
 
     const platformRole = toPlatformRole(role);
-    const { error: staffErr } = await admin.from('vantag_staff').insert({ user_id: found.id, role });
+    const { error: staffErr } = await admin.from('vantag_staff').insert({
+      id: found.id,
+      user_id: found.id,
+      role,
+      full_name: fullName,
+      phone: phoneTrimmed,
+    });
     if (staffErr) return { error: staffErr.message };
     await admin.from('platform_roles').upsert({ user_id: found.id, role: platformRole }, { onConflict: 'user_id' });
 
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://vantagfleet.com';
     const loginUrl = `${appUrl}/login`;
+    const { subject, text, html } = getWelcomeToTeamEmail(loginUrl, tempPassword, role, { name: fullName, isVantagStaff: true });
     const sent = await sendEmail({
       to: trimmed,
       department: 'APP_NOTIFICATION_SUPPORT',
-      subject: 'Welcome to VantagFleet Team',
-      text: `You've been added to the VantagFleet team with the role: ${role}.\n\nYour temporary password: ${tempPassword}\n\nPlease sign in at ${loginUrl} and change your password in Settings after your first login.\n\n— VantagFleet`,
+      subject,
+      text,
+      html,
     });
     if ('error' in sent) {
       return { error: `User created and added to team, but welcome email failed: ${sent.error}. Share this temporary password securely: ${tempPassword}` };
@@ -174,22 +214,59 @@ export async function addVantagStaffMember(
   }
 
   const platformRole = toPlatformRole(role);
-  const { error: staffError } = await admin
-    .from('vantag_staff')
-    .upsert({ user_id: found.id, role }, { onConflict: 'user_id' });
-
-  if (staffError) return { error: staffError.message };
+  const { data: existing } = await admin.from('vantag_staff').select('id').eq('user_id', found.id).maybeSingle();
+  if (existing) {
+    const { error: updateErr } = await admin.from('vantag_staff').update({ role, full_name: fullName, phone: phoneTrimmed }).eq('user_id', found.id);
+    if (updateErr) return { error: updateErr.message };
+  } else {
+    const { error: insertErr } = await admin.from('vantag_staff').insert({
+      id: found.id,
+      user_id: found.id,
+      role,
+      full_name: fullName,
+      phone: phoneTrimmed,
+    });
+    if (insertErr) return { error: insertErr.message };
+  }
 
   await admin
     .from('platform_roles')
     .upsert({ user_id: found.id, role: platformRole }, { onConflict: 'user_id' });
 
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://vantagfleet.com';
+  const loginUrl = `${appUrl}/login`;
+  const { subject, text, html } = getAddedToTeamEmail(loginUrl, role, { name: fullName, isVantagStaff: true });
+  await sendEmail({
+    to: trimmed,
+    department: 'APP_NOTIFICATION_SUPPORT',
+    subject,
+    text,
+    html,
+  });
+
+  return { ok: true };
+}
+
+/** Update a VantagFleet staff member's role (and sync platform_roles). */
+export async function updateVantagStaffRole(
+  userId: string,
+  role: VantagStaffRole
+): Promise<{ ok: true } | { error: string }> {
+  await requireStaff();
+  const validRoles: VantagStaffRole[] = ['Support', 'Sales', 'Manager', 'Admin', 'Billing'];
+  if (!validRoles.includes(role)) return { error: 'Invalid role.' };
+  const admin = createAdminClient();
+  const { error: staffErr } = await admin.from('vantag_staff').update({ role }).eq('user_id', userId);
+  if (staffErr) return { error: staffErr.message };
+  const platformRole = toPlatformRole(role);
+  await admin.from('platform_roles').upsert({ user_id: userId, role: platformRole }, { onConflict: 'user_id' });
   return { ok: true };
 }
 
 /** Remove a user from vantag_staff and platform_roles (they lose /admin access but account remains). */
 export async function removeVantagStaffMember(userId: string): Promise<{ error?: string }> {
   await requireStaff();
+  if (!userId || userId === 'null' || !isValidUuid(userId)) return { error: 'Invalid user ID.' };
   const admin = createAdminClient();
   const { error: staffErr } = await admin.from('vantag_staff').delete().eq('user_id', userId);
   if (staffErr) return { error: staffErr.message };
@@ -204,6 +281,7 @@ export async function resetUserPassword(
 ): Promise<{ ok: true } | { error: string }> {
   const supabase = await createClient();
   if (!(await isAdmin(supabase))) return { error: 'Only Admins can reset passwords.' };
+  if (!userId || userId === 'null' || !isValidUuid(userId)) return { error: 'Invalid user ID.' };
   const trimmed = newPassword?.trim();
   if (!trimmed || trimmed.length < 8) return { error: 'Password must be at least 8 characters.' };
 
@@ -217,6 +295,7 @@ export async function resetUserPassword(
 export async function deleteUserFromSystem(userId: string): Promise<{ ok: true } | { error: string }> {
   const supabase = await createClient();
   if (!(await isAdmin(supabase))) return { error: 'Only Admins can delete users from the system.' };
+  if (!userId || userId === 'null' || !isValidUuid(userId)) return { error: 'Invalid user ID.' };
 
   const admin = createAdminClient();
   await admin.from('vantag_staff').delete().eq('user_id', userId);

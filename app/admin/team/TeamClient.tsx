@@ -48,6 +48,8 @@ export function TeamClient({ initialStaff, initialTickets, initialMotiveDrivers 
   const [motiveDrivers] = useState<MotiveDriverRow[]>(initialMotiveDrivers);
   const [modalOpen, setModalOpen] = useState(false);
   const [email, setEmail] = useState('');
+  const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
   const [role, setRole] = useState<VantagStaffRole>('Support');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -61,13 +63,17 @@ export function TeamClient({ initialStaff, initialTickets, initialMotiveDrivers 
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!name.trim()) { setMessage({ type: 'error', text: 'Full name is required.' }); return; }
+    if (!phone.trim()) { setMessage({ type: 'error', text: 'Phone number is required.' }); return; }
     setLoading(true);
     setMessage(null);
-    const result = await addVantagStaffMember(email, role);
+    const result = await addVantagStaffMember(email, role, name.trim(), phone.trim());
     setLoading(false);
     if ('ok' in result && result.ok) {
-      setMessage({ type: 'success', text: 'Team member added. If they did not have an account, a welcome email with a temporary password was sent.' });
+      setMessage({ type: 'success', text: 'Team member added. They will receive a welcome or added-to-team email.' });
       setEmail('');
+      setName('');
+      setPhone('');
       setRole('Support');
       setModalOpen(false);
       const updated = await listVantagStaff();
@@ -95,22 +101,33 @@ export function TeamClient({ initialStaff, initialTickets, initialMotiveDrivers 
     if (!confirm('Permanently delete this user from the system? This cannot be undone.')) return;
     setDeleteLoading(true);
     setMessage(null);
-    const result = await deleteUserFromSystem(userId);
-    setDeleteLoading(false);
-    if ('ok' in result && result.ok) {
-      setStaff((prev) => prev.filter((s) => s.user_id !== userId));
-      setMessage({ type: 'success', text: 'User removed from the system.' });
-    } else setMessage({ type: 'error', text: ('error' in result ? result.error : 'Failed to delete user.') });
+    try {
+      const result = await deleteUserFromSystem(userId);
+      setDeleteLoading(false);
+      if ('ok' in result && result.ok) {
+        setStaff((prev) => prev.filter((s) => s.user_id !== userId));
+        setMessage({ type: 'success', text: 'User removed from the system.' });
+      } else setMessage({ type: 'error', text: ('error' in result ? result.error : 'Failed to delete user.') });
+    } catch (err) {
+      setDeleteLoading(false);
+      const msg = err instanceof Error ? err.message : 'Request failed';
+      setMessage({ type: 'error', text: msg.includes('fetch') ? 'Network error. Use the same URL as your dev server (e.g. http://localhost:3000).' : msg });
+    }
   };
 
   const handleRemove = async (userId: string) => {
     if (!confirm('Remove this person from the team? They will no longer have access to the admin area.')) return;
-    const result = await removeVantagStaffMember(userId);
-    if (result.error) {
-      setMessage({ type: 'error', text: result.error });
-    } else {
-      setStaff((prev) => prev.filter((s) => s.user_id !== userId));
-      setMessage({ type: 'success', text: 'Removed from team.' });
+    try {
+      const result = await removeVantagStaffMember(userId);
+      if (result.error) {
+        setMessage({ type: 'error', text: result.error });
+      } else {
+        setStaff((prev) => prev.filter((s) => s.user_id !== userId));
+        setMessage({ type: 'success', text: 'Removed from team.' });
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Request failed';
+      setMessage({ type: 'error', text: msg.includes('fetch') ? 'Network error. Use the same URL as your dev server (e.g. http://localhost:3000).' : msg });
     }
   };
 
@@ -213,6 +230,7 @@ export function TeamClient({ initialStaff, initialTickets, initialMotiveDrivers 
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-white/10 text-left text-soft-cloud/60 bg-white/5">
+                  <th className="p-4 font-medium">Name</th>
                   <th className="p-4 font-medium">Email</th>
                   <th className="p-4 font-medium">Role</th>
                   <th className="p-4 text-right font-medium">Actions</th>
@@ -221,6 +239,7 @@ export function TeamClient({ initialStaff, initialTickets, initialMotiveDrivers 
               <tbody>
                 {staff.map((row) => (
                   <tr key={row.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
+                    <td className="p-4 text-soft-cloud">{row.full_name ?? '—'}</td>
                     <td className="p-4 text-soft-cloud">{row.email ?? row.user_id}</td>
                     <td className="p-4">
                       <span className="inline-flex px-2.5 py-1 rounded-lg bg-cyber-amber/20 text-cyber-amber text-xs font-medium">
@@ -240,7 +259,7 @@ export function TeamClient({ initialStaff, initialTickets, initialMotiveDrivers 
                           </button>
                           <button
                             type="button"
-                            onClick={() => handleDeleteUser(row.user_id)}
+                            onClick={() => { if (row.user_id) handleDeleteUser(row.user_id); }}
                             disabled={deleteLoading}
                             className="p-2 rounded-lg text-soft-cloud/50 hover:text-red-400 hover:bg-red-400/10 transition-colors disabled:opacity-50"
                             title="Delete from system"
@@ -251,7 +270,7 @@ export function TeamClient({ initialStaff, initialTickets, initialMotiveDrivers 
                       )}
                       <button
                         type="button"
-                        onClick={() => handleRemove(row.user_id)}
+                        onClick={() => { if (row.user_id) handleRemove(row.user_id); }}
                         className="p-2 rounded-lg text-soft-cloud/50 hover:text-red-400 hover:bg-red-400/10 transition-colors"
                         title="Remove from team"
                       >
@@ -437,7 +456,7 @@ export function TeamClient({ initialStaff, initialTickets, initialMotiveDrivers 
               </button>
             </div>
             <p className="text-sm text-soft-cloud/70 mb-4">
-              Enter email and role. If they don&apos;t have an account, Admins can create one and send a welcome email with a temporary password.
+              Enter email and role. If they don&apos;t have an account, Admins can create one and send a welcome email with logo and temporary password.
             </p>
             <form onSubmit={handleAdd} className="space-y-4">
               <div>
@@ -451,6 +470,34 @@ export function TeamClient({ initialStaff, initialTickets, initialMotiveDrivers 
                   onChange={(e) => setEmail(e.target.value)}
                   required
                   placeholder="colleague@vantagfleet.com"
+                  className="w-full px-3 py-2.5 rounded-lg bg-midnight-ink border border-white/10 text-soft-cloud placeholder-soft-cloud/50 focus:outline-none focus:ring-2 focus:ring-cyber-amber focus:border-cyber-amber/50"
+                />
+              </div>
+              <div>
+                <label htmlFor="team-name" className="block text-sm font-medium text-soft-cloud/80 mb-1.5">
+                  Full name *
+                </label>
+                <input
+                  id="team-name"
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Full name"
+                  required
+                  className="w-full px-3 py-2.5 rounded-lg bg-midnight-ink border border-white/10 text-soft-cloud placeholder-soft-cloud/50 focus:outline-none focus:ring-2 focus:ring-cyber-amber focus:border-cyber-amber/50"
+                />
+              </div>
+              <div>
+                <label htmlFor="team-phone" className="block text-sm font-medium text-soft-cloud/80 mb-1.5">
+                  Phone *
+                </label>
+                <input
+                  id="team-phone"
+                  type="tel"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="e.g. +1 555-123-4567"
+                  required
                   className="w-full px-3 py-2.5 rounded-lg bg-midnight-ink border border-white/10 text-soft-cloud placeholder-soft-cloud/50 focus:outline-none focus:ring-2 focus:ring-cyber-amber focus:border-cyber-amber/50"
                 />
               </div>

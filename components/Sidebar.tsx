@@ -31,6 +31,8 @@ import {
   Lock,
   MessageCircle,
   Package,
+  Menu,
+  X,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { EMAIL_SUPPORT, EMAIL_INFO } from '@/lib/email-addresses';
@@ -97,7 +99,10 @@ export function Sidebar({
   const [isTauri, setIsTauri] = useState(false);
   const [adminGearOpen, setAdminGearOpen] = useState(false);
   const [supportTicketOpen, setSupportTicketOpen] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
   const adminGearRef = useRef<HTMLDivElement>(null);
+
+  const closeMobile = () => setMobileOpen(false);
 
   const navFiltered = isDispatcher ? dispatcherNav : nav;
   const showMapLock = !canSeeMap;
@@ -129,15 +134,17 @@ export function Sidebar({
     window.location.href = '/login';
   };
 
-  return (
-    <aside className="w-64 shrink-0 border-r border-border bg-midnight-ink/80 backdrop-blur-md flex flex-col relative">
+  const onNav = () => mobileOpen && closeMobile();
+
+  const sidebarContent = (
+    <>
       {showBetaRibbon && (
         <div className="absolute top-0 right-0 z-10 px-2 py-0.5 text-[10px] font-semibold tracking-wider text-midnight-ink bg-cyber-amber/90 rounded-bl-md shadow-sm">
           BETA ACCESS
         </div>
       )}
       <div className="p-4 border-b border-border">
-        <Link href="/dashboard" className="flex items-center gap-3">
+        <Link href="/dashboard" onClick={onNav} className="flex items-center gap-3">
           <Logo size={32} />
           <span className="flex items-baseline gap-1 tracking-[0.2em]">
             <span className="font-bold text-cyber-amber text-base">VANTAG</span>
@@ -158,7 +165,7 @@ export function Sidebar({
           />
         </div>
       )}
-      <nav className="flex-1 p-3 space-y-0.5">
+      <nav className="flex-1 p-3 space-y-0.5 overflow-auto">
         {(isDriverOnly ? driverNav : navFiltered).map((item) => {
           const isActive = pathname === item.href || (item.href.startsWith('/dashboard#') && pathname === '/dashboard');
           const Icon = item.icon;
@@ -168,7 +175,8 @@ export function Sidebar({
             <Link
               key={item.href}
               href={item.href}
-              className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+              onClick={onNav}
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors min-h-[44px] md:min-h-0 ${
                 isActive
                   ? 'bg-electric-teal/20 text-electric-teal'
                   : 'text-soft-cloud/70 hover:text-soft-cloud hover:bg-midnight-ink/60'
@@ -183,7 +191,8 @@ export function Sidebar({
         {showAdminLink && (
           <Link
             href="/admin"
-            className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors mt-2 pt-2 border-t border-border ${
+            onClick={onNav}
+            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors mt-2 pt-2 border-t border-border min-h-[44px] md:min-h-0 ${
               pathname.startsWith('/admin')
                 ? 'bg-cyber-amber/20 text-cyber-amber'
                 : 'text-cyber-amber/90 hover:text-cyber-amber hover:bg-cyber-amber/10'
@@ -194,13 +203,13 @@ export function Sidebar({
           </Link>
         )}
       </nav>
-      <div className="p-3 border-t border-border space-y-0.5">
+      <div className="p-3 border-t border-border space-y-0.5 shrink-0">
         {showAdminGearInTauri && isTauri && (
           <div className="relative" ref={adminGearRef}>
             <button
               type="button"
               onClick={() => setAdminGearOpen((o) => !o)}
-              className="flex items-center gap-3 w-full px-3 py-2 rounded-lg text-sm font-medium text-amber-400 hover:text-amber-300 hover:bg-amber-500/10 transition-colors"
+              className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium text-amber-400 hover:text-amber-300 hover:bg-amber-500/10 transition-colors min-h-[44px] md:min-h-0"
               aria-expanded={adminGearOpen}
               aria-haspopup="true"
             >
@@ -213,16 +222,16 @@ export function Sidebar({
                 <div className="absolute bottom-full left-0 right-0 mb-1 rounded-lg border border-amber-500/30 bg-midnight-ink shadow-xl overflow-hidden">
                   <Link
                     href="/admin/revenue"
-                    onClick={() => setAdminGearOpen(false)}
-                    className="flex items-center gap-2 px-3 py-2.5 text-sm text-soft-cloud/90 hover:bg-amber-500/10 hover:text-amber-400"
+                    onClick={() => { setAdminGearOpen(false); closeMobile(); }}
+                    className="flex items-center gap-2 px-3 py-2.5 text-sm text-soft-cloud/90 hover:bg-amber-500/10 hover:text-amber-400 min-h-[44px]"
                   >
                     <BarChart3 className="size-4 text-amber-400" />
                     Revenue
                   </Link>
                   <Link
                     href="/admin/support"
-                    onClick={() => setAdminGearOpen(false)}
-                    className="flex items-center gap-2 px-3 py-2.5 text-sm text-soft-cloud/90 hover:bg-amber-500/10 hover:text-amber-400 border-t border-white/5"
+                    onClick={() => { setAdminGearOpen(false); closeMobile(); }}
+                    className="flex items-center gap-2 px-3 py-2.5 text-sm text-soft-cloud/90 hover:bg-amber-500/10 hover:text-amber-400 border-t border-white/5 min-h-[44px]"
                   >
                     <Headphones className="size-4 text-amber-400" />
                     Support
@@ -236,11 +245,11 @@ export function Sidebar({
           <button
             type="button"
             onClick={() => setSupportTicketOpen(true)}
-            className="px-3 py-1.5 rounded-lg hover:text-cyber-amber hover:bg-midnight-ink/60 transition-colors text-left"
+            className="px-3 py-2.5 rounded-lg hover:text-cyber-amber hover:bg-midnight-ink/60 transition-colors text-left min-h-[44px] md:min-h-0"
           >
             Help
           </button>
-          <a href={`mailto:${EMAIL_INFO}`} className="px-3 py-1.5 rounded-lg hover:text-cyber-amber hover:bg-midnight-ink/60 transition-colors">
+          <a href={`mailto:${EMAIL_INFO}`} className="px-3 py-2.5 rounded-lg hover:text-cyber-amber hover:bg-midnight-ink/60 transition-colors min-h-[44px] md:min-h-0 inline-flex items-center">
             General Inquiries
           </a>
         </div>
@@ -248,12 +257,59 @@ export function Sidebar({
         <button
           type="button"
           onClick={signOut}
-          className="flex items-center gap-3 w-full px-3 py-2 rounded-lg text-sm text-soft-cloud/70 hover:text-soft-cloud hover:bg-midnight-ink/60"
+          className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm text-soft-cloud/70 hover:text-soft-cloud hover:bg-midnight-ink/60 min-h-[44px] md:min-h-0"
         >
           <LogOut className="size-5 shrink-0" />
           Sign out
         </button>
       </div>
-    </aside>
+    </>
+  );
+
+  return (
+    <>
+      {/* Mobile: fixed top bar */}
+      <header className="md:hidden fixed top-0 left-0 right-0 z-40 h-14 flex items-center justify-between px-4 border-b border-border bg-midnight-ink/95 backdrop-blur-sm pt-safe">
+        <Link href="/dashboard" className="flex items-center gap-2 min-h-[44px] items-center">
+          <Logo size={28} />
+          <span className="font-bold text-cyber-amber text-sm">VANTAG</span>
+          <span className="text-electric-teal text-sm font-light">FLEET</span>
+        </Link>
+        <button
+          type="button"
+          onClick={() => setMobileOpen(true)}
+          className="p-2.5 rounded-lg text-soft-cloud hover:bg-white/10 min-h-[44px] min-w-[44px] flex items-center justify-center"
+          aria-label="Open menu"
+        >
+          <Menu className="size-6" />
+        </button>
+      </header>
+      {/* Mobile: overlay drawer */}
+      {mobileOpen && (
+        <div className="md:hidden fixed inset-0 z-50 flex" role="dialog" aria-modal aria-label="Menu">
+          <div className="absolute inset-0 bg-black/60" onClick={closeMobile} aria-hidden />
+          <div className="relative w-72 max-w-[85vw] bg-midnight-ink/98 backdrop-blur border-r border-border flex flex-col overflow-hidden shadow-xl">
+            <div className="flex items-center justify-between p-3 border-b border-border shrink-0">
+              <span className="font-semibold text-soft-cloud">Menu</span>
+              <button
+                type="button"
+                onClick={closeMobile}
+                className="p-2.5 rounded-lg text-soft-cloud hover:bg-white/10 min-h-[44px] min-w-[44px] flex items-center justify-center"
+                aria-label="Close menu"
+              >
+                <X className="size-5" />
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto overscroll-contain flex flex-col min-h-0">
+              {sidebarContent}
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Desktop: sidebar */}
+      <aside className="hidden md:flex w-64 shrink-0 border-r border-border bg-midnight-ink/80 backdrop-blur-md flex flex-col relative">
+        {sidebarContent}
+      </aside>
+    </>
   );
 }

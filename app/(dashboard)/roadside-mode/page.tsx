@@ -4,7 +4,7 @@ import { getDashboardOrgId } from '@/lib/admin';
 import { createClient } from '@/lib/supabase/server';
 import { RoadsideIncidentClient } from './RoadsideIncidentClient';
 
-const MANAGER_ROLES = ['Owner', 'Safety_Manager', 'Dispatcher', 'Driver_Manager'];
+const MANAGER_ROLES = ['Owner', 'Admin', 'Safety_Manager', 'Dispatcher', 'Driver_Manager'];
 
 export default async function RoadsideModePage() {
   const supabase = await createClient();
