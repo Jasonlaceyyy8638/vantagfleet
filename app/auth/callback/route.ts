@@ -12,6 +12,10 @@ export async function GET(request: Request) {
     const supabase = await createClient();
     const { data: { user }, error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error && user) {
+      const mustChange = (user.user_metadata as Record<string, unknown>)?.must_change_password === true;
+      if (mustChange) {
+        return NextResponse.redirect(`${origin}/account/change-password?required=1`);
+      }
       if (user.id === ADMIN_OWNER_ID) {
         return NextResponse.redirect(`${origin}/admin`);
       }

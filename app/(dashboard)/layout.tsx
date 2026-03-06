@@ -22,6 +22,9 @@ export default async function DashboardLayout({
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
+  if ((user.user_metadata as Record<string, unknown>)?.must_change_password === true) {
+    redirect('/account/change-password?required=1');
+  }
 
   const cookieStore = await cookies();
   const impersonatedId = cookieStore.get(IMPERSONATE_COOKIE)?.value;

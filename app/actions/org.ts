@@ -116,6 +116,38 @@ export async function updateMemberRole(
   return {};
 }
 
+/** Set a team member's password. Allowed: Owner, Admin, or VantagFleet Admin/Support with full carrier control. */
+export async function setOrgMemberPassword(
+  orgId: string,
+  userId: string,
+  newPassword: string
+): Promise<{ ok: true } | { error: string }> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: 'Not authenticated' };
+  const hasControl = await hasFullCarrierControl(supabase);
+  if (!hasControl) {
+    const { data: myProfile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('user_id', user.id)
+      .eq('org_id', orgId)
+      .single();
+    const me = myProfile as { role?: string } | null;
+    if (!me || (me.role !== 'Owner' && me.role !== 'Admin')) return { error: 'Only org owners or admins can reset passwords.' };
+  }
+  const trimmed = newPassword?.trim();
+  if (!trimmed || trimmed.length < 8) return { error: 'Password must be at least 8 characters.' };
+
+  const admin = createAdminClient();
+  const { data: profile } = await admin.from('profiles').select('user_id').eq('user_id', userId).eq('org_id', orgId).single();
+  if (!profile) return { error: 'Member not found in this organization.' };
+
+  const { error } = await admin.auth.admin.updateUserById(userId, { password: trimmed });
+  if (error) return { error: error.message };
+  return { ok: true };
+}
+
 /** Add a team member by email with role. Name and phone are required. If they don't have an account, one is created and a welcome email with temporary password and logo is sent. Uses SendGrid (SENDGRID_API_KEY); if missing, new-user flow returns an error with the temp password to share. Allowed: org Owner/Admin/Safety_Manager or VantagFleet Admin/Support with full carrier control. */
 export async function addOrgMemberByEmail(
   orgId: string,
@@ -163,6 +195,7 @@ export async function addOrgMemberByEmail(
       email: trimmed,
       password: tempPassword,
       email_confirm: true,
+      data: { must_change_password: true },
     });
     if (createError) return { error: createError.message };
     if (!newUser.user) return { error: 'Failed to create user.' };

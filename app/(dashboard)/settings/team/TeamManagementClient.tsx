@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { updateMemberRole, addOrgMemberByEmail } from '@/app/actions/org';
+import { updateMemberRole, addOrgMemberByEmail, setOrgMemberPassword } from '@/app/actions/org';
 import type { TeamMember, PendingInvite } from './page';
 
 const ROLE_OPTIONS = [
@@ -36,6 +36,11 @@ export function TeamManagementClient({ orgId, members, pendingInvites, currentUs
   const [addSuccess, setAddSuccess] = useState(false);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [memberList, setMemberList] = useState(members);
+  const [resetPasswordUser, setResetPasswordUser] = useState<{ id: string; user_id: string; name: string } | null>(null);
+  const [resetPasswordValue, setResetPasswordValue] = useState('');
+  const [resetPasswordConfirm, setResetPasswordConfirm] = useState('');
+  const [resetPasswordLoading, setResetPasswordLoading] = useState(false);
+  const [resetPasswordError, setResetPasswordError] = useState('');
   useEffect(() => { setMemberList(members); }, [members]);
 
   const handleAddByEmail = async (e: React.FormEvent) => {
@@ -71,6 +76,30 @@ export function TeamManagementClient({ orgId, members, pendingInvites, currentUs
     setMemberList((prev) =>
       prev.map((m) => (m.id === profileId ? { ...m, role: newRole } : m))
     );
+  };
+
+  const handleResetPasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!resetPasswordUser) return;
+    if (resetPasswordValue !== resetPasswordConfirm) {
+      setResetPasswordError('Passwords do not match.');
+      return;
+    }
+    if (resetPasswordValue.length < 8) {
+      setResetPasswordError('Password must be at least 8 characters.');
+      return;
+    }
+    setResetPasswordLoading(true);
+    setResetPasswordError('');
+    const result = await setOrgMemberPassword(orgId, resetPasswordUser.user_id, resetPasswordValue);
+    setResetPasswordLoading(false);
+    if ('error' in result) {
+      setResetPasswordError(result.error);
+      return;
+    }
+    setResetPasswordUser(null);
+    setResetPasswordValue('');
+    setResetPasswordConfirm('');
   };
 
   const roleLabel = (role: string) =>
@@ -159,6 +188,7 @@ export function TeamManagementClient({ orgId, members, pendingInvites, currentUs
                 <th className="pb-2 pr-4">Name</th>
                 <th className="pb-2 pr-4">Email / Phone</th>
                 <th className="pb-2 pr-4">Role</th>
+                <th className="pb-2 pr-4 text-right">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -184,12 +214,73 @@ export function TeamManagementClient({ orgId, members, pendingInvites, currentUs
                       ))}
                     </select>
                   </td>
+                  <td className="py-3 pr-4 text-right">
+                    <button
+                      type="button"
+                      onClick={() => setResetPasswordUser({ id: m.id, user_id: m.user_id, name: m.full_name ?? m.email ?? 'Member' })}
+                      className="text-xs text-cyber-amber hover:text-cyber-amber/80 hover:underline"
+                    >
+                      Reset password
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
       </section>
+
+      {resetPasswordUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" role="dialog" aria-modal aria-label="Reset password">
+          <div className="rounded-xl border border-white/10 bg-card p-6 w-full max-w-sm shadow-xl">
+            <h3 className="text-lg font-semibold text-soft-cloud mb-2">Reset password</h3>
+            <p className="text-sm text-soft-cloud/70 mb-4">Set a new password for {resetPasswordUser.name}.</p>
+            <form onSubmit={handleResetPasswordSubmit} className="space-y-3">
+              <div>
+                <label className="block text-sm font-medium text-soft-cloud/80 mb-1">New password</label>
+                <input
+                  type="password"
+                  value={resetPasswordValue}
+                  onChange={(e) => setResetPasswordValue(e.target.value)}
+                  placeholder="At least 8 characters"
+                  required
+                  minLength={8}
+                  className="w-full px-3 py-2 rounded-lg bg-deep-ink border border-white/10 text-soft-cloud placeholder-soft-cloud/40"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-soft-cloud/80 mb-1">Confirm password</label>
+                <input
+                  type="password"
+                  value={resetPasswordConfirm}
+                  onChange={(e) => setResetPasswordConfirm(e.target.value)}
+                  placeholder="Confirm new password"
+                  required
+                  minLength={8}
+                  className="w-full px-3 py-2 rounded-lg bg-deep-ink border border-white/10 text-soft-cloud placeholder-soft-cloud/40"
+                />
+              </div>
+              {resetPasswordError && <p className="text-sm text-red-400">{resetPasswordError}</p>}
+              <div className="flex gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => { setResetPasswordUser(null); setResetPasswordValue(''); setResetPasswordConfirm(''); setResetPasswordError(''); }}
+                  className="flex-1 px-3 py-2 rounded-lg border border-white/20 text-soft-cloud/90 text-sm font-medium hover:bg-white/5"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={resetPasswordLoading}
+                  className="flex-1 px-3 py-2 rounded-lg bg-cyber-amber text-midnight-ink font-semibold text-sm hover:bg-cyber-amber/90 disabled:opacity-50"
+                >
+                  {resetPasswordLoading ? 'Updating…' : 'Update password'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -10,6 +10,10 @@ export default async function AdminLayout({
   children: React.ReactNode;
 }) {
   const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (user && (user.user_metadata as Record<string, unknown>)?.must_change_password === true) {
+    redirect('/account/change-password?required=1');
+  }
   const canAccess = await canAccessAdmin(supabase);
   if (!canAccess) redirect('/');
 

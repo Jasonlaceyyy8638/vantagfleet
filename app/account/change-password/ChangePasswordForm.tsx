@@ -1,9 +1,10 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { useRouter } from 'next/navigation';
 import { PasswordInput } from '@/components/PasswordInput';
+import { changePasswordAndClearRequired } from '@/app/actions/change-password';
 
 export function ChangePasswordForm() {
   const [newPassword, setNewPassword] = useState('');
@@ -11,6 +12,8 @@ export function ChangePasswordForm() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const required = searchParams.get('required') === '1';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -24,17 +27,21 @@ export function ChangePasswordForm() {
     }
     setLoading(true);
     setMessage(null);
-    const supabase = createClient();
-    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    const result = await changePasswordAndClearRequired(newPassword);
     setLoading(false);
-    if (error) {
-      setMessage({ type: 'error', text: error.message });
+    if ('error' in result) {
+      setMessage({ type: 'error', text: result.error });
       return;
     }
-    setMessage({ type: 'success', text: 'Password updated. You can now sign in with your new password.' });
+    setMessage({ type: 'success', text: 'Password updated successfully.' });
     setNewPassword('');
     setConfirmPassword('');
     router.refresh();
+    if (required) {
+      const supabase = createClient();
+      await supabase.auth.refreshSession();
+      router.push('/dashboard');
+    }
   };
 
   return (

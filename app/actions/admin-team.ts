@@ -181,6 +181,7 @@ export async function addVantagStaffMember(
       email: trimmed,
       password: tempPassword,
       email_confirm: true,
+      data: { must_change_password: true },
     });
     if (createError) return { error: createError.message };
     if (!newUser.user) return { error: 'Failed to create user.' };
@@ -274,13 +275,16 @@ export async function removeVantagStaffMember(userId: string): Promise<{ error?:
   return {};
 }
 
-/** Reset a user's password. Admin only. */
+/** Reset a user's password. Admin and Support can reset (VantagFleet staff). */
 export async function resetUserPassword(
   userId: string,
   newPassword: string
 ): Promise<{ ok: true } | { error: string }> {
   const supabase = await createClient();
-  if (!(await isAdmin(supabase))) return { error: 'Only Admins can reset passwords.' };
+  const isAdminUser = await isAdmin(supabase);
+  const platformRole = await getPlatformRole(supabase);
+  const canReset = isAdminUser || platformRole === 'SUPPORT';
+  if (!canReset) return { error: 'Only Admins and Support can reset passwords.' };
   if (!userId || userId === 'null' || !isValidUuid(userId)) return { error: 'Invalid user ID.' };
   const trimmed = newPassword?.trim();
   if (!trimmed || trimmed.length < 8) return { error: 'Password must be at least 8 characters.' };
