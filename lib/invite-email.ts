@@ -137,12 +137,13 @@ export function getWelcomeToTeamEmail(
     '',
     intro,
     '',
-    'Your temporary password (you must change it after first sign-in):',
+    '--- YOUR TEMPORARY PASSWORD (use this to sign in the first time) ---',
     tempPassword,
+    '--- COPY THE LINE ABOVE ---',
     '',
     `Sign in here: ${loginLink}`,
     '',
-    'You will be required to set a new password the first time you sign in.',
+    'You must change this password after your first sign-in.',
     '',
     '— VantagFleet',
   ].join('\n');
@@ -156,8 +157,9 @@ export function getWelcomeToTeamEmail(
           <h1 style="margin:0 0 16px;font-size:22px;font-weight:700;color:${EMAIL_AMBER};text-align:center;">Welcome to the Team</h1>
           <p style="margin:0 0 12px;font-size:16px;line-height:1.5;color:${EMAIL_TEXT};">${greeting}</p>
           <p style="margin:0 0 16px;font-size:16px;line-height:1.5;color:${EMAIL_TEXT};">${intro}</p>
-          <p style="margin:0 0 8px;font-size:16px;line-height:1.5;color:${EMAIL_TEXT};"><strong>Your temporary password (change it after first sign-in):</strong></p>
-          <p style="margin:0 0 16px;font-size:18px;font-weight:600;color:${EMAIL_AMBER};letter-spacing:0.05em;word-break:break-all;">${escapeHtml(tempPassword)}</p>
+          <p style="margin:0 0 8px;font-size:16px;line-height:1.5;color:${EMAIL_TEXT};"><strong>Your temporary password (use this to sign in, then you will set a new one):</strong></p>
+          <p style="margin:0 0 8px;font-size:14px;color:${EMAIL_MUTED};">Copy the following line:</p>
+          <p style="margin:0 0 16px;font-size:20px;font-weight:700;color:${EMAIL_AMBER};letter-spacing:0.08em;word-break:break-all;font-family:monospace;">${escapeHtml(tempPassword)}</p>
           <p style="margin:0 0 12px;font-size:16px;line-height:1.5;color:${EMAIL_TEXT};">Sign in here:</p>
           <p style="margin:0 0 24px;text-align:center;"><a href="${escapeHtml(loginLink)}" style="display:inline-block;padding:12px 24px;background-color:${EMAIL_AMBER};color:${EMAIL_BG};font-weight:600;text-decoration:none;border-radius:8px;">Sign in to VantagFleet</a></p>
           <p style="margin:0 0 24px;font-size:14px;color:${EMAIL_MUTED};">You will be required to set a new password the first time you sign in.</p>

@@ -233,16 +233,26 @@ export async function addOrgMemberByEmail(
   if (!isNewUser) {
     const { data: org } = await admin.from('organizations').select('name').eq('id', orgId).single();
     const companyName = (org as { name?: string } | null)?.name ?? 'your fleet';
-    const { subject, text, html } = getAddedToTeamEmail(loginUrl, role, { name: fullName, isVantagStaff: false });
-    const sent = await sendEmail({
-      to: trimmed,
-      department: 'APP_NOTIFICATION_SUPPORT',
-      subject: `You've been added to ${companyName}`,
-      text: text.replace('You\'ve been added to the team', `You've been added to ${companyName}`),
-      html,
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+    const tempPassword = Array.from({ length: 12 }, () => chars[randomBytes(1)[0]! % chars.length]).join('');
+    const { error: updateErr } = await admin.auth.admin.updateUserById(found.id, {
+      password: tempPassword,
+      user_metadata: { ...((found.user_metadata as Record<string, unknown>) ?? {}), must_change_password: true },
     });
-    if ('error' in sent) {
-      emailWarning = `Notification email could not be sent (${sent.error}). Share this sign-in link with them: ${loginUrl}`;
+    if (updateErr) {
+      emailWarning = `Could not set temporary password. Share the sign-in link: ${loginUrl}`;
+    } else {
+      const { subject, text, html } = getWelcomeToTeamEmail(loginUrl, tempPassword, role, { name: fullName, companyName, isVantagStaff: false });
+      const sent = await sendEmail({
+        to: trimmed,
+        department: 'APP_NOTIFICATION_SUPPORT',
+        subject,
+        text,
+        html,
+      });
+      if ('error' in sent) {
+        emailWarning = `Welcome email with temporary password could not be sent (${sent.error}). Share this password securely: ${tempPassword} and link: ${loginUrl}`;
+      }
     }
   }
 

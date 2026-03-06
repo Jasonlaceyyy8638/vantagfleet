@@ -236,14 +236,22 @@ export async function addVantagStaffMember(
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://vantagfleet.com';
   const loginUrl = `${appUrl}/login`;
-  const { subject, text, html } = getAddedToTeamEmail(loginUrl, role, { name: fullName, isVantagStaff: true });
-  await sendEmail({
-    to: trimmed,
-    department: 'APP_NOTIFICATION_SUPPORT',
-    subject,
-    text,
-    html,
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+  const tempPassword = Array.from({ length: 12 }, () => chars[randomBytes(1)[0]! % chars.length]).join('');
+  const { error: updateAuthErr } = await admin.auth.admin.updateUserById(found.id, {
+    password: tempPassword,
+    user_metadata: { ...((found.user_metadata as Record<string, unknown>) ?? {}), must_change_password: true },
   });
+  if (updateAuthErr) {
+    const { subject, text, html } = getAddedToTeamEmail(loginUrl, role, { name: fullName, isVantagStaff: true });
+    await sendEmail({ to: trimmed, department: 'APP_NOTIFICATION_SUPPORT', subject, text, html });
+  } else {
+    const { subject, text, html } = getWelcomeToTeamEmail(loginUrl, tempPassword, role, { name: fullName, isVantagStaff: true });
+    const sent = await sendEmail({ to: trimmed, department: 'APP_NOTIFICATION_SUPPORT', subject, text, html });
+    if ('error' in sent) {
+      return { error: `Team updated but welcome email failed. Share this temporary password securely: ${tempPassword}` };
+    }
+  }
 
   return { ok: true };
 }
