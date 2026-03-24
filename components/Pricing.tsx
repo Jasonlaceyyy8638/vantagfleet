@@ -1,8 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
-import { Check, Loader2, X } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { Check, Loader2, Sparkles, X, Zap } from 'lucide-react';
+import { useBetaSpotsLive } from '@/lib/useBetaSpotsLive';
+import { POST_BETA_ENTERPRISE_TRIAL_DAYS } from '@/lib/beta-config';
 
 type Billing = 'monthly' | 'yearly';
 
@@ -38,18 +41,15 @@ const ENTERPRISE_POINTS = [
 export function Pricing() {
   const [billing, setBilling] = useState<Billing>('monthly');
   const [loadingTier, setLoadingTier] = useState<string | null>(null);
-  const [betaSpotsRemaining, setBetaSpotsRemaining] = useState<number | null>(null);
-
-  useEffect(() => {
-    fetch('/api/beta-spots')
-      .then((res) => res.json())
-      .then((data: { remaining?: number }) => setBetaSpotsRemaining(data?.remaining ?? null))
-      .catch(() => setBetaSpotsRemaining(null));
-  }, []);
+  const { remaining: betaSpotsRemaining, cap: betaCap } = useBetaSpotsLive(true);
 
   const showFounderBadge = betaSpotsRemaining != null && betaSpotsRemaining > 0;
+  const betaFull = betaSpotsRemaining !== null && betaSpotsRemaining === 0;
 
-  const handleCheckout = async (tierId: 'solo_pro' | 'fleet_master' | 'enterprise') => {
+  const handleCheckout = async (
+    tierId: 'solo_pro' | 'fleet_master' | 'enterprise',
+    options?: { postBetaEnterpriseTrial?: boolean }
+  ) => {
     setLoadingTier(tierId);
     try {
       const res = await fetch('/api/checkout', {
@@ -58,6 +58,7 @@ export function Pricing() {
         body: JSON.stringify({
           tier: tierId,
           billing: billing === 'yearly' ? 'annual' : 'monthly',
+          ...(options?.postBetaEnterpriseTrial && { post_beta_enterprise_trial: true }),
         }),
       });
       const data = await res.json();
@@ -97,6 +98,60 @@ export function Pricing() {
           </span>
         )}
       </div>
+
+      {betaFull && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.98 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.4 }}
+          className="relative mb-10 overflow-hidden rounded-2xl border-2 border-cyber-amber/60 bg-gradient-to-br from-cyber-amber/30 via-midnight-ink to-violet-900/30 p-6 sm:p-8 shadow-[0_0_50px_-10px_rgba(255,176,0,0.45)]"
+        >
+          <motion.div
+            className="pointer-events-none absolute inset-0 opacity-30"
+            style={{
+              background:
+                'linear-gradient(110deg, transparent 40%, rgba(255,176,0,0.25) 50%, transparent 60%)',
+              backgroundSize: '200% 100%',
+            }}
+            animate={{ backgroundPosition: ['200% 0', '-200% 0'] }}
+            transition={{ duration: 4, repeat: Infinity, ease: 'linear' }}
+            aria-hidden
+          />
+          <div
+            className="pointer-events-none absolute -right-12 top-0 size-48 rounded-full bg-cyber-amber/25 blur-3xl"
+            aria-hidden
+          />
+          <div className="relative text-center max-w-2xl mx-auto space-y-4">
+            <div className="inline-flex flex-wrap items-center justify-center gap-2 rounded-full border border-cyber-amber/50 bg-midnight-ink/70 px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-cyber-amber">
+              <Sparkles className="size-4" aria-hidden />
+              Limited unlock
+              <Zap className="size-4" aria-hidden />
+            </div>
+            <h2 className="text-2xl sm:text-3xl font-bold text-white">
+              Founder beta is full — get{' '}
+              <span className="text-cyber-amber">{POST_BETA_ENTERPRISE_TRIAL_DAYS} days of Enterprise free</span>
+            </h2>
+            <p className="text-lg text-emerald-300 font-semibold">No credit card required to start</p>
+            <p className="text-sm text-soft-cloud/80">
+              Same Enterprise stack: live map, dispatchers, compliance at scale. Checkout skips the card until your trial ends — then you choose monthly or annual billing below.
+            </p>
+            <button
+              type="button"
+              onClick={() => handleCheckout('enterprise', { postBetaEnterpriseTrial: true })}
+              disabled={!!loadingTier}
+              className="inline-flex items-center justify-center gap-2 min-h-[52px] rounded-xl bg-cyber-amber px-8 py-3.5 text-midnight-ink font-bold text-base hover:bg-cyber-amber/90 disabled:opacity-60 shadow-[0_0_30px_-6px_rgba(255,176,0,0.6)]"
+            >
+              {loadingTier === 'enterprise' ? <Loader2 className="size-5 animate-spin" /> : null}
+              {loadingTier === 'enterprise'
+                ? 'Opening secure checkout…'
+                : `Start ${POST_BETA_ENTERPRISE_TRIAL_DAYS}-day Enterprise trial — no card`}
+            </button>
+            <p className="text-xs text-soft-cloud/50">
+              Uses {billing === 'yearly' ? 'annual' : 'monthly'} Enterprise pricing after trial when you add payment.
+            </p>
+          </div>
+        </motion.div>
+      )}
 
       {/* Three tier cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
@@ -148,8 +203,13 @@ export function Pricing() {
             Most Popular
           </div>
           {showFounderBadge && (
-            <div className="mt-4 mb-1 px-3 py-1.5 rounded-lg bg-cyber-amber/20 border border-cyber-amber/40 text-cyber-amber text-xs font-semibold text-center">
-              🎁 FOUNDER DEAL: Get this for $159/mo for life!
+            <div className="mt-4 mb-1 space-y-1">
+              <div className="px-3 py-1.5 rounded-lg bg-cyber-amber/20 border border-cyber-amber/40 text-cyber-amber text-xs font-semibold text-center">
+                🎁 FOUNDER DEAL: Get this for $159/mo for life!
+              </div>
+              <p className="text-center text-[11px] font-medium text-soft-cloud/70 tabular-nums">
+                <span className="text-cyber-amber font-bold">{betaSpotsRemaining}</span> of {betaCap} founder spots left · live
+              </p>
             </div>
           )}
           <h3 className="text-xl font-bold text-soft-cloud mt-2">Fleet Master</h3>
@@ -187,7 +247,16 @@ export function Pricing() {
         </div>
 
         {/* Enterprise */}
-        <div className="rounded-2xl border border-white/10 bg-midnight-ink p-6 flex flex-col">
+        <div
+          className={`rounded-2xl border bg-midnight-ink p-6 flex flex-col ${
+            betaFull ? 'border-cyber-amber/50 ring-1 ring-cyber-amber/30 shadow-[0_0_24px_-8px_rgba(255,176,0,0.35)]' : 'border-white/10'
+          }`}
+        >
+          {betaFull && (
+            <div className="mb-3 px-2 py-1 rounded-lg bg-emerald-500/15 border border-emerald-400/40 text-center text-xs font-bold text-emerald-300">
+              {POST_BETA_ENTERPRISE_TRIAL_DAYS}-DAY TRIAL · NO CARD TO START
+            </div>
+          )}
           <h3 className="text-xl font-bold text-soft-cloud">Enterprise</h3>
           <div className="mt-4 flex items-baseline gap-1">
             <span className="text-3xl font-bold text-cyber-amber">
@@ -210,12 +279,16 @@ export function Pricing() {
           </ul>
           <button
             type="button"
-            onClick={() => handleCheckout('enterprise')}
+            onClick={() =>
+              handleCheckout('enterprise', betaFull ? { postBetaEnterpriseTrial: true } : undefined)
+            }
             disabled={!!loadingTier}
             className="mt-6 w-full py-3 rounded-xl bg-cyber-amber text-midnight-ink font-bold hover:bg-cyber-amber/90 disabled:opacity-60 flex items-center justify-center gap-2"
           >
             {loadingTier === 'enterprise' ? (
               <Loader2 className="size-5 animate-spin" />
+            ) : betaFull ? (
+              `Start ${POST_BETA_ENTERPRISE_TRIAL_DAYS}-day trial — no card`
             ) : (
               'Get started'
             )}

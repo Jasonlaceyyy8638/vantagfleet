@@ -2,8 +2,20 @@ import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import Stripe from 'stripe';
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { getDashboardOrgId } from '@/lib/admin';
 import { EMAIL_BILLING } from '@/lib/email-addresses';
+import { BETA_FOUNDER_CAP, POST_BETA_ENTERPRISE_TRIAL_DAYS } from '@/lib/beta-config';
+
+async function getFounderBetaRemaining(): Promise<number> {
+  const admin = createAdminClient();
+  const { count, error } = await admin
+    .from('profiles')
+    .select('*', { count: 'exact', head: true })
+    .eq('is_beta_tester', true);
+  if (error) return BETA_FOUNDER_CAP;
+  return Math.max(0, BETA_FOUNDER_CAP - (count ?? 0));
+}
 
 export async function POST(request: NextRequest) {
   const secretKey = process.env.STRIPE_SECRET_KEY;
@@ -29,6 +41,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const type = body?.type as string | undefined;
     const tier = body?.tier as string | undefined;
+    const postBetaEnterpriseTrial = body?.post_beta_enterprise_trial === true;
 
     // IFTA add-on: one-time payment, requires auth
     if (type === 'ifta' || tier === 'ifta') {
@@ -106,11 +119,35 @@ export async function POST(request: NextRequest) {
     const isEnterprise = key === 'enterprise_monthly' || key === 'enterprise_annual';
     const tierLabel = isEnterprise ? 'Enterprise' : isPro ? 'Fleet Master' : 'Solo Pro';
     const TRIAL_PERIOD_DAYS = 7;
+
+    if (postBetaEnterpriseTrial) {
+      if (!isEnterprise) {
+        return NextResponse.json(
+          { error: 'Post-beta trial is only available for Enterprise.' },
+          { status: 400 }
+        );
+      }
+      const remaining = await getFounderBetaRemaining();
+      if (remaining > 0) {
+        return NextResponse.json(
+          { error: 'This offer unlocks when all founder beta spots are filled.' },
+          { status: 400 }
+        );
+      }
+    }
+
     const subscriptionData: Stripe.Checkout.SessionCreateParams['subscription_data'] = {
-      metadata: { business_name: 'VantagFleet', tier: tierLabel },
+      metadata: {
+        business_name: 'VantagFleet',
+        tier: tierLabel,
+        ...(postBetaEnterpriseTrial && { post_beta_enterprise_trial: 'true' }),
+      },
     };
     if (isPro) {
       subscriptionData.trial_period_days = TRIAL_PERIOD_DAYS;
+    }
+    if (postBetaEnterpriseTrial && isEnterprise) {
+      subscriptionData.trial_period_days = POST_BETA_ENTERPRISE_TRIAL_DAYS;
     }
 
     // Optional: link subscription to org when user is logged in (for webhook to set stripe_customer_id / trial_active)
@@ -136,17 +173,21 @@ export async function POST(request: NextRequest) {
       // ignore; checkout continues without org link
     }
 
+    const paymentMethodCollection: Stripe.Checkout.SessionCreateParams['payment_method_collection'] =
+      postBetaEnterpriseTrial && isEnterprise ? 'if_required' : 'always';
+
     const session = await stripe.checkout.sessions.create({
       mode: 'subscription',
       line_items: [{ price: priceId, quantity: 1 }],
       success_url: isBeta ? `${baseUrl}/dashboard/success` : `${baseUrl}/pricing/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${baseUrl}/pricing`,
-      payment_method_collection: 'always',
+      payment_method_collection: paymentMethodCollection,
       metadata: {
         business_name: 'VantagFleet',
         tier: tierLabel,
         support_email: EMAIL_BILLING,
         ...(orgId && { org_id: orgId }),
+        ...(postBetaEnterpriseTrial && { post_beta_enterprise_trial: 'true' }),
       },
       subscription_data: subscriptionData,
       discounts: isBeta ? [{ coupon: 'beta-tester-20' }] : [],

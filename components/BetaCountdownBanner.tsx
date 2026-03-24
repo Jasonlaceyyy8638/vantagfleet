@@ -25,8 +25,9 @@ export function BetaCountdownBanner({ betaExpiresAt, isBetaTester }: Props) {
   const daysRemaining = getDaysRemaining(betaExpiresAt);
   if (daysRemaining == null || daysRemaining <= 0) return null;
 
+  /** Last ~30 days: urgent upsell. Days 31+ (up to full 90-day or any beta term): active banner. */
   const isWarningPhase = daysRemaining >= 1 && daysRemaining <= 29;
-  const isActivePhase = daysRemaining >= 30 && daysRemaining <= 90;
+  const isActivePhase = daysRemaining >= 30;
 
   if (!isWarningPhase && !isActivePhase) return null;
 

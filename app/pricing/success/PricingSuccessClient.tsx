@@ -8,7 +8,13 @@ import confetti from 'canvas-confetti';
 const CYBER_AMBER = '#FFB000';
 const ELECTRIC_TEAL = '#00F5D4';
 
-export function PricingSuccessClient({ planName }: { planName: string | null }) {
+export function PricingSuccessClient({
+  planName,
+  enterprisePostBetaTrial = false,
+}: {
+  planName: string | null;
+  enterprisePostBetaTrial?: boolean;
+}) {
   const hasFired = useRef(false);
 
   useEffect(() => {
@@ -32,12 +38,34 @@ export function PricingSuccessClient({ planName }: { planName: string | null }) 
           <CheckCircle className="size-16 text-electric-teal" aria-hidden />
         </div>
         <h1 className="text-3xl font-bold text-soft-cloud mb-3">Welcome to VantagFleet</h1>
-        <p className="text-xl text-soft-cloud font-semibold mb-4">
-          Your 7-day free trial is now active
-        </p>
-        <p className="text-soft-cloud/80 text-sm mb-4">
-          Check your email for your trial reminder (sent 3 days before trial ends).
-        </p>
+        {enterprisePostBetaTrial ? (
+          <>
+            <p className="text-xl text-soft-cloud font-semibold mb-4">
+              Your 14-day Enterprise trial is active
+            </p>
+            <p className="text-soft-cloud/80 text-sm mb-4">
+              No card was required to start. Stripe will email you before your trial ends so you can add payment and keep full access.
+            </p>
+          </>
+        ) : planName === 'Fleet Master' ? (
+          <>
+            <p className="text-xl text-soft-cloud font-semibold mb-4">
+              Your 7-day free trial is now active
+            </p>
+            <p className="text-soft-cloud/80 text-sm mb-4">
+              Check your email for your trial reminder (sent 3 days before trial ends).
+            </p>
+          </>
+        ) : (
+          <>
+            <p className="text-xl text-soft-cloud font-semibold mb-4">
+              You&apos;re all set — welcome to VantagFleet
+            </p>
+            <p className="text-soft-cloud/80 text-sm mb-4">
+              Head to the dashboard to finish setup.
+            </p>
+          </>
+        )}
         {planName && planName !== 'your plan' && (
           <p className="text-soft-cloud/70 text-sm mb-6">
             You’re on <strong>{planName}</strong>.

@@ -8,11 +8,13 @@ export default async function PricingSuccessPage({ searchParams }: Props) {
   const sessionId = params.session_id?.trim();
   let tierLabel: string | null = null;
 
+  let enterprisePostBetaTrial = false;
   if (sessionId && process.env.STRIPE_SECRET_KEY) {
     try {
       const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
       const session = await stripe.checkout.sessions.retrieve(sessionId);
       tierLabel = (session.metadata?.tier as string) || null;
+      enterprisePostBetaTrial = session.metadata?.post_beta_enterprise_trial === 'true';
     } catch {
       // ignore; show generic welcome
     }
@@ -28,5 +30,5 @@ export default async function PricingSuccessPage({ searchParams }: Props) {
           ? 'Fleet Master'
           : null;
 
-  return <PricingSuccessClient planName={planName} />;
+  return <PricingSuccessClient planName={planName} enterprisePostBetaTrial={enterprisePostBetaTrial} />;
 }

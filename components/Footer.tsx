@@ -37,7 +37,7 @@ export function Footer() {
             </Link>
             <Link
               href="/download"
-              className="inline-flex items-center gap-2 text-soft-cloud/80 hover:text-cyber-amber transition-colors py-2 min-h-[44px]"
+              className="hidden md:inline-flex items-center gap-2 text-soft-cloud/80 hover:text-cyber-amber transition-colors py-2 min-h-[44px]"
             >
               <Monitor className="size-4" aria-hidden />
               Download Desktop App

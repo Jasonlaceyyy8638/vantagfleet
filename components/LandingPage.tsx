@@ -10,6 +10,8 @@ import { Pricing } from '@/components/Pricing';
 import { HeroLoginCard } from '@/components/HeroLoginCard';
 import { FileCheck, Users, Truck, Shield, ArrowRight, Plug, Quote, MapPin, X, Scale, FileText, Fuel, ChevronDown, Smartphone, Monitor } from 'lucide-react';
 import type { NavbarRole } from '@/lib/admin';
+import { useBetaSpotsLive } from '@/lib/useBetaSpotsLive';
+import { PostBetaEnterpriseTrialBanner } from '@/components/PostBetaEnterpriseTrialBanner';
 
 const glassCardClass =
   'backdrop-blur-lg border border-white/10 rounded-2xl shadow-[0_0_40px_-12px_rgba(255,176,0,0.15)]';
@@ -75,22 +77,11 @@ export function LandingPage({ isAuthenticated = false, navbarRole = null }: Land
   const [driverAppNotifySuccess, setDriverAppNotifySuccess] = useState(false);
   const [driverAppNotifyError, setDriverAppNotifyError] = useState<string | null>(null);
 
-  const [betaSpotsRemaining, setBetaSpotsRemaining] = useState<number | null>(null);
+  const { remaining: betaSpotsRemaining, cap: betaCap } = useBetaSpotsLive(!isAuthenticated);
   const [waitlistEmail, setWaitlistEmail] = useState('');
   const [waitlistSubmitting, setWaitlistSubmitting] = useState(false);
   const [waitlistSuccess, setWaitlistSuccess] = useState(false);
   const [waitlistError, setWaitlistError] = useState<string | null>(null);
-  useEffect(() => {
-    const fetchBeta = () => {
-      fetch('/api/beta-spots')
-        .then((res) => res.json())
-        .then((data: { remaining?: number }) => setBetaSpotsRemaining(data?.remaining ?? null))
-        .catch(() => setBetaSpotsRemaining(null));
-    };
-    fetchBeta();
-    const interval = setInterval(fetchBeta, 45000);
-    return () => clearInterval(interval);
-  }, []);
   const betaOpen = betaSpotsRemaining != null && betaSpotsRemaining > 0;
   const betaFull = betaSpotsRemaining !== null && betaSpotsRemaining === 0;
 
@@ -372,6 +363,60 @@ export function LandingPage({ isAuthenticated = false, navbarRole = null }: Land
         }}
         aria-hidden
       />
+
+      {/* Founder 90-day beta strip (marketing + waitlist when full) */}
+      {!isAuthenticated && betaSpotsRemaining !== null && (
+        <div className="border-b border-cyber-amber/35 bg-gradient-to-r from-cyber-amber/15 via-cyber-amber/10 to-cyber-amber/15 px-4 py-3 sm:py-4 text-center">
+          {betaOpen ? (
+            <p className="text-sm sm:text-base font-medium text-slate-100 max-w-3xl mx-auto leading-relaxed">
+              <span className="text-cyber-amber font-semibold">90-day founder beta</span>
+              {' — '}
+              Only the first <span className="text-cyber-amber font-semibold tabular-nums">{betaCap}</span> carriers get a free founder slot.{' '}
+              <span className="inline-flex flex-wrap items-baseline justify-center gap-x-1 gap-y-0.5">
+                <span className="whitespace-nowrap tabular-nums font-bold text-white text-base sm:text-lg">
+                  {betaSpotsRemaining} of {betaCap}
+                </span>
+                <span className="whitespace-nowrap">founder spots left</span>
+                <span className="text-slate-500 text-xs font-normal w-full sm:w-auto">· live</span>
+              </span>{' '}
+              <Link href="/signup" className="text-cyber-amber underline underline-offset-2 hover:no-underline font-semibold">
+                Get Started
+              </Link>
+            </p>
+          ) : betaFull ? (
+            <div className="max-w-3xl mx-auto space-y-5">
+              <PostBetaEnterpriseTrialBanner />
+              <div className="rounded-xl border border-white/10 bg-midnight-ink/40 px-4 py-3">
+                <p className="text-xs sm:text-sm font-medium text-slate-400 mb-2">
+                  Rather get notified if a founder spot opens? Join the waitlist.
+                </p>
+                {waitlistSuccess ? (
+                  <p className="text-sm text-emerald-400">You&apos;re on the list. Thanks!</p>
+                ) : (
+                  <form onSubmit={handleWaitlistSubmit} className="flex flex-col sm:flex-row gap-2 justify-center items-stretch sm:items-center max-w-lg mx-auto">
+                    <input
+                      type="email"
+                      required
+                      value={waitlistEmail}
+                      onChange={(e) => setWaitlistEmail(e.target.value)}
+                      placeholder="Email"
+                      className="min-h-[44px] rounded-lg border border-white/20 bg-midnight-ink/80 px-3 py-2 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-cyber-amber/50"
+                    />
+                    <button
+                      type="submit"
+                      disabled={waitlistSubmitting}
+                      className="min-h-[44px] shrink-0 rounded-lg border border-cyber-amber/40 bg-transparent px-4 py-2 text-sm font-semibold text-cyber-amber hover:bg-cyber-amber/10 disabled:opacity-60"
+                    >
+                      {waitlistSubmitting ? 'Submitting…' : 'Join waitlist'}
+                    </button>
+                  </form>
+                )}
+                {waitlistError && <p className="text-sm text-red-400 mt-2">{waitlistError}</p>}
+              </div>
+            </div>
+          ) : null}
+        </div>
+      )}
 
       {/* Hero: video when it loads; gradient fallback so it's never plain black */}
       <section className="relative min-h-[100dvh] sm:min-h-screen flex flex-col items-center justify-center overflow-hidden bg-midnight-ink">
@@ -1662,7 +1707,7 @@ function CTASection({
               </a>
               <Link
                 href="/download"
-                className="inline-flex items-center justify-center gap-2 min-h-[52px] px-8 py-4 rounded-2xl border-2 border-cyber-amber/50 bg-cyber-amber/10 text-cyber-amber font-bold text-lg hover:bg-cyber-amber/20 hover:border-cyber-amber transition-colors"
+                className="hidden md:inline-flex items-center justify-center gap-2 min-h-[52px] px-8 py-4 rounded-2xl border-2 border-cyber-amber/50 bg-cyber-amber/10 text-cyber-amber font-bold text-lg hover:bg-cyber-amber/20 hover:border-cyber-amber transition-colors"
               >
                 <Monitor className="size-5 shrink-0" aria-hidden />
                 Download Desktop App
