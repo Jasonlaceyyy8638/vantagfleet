@@ -6,7 +6,11 @@ import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Check, Loader2, Sparkles, X, Zap } from 'lucide-react';
 import { useBetaSpotsLive } from '@/lib/useBetaSpotsLive';
-import { FOUNDER_ENTERPRISE_DAYS, POST_BETA_ENTERPRISE_TRIAL_DAYS } from '@/lib/beta-config';
+import {
+  FOUNDER_ENTERPRISE_DAYS,
+  FOUNDER_ENTERPRISE_LIFETIME_MONTHLY_USD,
+  POST_BETA_ENTERPRISE_TRIAL_DAYS,
+} from '@/lib/beta-config';
 
 type Billing = 'monthly' | 'yearly';
 
@@ -204,17 +208,7 @@ export function Pricing() {
           <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-cyber-amber text-midnight-ink text-xs font-bold uppercase tracking-wide">
             Most Popular
           </div>
-          {showFounderBadge && (
-            <div className="mt-4 mb-1 space-y-1">
-              <div className="px-3 py-1.5 rounded-lg bg-cyber-amber/20 border border-cyber-amber/40 text-cyber-amber text-xs font-semibold text-center">
-                🎁 FOUNDER DEAL: Get this for $159/mo for life!
-              </div>
-              <p className="text-center text-[11px] font-medium text-soft-cloud/70 tabular-nums">
-                <span className="text-cyber-amber font-bold">{betaSpotsRemaining}</span> of {betaCap} founder spots left · live
-              </p>
-            </div>
-          )}
-          <h3 className="text-xl font-bold text-soft-cloud mt-2">Fleet Master</h3>
+          <h3 className="text-xl font-bold text-soft-cloud mt-6">Fleet Master</h3>
           <div className="mt-4 flex items-baseline gap-1">
             <span className="text-3xl font-bold text-cyber-amber">
               {billing === 'yearly' ? '$1,990' : '$199'}
@@ -261,8 +255,9 @@ export function Pricing() {
         >
           {showFounderBadge && (
             <div className="mt-4 mb-1 space-y-1">
-              <div className="px-3 py-1.5 rounded-lg bg-cyber-amber/20 border border-cyber-amber/40 text-cyber-amber text-xs font-semibold text-center">
-                FOUNDER: {FOUNDER_ENTERPRISE_DAYS} days Enterprise · no card — sign up free
+              <div className="px-3 py-1.5 rounded-lg bg-cyber-amber/20 border border-cyber-amber/40 text-cyber-amber text-xs font-semibold text-center leading-snug">
+                🎁 FOUNDER DEAL: ${FOUNDER_ENTERPRISE_LIFETIME_MONTHLY_USD}/mo Enterprise for life ·{' '}
+                {FOUNDER_ENTERPRISE_DAYS} days on us now · no card to sign up
               </div>
               <p className="text-center text-[11px] font-medium text-soft-cloud/70 tabular-nums">
                 <span className="text-cyber-amber font-bold">{betaSpotsRemaining}</span> of {betaCap} founder spots left · live

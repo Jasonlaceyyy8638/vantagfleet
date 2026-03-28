@@ -7,5 +7,8 @@ export const BETA_FOUNDER_CAP = 5;
  */
 export const FOUNDER_ENTERPRISE_DAYS = 90;
 
+/** Monthly rate locked for founding Enterprise carriers (marketing + checkout messaging). */
+export const FOUNDER_ENTERPRISE_LIFETIME_MONTHLY_USD = 359;
+
 /** Enterprise trial after founder beta is full — no card at checkout (Stripe collects when trial ends). */
 export const POST_BETA_ENTERPRISE_TRIAL_DAYS = 14;
