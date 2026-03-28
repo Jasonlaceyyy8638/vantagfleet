@@ -12,8 +12,9 @@ export default function PricingPage() {
             Sign up at <Link href="/signup" className="text-cyber-amber/90 font-medium hover:underline">/signup</Link> with{' '}
             <strong className="text-soft-cloud/80">no credit card</strong>. The first 5 carriers get{' '}
             <strong className="text-cyber-amber/90">90 days of Enterprise-level access</strong>. After those founder slots are filled, Enterprise offers a{' '}
-            <strong className="text-cyber-amber/90">14-day trial with no credit card at checkout</strong>{' '}
-            (Fleet Master keeps a 7-day trial with card at checkout). Add payment before the trial ends to stay subscribed.
+            <strong className="text-cyber-amber/90">14-day trial with no credit card at checkout</strong>.{' '}
+            Fleet Master includes a <strong className="text-soft-cloud/80">7-day trial</strong>, also{' '}
+            <strong className="text-soft-cloud/80">without a card at checkout</strong>. Add payment before the trial ends to stay subscribed.
           </p>
         </div>
         <Pricing />

@@ -2,10 +2,11 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Check, Loader2, Sparkles, X, Zap } from 'lucide-react';
 import { useBetaSpotsLive } from '@/lib/useBetaSpotsLive';
-import { POST_BETA_ENTERPRISE_TRIAL_DAYS } from '@/lib/beta-config';
+import { FOUNDER_ENTERPRISE_DAYS, POST_BETA_ENTERPRISE_TRIAL_DAYS } from '@/lib/beta-config';
 
 type Billing = 'monthly' | 'yearly';
 
@@ -39,6 +40,7 @@ const ENTERPRISE_POINTS = [
 ];
 
 export function Pricing() {
+  const router = useRouter();
   const [billing, setBilling] = useState<Billing>('monthly');
   const [loadingTier, setLoadingTier] = useState<string | null>(null);
   const { remaining: betaSpotsRemaining, cap: betaCap } = useBetaSpotsLive(true);
@@ -232,6 +234,9 @@ export function Pricing() {
               </li>
             ))}
           </ul>
+          <p className="mt-2 text-[11px] text-center text-emerald-300/90 font-medium">
+            7-day trial · no card at checkout
+          </p>
           <button
             type="button"
             onClick={() => handleCheckout('fleet_master')}
@@ -249,15 +254,27 @@ export function Pricing() {
         {/* Enterprise */}
         <div
           className={`rounded-2xl border bg-midnight-ink p-6 flex flex-col ${
-            betaFull ? 'border-cyber-amber/50 ring-1 ring-cyber-amber/30 shadow-[0_0_24px_-8px_rgba(255,176,0,0.35)]' : 'border-white/10'
+            betaFull || showFounderBadge
+              ? 'border-cyber-amber/50 ring-1 ring-cyber-amber/30 shadow-[0_0_24px_-8px_rgba(255,176,0,0.35)]'
+              : 'border-white/10'
           }`}
         >
+          {showFounderBadge && (
+            <div className="mt-4 mb-1 space-y-1">
+              <div className="px-3 py-1.5 rounded-lg bg-cyber-amber/20 border border-cyber-amber/40 text-cyber-amber text-xs font-semibold text-center">
+                FOUNDER: {FOUNDER_ENTERPRISE_DAYS} days Enterprise · no card — sign up free
+              </div>
+              <p className="text-center text-[11px] font-medium text-soft-cloud/70 tabular-nums">
+                <span className="text-cyber-amber font-bold">{betaSpotsRemaining}</span> of {betaCap} founder spots left · live
+              </p>
+            </div>
+          )}
           {betaFull && (
             <div className="mb-3 px-2 py-1 rounded-lg bg-emerald-500/15 border border-emerald-400/40 text-center text-xs font-bold text-emerald-300">
               {POST_BETA_ENTERPRISE_TRIAL_DAYS}-DAY TRIAL · NO CARD TO START
             </div>
           )}
-          <h3 className="text-xl font-bold text-soft-cloud">Enterprise</h3>
+          <h3 className={`text-xl font-bold text-soft-cloud ${showFounderBadge && !betaFull ? 'mt-2' : ''}`}>Enterprise</h3>
           <div className="mt-4 flex items-baseline gap-1">
             <span className="text-3xl font-bold text-cyber-amber">
               {billing === 'yearly' ? '$3,990' : '$399'}
@@ -279,14 +296,20 @@ export function Pricing() {
           </ul>
           <button
             type="button"
-            onClick={() =>
-              handleCheckout('enterprise', betaFull ? { postBetaEnterpriseTrial: true } : undefined)
-            }
+            onClick={() => {
+              if (showFounderBadge) {
+                router.push('/signup');
+                return;
+              }
+              handleCheckout('enterprise', betaFull ? { postBetaEnterpriseTrial: true } : undefined);
+            }}
             disabled={!!loadingTier}
             className="mt-6 w-full py-3 rounded-xl bg-cyber-amber text-midnight-ink font-bold hover:bg-cyber-amber/90 disabled:opacity-60 flex items-center justify-center gap-2"
           >
             {loadingTier === 'enterprise' ? (
               <Loader2 className="size-5 animate-spin" />
+            ) : showFounderBadge ? (
+              'Claim founder spot — free signup'
             ) : betaFull ? (
               `Start ${POST_BETA_ENTERPRISE_TRIAL_DAYS}-day trial — no card`
             ) : (

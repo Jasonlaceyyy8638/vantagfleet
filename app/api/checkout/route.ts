@@ -150,6 +150,9 @@ export async function POST(request: NextRequest) {
       subscriptionData.trial_period_days = POST_BETA_ENTERPRISE_TRIAL_DAYS;
     }
 
+    const hasSubscriptionTrial =
+      typeof subscriptionData.trial_period_days === 'number' && subscriptionData.trial_period_days > 0;
+
     // Optional: link subscription to org when user is logged in (for webhook to set stripe_customer_id / trial_active)
     let orgId: string | undefined;
     let isBeta = false;
@@ -173,8 +176,9 @@ export async function POST(request: NextRequest) {
       // ignore; checkout continues without org link
     }
 
+    /** Trials (Fleet Master 7-day, Enterprise 14-day post-beta): no card at checkout; Stripe collects before billing. */
     const paymentMethodCollection: Stripe.Checkout.SessionCreateParams['payment_method_collection'] =
-      postBetaEnterpriseTrial && isEnterprise ? 'if_required' : 'always';
+      hasSubscriptionTrial ? 'if_required' : 'always';
 
     const session = await stripe.checkout.sessions.create({
       mode: 'subscription',
