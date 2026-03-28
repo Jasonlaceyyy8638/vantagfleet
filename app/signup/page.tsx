@@ -25,7 +25,14 @@ export default async function SignUpPage() {
           </h1>
           <BetaSpotsLiveBadge />
         </div>
-        <p className="text-soft-cloud/70 text-sm mb-4">Register your company, then set your login.</p>
+        <div className="text-soft-cloud/70 text-sm mb-4 space-y-2 text-left">
+          <p>Register your company, then set your login. <span className="text-soft-cloud/90">No credit card required</span> — email and password only.</p>
+          <p>
+            <span className="text-cyber-amber/95 font-semibold">First 5 founders:</span>{' '}
+            <span className="text-soft-cloud/90">90 days of Enterprise-level access</span> on us. After those slots are full, new carriers can start a{' '}
+            <span className="text-soft-cloud/90">14-day Enterprise trial</span> without a card at checkout (see pricing).
+          </p>
+        </div>
         <SignUpForm />
         <p className="mt-4 text-center text-sm text-soft-cloud/90">
           Already have an account?{' '}

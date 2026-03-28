@@ -31,7 +31,7 @@ function getMcs150DueFromDot(dot: string): { month: string; year: number } | nul
   let year = isOddYear
     ? (currentYear % 2 === 1 ? currentYear : currentYear + 1)
     : (currentYear % 2 === 0 ? currentYear : currentYear + 1);
-  const monthIndex = last === '0' ? 9 : parseInt(last, 10) - 1; // 0=Oct(9), 1=Jan(0), ..., 9=Sep(8)
+  const monthIndex = last === '0' ? 9 : parseInt(last, 10) - 1;
   const dueDate = new Date(year, monthIndex, 1);
   if (dueDate < now) year += 2;
   return { month, year };
@@ -141,6 +141,8 @@ export function SignUpForm() {
     setLoading(true);
     setMessage('');
     const supabase = getSupabaseClient();
+    
+    // 1. Supabase Auth Sign Up
     const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
       email: email.trim(),
       password,
@@ -149,15 +151,16 @@ export function SignUpForm() {
         data: { full_name: fullName.trim() || null },
       },
     });
+
     if (signUpError) {
       setLoading(false);
       setMessage(signUpError.message);
       return;
     }
-    // Session is available on the client now; server action may not see cookies yet.
-    // A profile row is created by a DB trigger on auth.users; we only update it here.
+
     const user = signUpData.user;
     if (user) {
+      // 2. Update Profile Table
       const { error: profileError } = await supabase
         .from('profiles')
         .update({
@@ -166,19 +169,39 @@ export function SignUpForm() {
           full_name: fullName.trim() || null,
         })
         .or(`id.eq.${user.id},user_id.eq.${user.id}`);
+
+      // --- DISCORD PING & LEAD CAPTURE ---
+      // We fire this now because the account is officially created
+      try {
+        await fetch('/api/signup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            legal_name: companyName,
+            dot_number: usdot,
+            email: email.trim(),
+          }),
+        });
+      } catch (err) {
+        console.error("Discord notification failed, but user was created.");
+      }
+
       if (profileError) {
         setLoading(false);
         setMessage(profileError.message || 'Could not create profile.');
         return;
       }
-      // Beta vs paid: redirect beta testers to dashboard with welcome; others to pricing.
+
+      // 3. Handle Beta Redirects
       const { data: profile } = await supabase
         .from('profiles')
         .select('is_beta_tester')
         .eq('user_id', user.id)
         .eq('org_id', orgId)
         .single();
+        
       const isBeta = (profile as { is_beta_tester?: boolean } | null)?.is_beta_tester === true;
+      
       if (isBeta) {
         router.push('/dashboard?welcome=beta');
       } else {
@@ -195,29 +218,18 @@ export function SignUpForm() {
     return (
       <div className="relative">
         {toast && (
-          <div
-            className={`mb-4 flex items-center justify-between gap-3 rounded-lg border px-4 py-3 text-sm ${
-              toast.type === 'success'
-                ? 'border-green-500/50 bg-green-500/10 text-green-200'
-                : 'border-red-500/50 bg-red-500/10 text-red-200'
-            }`}
-          >
+          <div className={`mb-4 flex items-center justify-between gap-3 rounded-lg border px-4 py-3 text-sm ${
+            toast.type === 'success' ? 'border-green-500/50 bg-green-500/10 text-green-200' : 'border-red-500/50 bg-red-500/10 text-red-200'
+          }`}>
             <span>{toast.message}</span>
-            <button
-              type="button"
-              onClick={() => setToast(null)}
-              className={`shrink-0 rounded p-1 ${toast.type === 'success' ? 'hover:bg-green-500/20' : 'hover:bg-red-500/20'}`}
-              aria-label="Dismiss"
-            >
+            <button type="button" onClick={() => setToast(null)} className={`shrink-0 rounded p-1 ${toast.type === 'success' ? 'hover:bg-green-500/20' : 'hover:bg-red-500/20'}`}>
               <X className="size-4" />
             </button>
           </div>
         )}
       <form onSubmit={handleCompanySubmit} className="space-y-4">
         <div>
-          <label htmlFor="usdot" className="block text-sm font-medium text-soft-cloud/90 mb-1">
-            USDOT number *
-          </label>
+          <label htmlFor="usdot" className="block text-sm font-medium text-soft-cloud/90 mb-1">USDOT number *</label>
           <div className="flex gap-2">
             <motion.input
               id="usdot"
@@ -232,9 +244,7 @@ export function SignUpForm() {
               required
               animate={dotInputError ? { x: [0, -6, 6, -6, 6, 0] } : { x: 0 }}
               transition={{ duration: 0.4 }}
-              className={`flex-1 px-4 py-3 rounded-xl bg-white/5 text-soft-cloud placeholder-soft-cloud/40 focus:outline-none focus:border-cyber-amber focus:ring-1 focus:ring-cyber-amber/50 border transition-colors ${
-                dotInputError ? 'border-red-500' : 'border-white/20'
-              }`}
+              className={`flex-1 px-4 py-3 rounded-xl bg-white/5 text-soft-cloud placeholder-soft-cloud/40 focus:outline-none focus:border-cyber-amber focus:ring-1 focus:ring-cyber-amber/50 border transition-colors ${dotInputError ? 'border-red-500' : 'border-white/20'}`}
               placeholder="e.g. 1234567"
             />
             <div className="relative shrink-0 flex items-center justify-center">
@@ -243,33 +253,14 @@ export function SignUpForm() {
                 type="button"
                 onClick={handleVerify}
                 disabled={verifyLoading || !usdot.trim()}
-                initial={
-                  dotVerified
-                    ? { scale: 0.88, backgroundColor: 'rgb(245 158 11)', color: 'rgb(0 0 0)' }
-                    : { scale: 1, backgroundColor: 'transparent', color: 'rgb(245 158 11)' }
-                }
-                animate={{
-                  scale: 1,
-                  backgroundColor: dotVerified ? 'rgb(245 158 11)' : 'transparent',
-                  color: dotVerified ? 'rgb(0 0 0)' : 'rgb(245 158 11)',
-                  borderColor: 'rgb(245 158 11)',
-                }}
-                transition={
-                  dotVerified
-                    ? { type: 'spring', stiffness: 400, damping: 16 }
-                    : { duration: 0.2 }
-                }
+                initial={dotVerified ? { scale: 0.88, backgroundColor: 'rgb(245 158 11)', color: 'rgb(0 0 0)' } : { scale: 1, backgroundColor: 'transparent', color: 'rgb(245 158 11)' }}
+                animate={{ scale: 1, backgroundColor: dotVerified ? 'rgb(245 158 11)' : 'transparent', color: dotVerified ? 'rgb(0 0 0)' : 'rgb(245 158 11)', borderColor: 'rgb(245 158 11)' }}
                 className="relative z-10 px-4 py-2 rounded-lg border-2 flex items-center justify-center gap-1.5 min-w-[10rem] disabled:opacity-50 overflow-visible"
               >
                 {verifyLoading && (
                   <>
-                    <motion.span
-                      className="absolute w-4 h-4 rounded-full bg-amber-500/60"
-                      aria-hidden
-                      animate={{ scale: [0.6, 1.8], opacity: [0.7, 0] }}
-                      transition={{ repeat: Infinity, duration: 1.2, ease: 'easeOut' }}
-                    />
-                    <span className="absolute inset-0 rounded-lg bg-amber-500/25 animate-ping" aria-hidden />
+                    <motion.span className="absolute w-4 h-4 rounded-full bg-amber-500/60" animate={{ scale: [0.6, 1.8], opacity: [0.7, 0] }} transition={{ repeat: Infinity, duration: 1.2, ease: 'easeOut' }} />
+                    <span className="absolute inset-0 rounded-lg bg-amber-500/25 animate-ping" />
                   </>
                 )}
                 <span className="relative z-10 text-sm font-medium tracking-wide">
@@ -282,17 +273,11 @@ export function SignUpForm() {
             <div className="mt-2 space-y-1">
               <p className="flex items-center gap-1.5 text-sm text-green-500">
                 <CheckCircle2 className="size-4 shrink-0" />
-                <span className="inline-flex items-center rounded-md bg-green-500/15 px-2 py-0.5 font-medium text-green-400">
-                  DOT on file (MCS-150)
-                </span>
-              </p>
-              <p className="text-xs text-soft-cloud/60">
-                Keep insurance (BMC-91) and process agents (BOC-3) current to operate legally.
+                <span className="inline-flex items-center rounded-md bg-green-500/15 px-2 py-0.5 font-medium text-green-400">DOT on file (MCS-150)</span>
               </p>
             </div>
           )}
           {verifyError && <p className="mt-1 text-sm text-red-400">{verifyError}</p>}
-          {/* Compliance Health — MCS-150 due date from DOT (adds expert authority) */}
           {usdot.replace(/\D/g, '').length >= 2 && (() => {
             const due = getMcs150DueFromDot(usdot);
             if (!due) return null;
@@ -301,21 +286,14 @@ export function SignUpForm() {
                 <Shield className="size-4 text-amber-500 shrink-0 mt-0.5" />
                 <div>
                   <p className="text-xs font-medium text-soft-cloud/80 uppercase tracking-wider">Compliance Health</p>
-                  <p className="text-sm text-soft-cloud font-medium mt-0.5">
-                    Next filing due: {due.month} {due.year}
-                  </p>
-                  <p className="text-xs text-soft-cloud/50 mt-1">
-                    MCS-150 biennial update · Based on your DOT number.
-                  </p>
+                  <p className="text-sm text-soft-cloud font-medium mt-0.5">Next filing due: {due.month} {due.year}</p>
                 </div>
               </div>
             );
           })()}
         </div>
         <div>
-          <label htmlFor="companyName" className="block text-sm font-medium text-soft-cloud/90 mb-1">
-            Company name
-          </label>
+          <label htmlFor="companyName" className="block text-sm font-medium text-soft-cloud/90 mb-1">Company name</label>
           <input
             id="companyName"
             type="text"
@@ -323,21 +301,13 @@ export function SignUpForm() {
             onChange={(e) => setCompanyName(e.target.value)}
             required
             className={`w-full px-4 py-3 rounded-xl bg-white/5 border text-soft-cloud placeholder-soft-cloud/40 focus:outline-none focus:border-cyber-amber focus:ring-1 focus:ring-cyber-amber/50 transition-all duration-200 ${
-              companyNameFlash
-                ? 'border-amber-500 shadow-[0_0_16px_rgba(245,158,11,0.4)]'
-                : dotVerified
-                  ? 'border-green-500/50 shadow-[0_0_14px_rgba(34,197,94,0.35)]'
-                  : 'border-white/20'
+              companyNameFlash ? 'border-amber-500 shadow-[0_0_16px_rgba(245,158,11,0.4)]' : dotVerified ? 'border-green-500/50 shadow-[0_0_14px_rgba(34,197,94,0.35)]' : 'border-white/20'
             }`}
             placeholder="Acme Trucking LLC"
           />
         </div>
         {message && <p className="text-sm text-red-400">{message}</p>}
-        <button
-          type="submit"
-          disabled={loading || !dotVerified}
-          className="w-full py-3 rounded-xl bg-cyber-amber hover:bg-cyber-amber/90 disabled:opacity-50 text-midnight-ink font-semibold transition-colors"
-        >
+        <button type="submit" disabled={loading || !dotVerified} className="w-full py-3 rounded-xl bg-cyber-amber hover:bg-cyber-amber/90 disabled:opacity-50 text-midnight-ink font-semibold transition-colors">
           {loading ? 'Creating…' : 'Create Account'}
         </button>
       </form>
@@ -349,9 +319,7 @@ export function SignUpForm() {
     <form onSubmit={handleAccountSubmit} className="space-y-4">
       <p className="text-soft-cloud/70 text-sm">Company: <span className="text-soft-cloud">{companyName}</span></p>
       <div>
-        <label htmlFor="fullName" className="block text-sm font-medium text-soft-cloud/90 mb-1">
-          Full name
-        </label>
+        <label htmlFor="fullName" className="block text-sm font-medium text-soft-cloud/90 mb-1">Full name</label>
         <input
           id="fullName"
           type="text"
@@ -362,9 +330,7 @@ export function SignUpForm() {
         />
       </div>
       <div>
-        <label htmlFor="email" className="block text-sm font-medium text-soft-cloud/90 mb-1">
-          Email
-        </label>
+        <label htmlFor="email" className="block text-sm font-medium text-soft-cloud/90 mb-1">Email</label>
         <input
           id="email"
           type="email"
@@ -376,9 +342,7 @@ export function SignUpForm() {
         />
       </div>
       <div>
-        <label htmlFor="password" className="block text-sm font-medium text-soft-cloud/90 mb-1">
-          Password
-        </label>
+        <label htmlFor="password" className="block text-sm font-medium text-soft-cloud/90 mb-1">Password</label>
         <PasswordInput
           id="password"
           value={password}
@@ -391,18 +355,8 @@ export function SignUpForm() {
       </div>
       {message && <p className="text-sm text-red-400">{message}</p>}
       <div className="flex gap-3">
-        <button
-          type="button"
-          onClick={() => setStep('company')}
-          className="py-3 px-4 rounded-xl border border-white/20 text-soft-cloud hover:bg-white/10 font-medium transition-colors"
-        >
-          Back
-        </button>
-        <button
-          type="submit"
-          disabled={loading}
-          className="flex-1 py-3 rounded-xl bg-cyber-amber hover:bg-cyber-amber/90 disabled:opacity-50 text-midnight-ink font-semibold transition-colors"
-        >
+        <button type="button" onClick={() => setStep('company')} className="py-3 px-4 rounded-xl border border-white/20 text-soft-cloud hover:bg-white/10 font-medium transition-colors">Back</button>
+        <button type="submit" disabled={loading} className="flex-1 py-3 rounded-xl bg-cyber-amber hover:bg-cyber-amber/90 disabled:opacity-50 text-midnight-ink font-semibold transition-colors">
           {loading ? 'Signing up…' : 'Sign up'}
         </button>
       </div>

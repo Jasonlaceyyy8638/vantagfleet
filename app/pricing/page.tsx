@@ -9,8 +9,11 @@ export default function PricingPage() {
           <h1 className="text-3xl font-bold text-soft-cloud">Solo Pro, Fleet Master & Enterprise</h1>
           <p className="text-soft-cloud/70 mt-2">One dashboard. Choose what fits your fleet.</p>
           <p className="text-soft-cloud/60 text-sm mt-2 max-w-xl mx-auto">
-            Fleet Master: 7-day trial (card at checkout). When founder beta is full, Enterprise includes a{' '}
-            <strong className="text-cyber-amber/90">14-day trial with no credit card</strong> — add payment before the trial ends to stay on Enterprise.
+            Sign up at <Link href="/signup" className="text-cyber-amber/90 font-medium hover:underline">/signup</Link> with{' '}
+            <strong className="text-soft-cloud/80">no credit card</strong>. The first 5 carriers get{' '}
+            <strong className="text-cyber-amber/90">90 days of Enterprise-level access</strong>. After those founder slots are filled, Enterprise offers a{' '}
+            <strong className="text-cyber-amber/90">14-day trial with no credit card at checkout</strong>{' '}
+            (Fleet Master keeps a 7-day trial with card at checkout). Add payment before the trial ends to stay subscribed.
           </p>
         </div>
         <Pricing />

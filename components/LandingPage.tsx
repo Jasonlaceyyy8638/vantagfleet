@@ -11,6 +11,7 @@ import { HeroLoginCard } from '@/components/HeroLoginCard';
 import { FileCheck, Users, Truck, Shield, ArrowRight, Plug, Quote, MapPin, X, Scale, FileText, Fuel, ChevronDown, Smartphone, Monitor } from 'lucide-react';
 import type { NavbarRole } from '@/lib/admin';
 import { useBetaSpotsLive } from '@/lib/useBetaSpotsLive';
+import { FOUNDER_ENTERPRISE_DAYS } from '@/lib/beta-config';
 import { PostBetaEnterpriseTrialBanner } from '@/components/PostBetaEnterpriseTrialBanner';
 
 const glassCardClass =
@@ -369,9 +370,10 @@ export function LandingPage({ isAuthenticated = false, navbarRole = null }: Land
         <div className="border-b border-cyber-amber/35 bg-gradient-to-r from-cyber-amber/15 via-cyber-amber/10 to-cyber-amber/15 px-4 py-3 sm:py-4 text-center">
           {betaOpen ? (
             <p className="text-sm sm:text-base font-medium text-slate-100 max-w-3xl mx-auto leading-relaxed">
-              <span className="text-cyber-amber font-semibold">90-day founder beta</span>
+              <span className="text-cyber-amber font-semibold">{FOUNDER_ENTERPRISE_DAYS}-day Enterprise founder access</span>
               {' — '}
-              Only the first <span className="text-cyber-amber font-semibold tabular-nums">{betaCap}</span> carriers get a free founder slot.{' '}
+              Only the first <span className="text-cyber-amber font-semibold tabular-nums">{betaCap}</span> carriers get full Enterprise-level features on us.{' '}
+              <span className="text-emerald-300/95 font-medium">No credit card to sign up.</span>{' '}
               <span className="inline-flex flex-wrap items-baseline justify-center gap-x-1 gap-y-0.5">
                 <span className="whitespace-nowrap tabular-nums font-bold text-white text-base sm:text-lg">
                   {betaSpotsRemaining} of {betaCap}
