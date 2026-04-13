@@ -2,12 +2,14 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { OrgSwitcher } from '@/components/OrgSwitcher';
+import { GlobalSearchBar } from '@/components/GlobalSearchBar';
 import { Logo } from '@/components/Logo';
 import type { Organization } from '@/lib/types';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard,
+  LayoutGrid,
   Users,
   UserPlus,
   User,
@@ -21,10 +23,10 @@ import {
   Shield,
   Plug,
   ChevronUp,
+  ChevronDown,
   BarChart3,
   Headphones,
   FileStack,
-  FolderOpen,
   Upload,
   Fuel,
   Building2,
@@ -34,22 +36,39 @@ import {
   Package,
   Menu,
   X,
+  Handshake,
+  Landmark,
+  Store,
+  Network,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { EMAIL_SUPPORT, EMAIL_INFO } from '@/lib/email-addresses';
 import { SupportTicketModal } from '@/components/SupportTicketModal';
+import { useDemoMode } from '@/src/contexts/DemoModeContext';
 
-const nav = [
+/** Primary TMS workflow (load-centric). */
+const navPrimary = [
+  { href: '/dispatch', label: 'Dispatch Board', icon: LayoutGrid },
+  { href: '/loads', label: 'Active Loads', icon: DollarSign },
+  { href: '/customers', label: 'Customers', icon: Handshake },
+  { href: '/settlements', label: 'Settlements', icon: Landmark },
+];
+
+const navCore = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/dispatcher', label: 'Dispatcher Dashboard', icon: LayoutDashboard },
   { href: '/dashboard/map', label: 'Live Map', icon: MapPin },
   { href: '/dashboard/enterprise', label: 'Enterprise Overview', icon: Building2 },
   { href: '/drivers', label: 'Drivers', icon: Users },
   { href: '/vehicles', label: 'Vehicles', icon: Truck },
-  { href: '/loads', label: 'Loads', icon: DollarSign },
-  { href: '/dashboard/ifta', label: 'IFTA', icon: Fuel },
+];
+
+const safetyAdminNav = [
   { href: '/compliance', label: 'Compliance', icon: FileCheck },
+  { href: '/dashboard/ifta', label: 'IFTA', icon: Fuel },
   { href: '/documents', label: 'New Hire Documents', icon: FileStack },
+];
+
+const navTail = [
   { href: '/regulatory', label: 'Regulatory', icon: ShieldCheck },
   { href: '/dashboard/integrations', label: 'Integrations', icon: Plug },
   { href: '/roadside-mode', label: 'Roadside', icon: Smartphone },
@@ -59,15 +78,45 @@ const nav = [
   { href: '/settings/team', label: 'Team', icon: UserPlus },
 ];
 
-/** Dispatcher (and Driver_Manager) see Dispatcher Dashboard first, then these items. */
-const dispatcherNav = [
-  { href: '/dispatcher', label: 'Dispatcher Dashboard', icon: LayoutDashboard },
+/** Dispatcher: TMS-first, then map and fleet tools; Safety & Admin included. */
+const dispatcherNavPrimary = [
+  { href: '/dispatch', label: 'Dispatch Board', icon: LayoutGrid },
+  { href: '/loads', label: 'Active Loads', icon: DollarSign },
+  { href: '/customers', label: 'Customers', icon: Handshake },
+  { href: '/settlements', label: 'Settlements', icon: Landmark },
+];
+
+const dispatcherNavRest = [
   { href: '/dashboard/map', label: 'Live Map', icon: MapPin },
   { href: '/dashboard/enterprise', label: 'Fleet Health', icon: Building2 },
+  { href: '/dashboard/ifta', label: 'IFTA', icon: Fuel },
   { href: '/roadside-mode', label: 'Roadside', icon: Smartphone },
   { href: '/trailers', label: 'Trailers', icon: Package },
   { href: '/dashboard/feedback', label: 'Message Center', icon: MessageCircle },
 ];
+
+const dispatcherNav = [...dispatcherNavPrimary, ...dispatcherNavRest];
+
+const navMain = [...navPrimary, ...navCore];
+
+/** Broker / 3PL: book of business — no fleet garage items in primary nav. */
+const brokerNavPrimary = [
+  { href: '/dispatch', label: 'Dispatch Board', icon: LayoutGrid },
+  { href: '/dashboard/marketplace', label: 'Marketplace', icon: Store },
+  { href: '/loads', label: 'Active Loads', icon: DollarSign },
+  { href: '/dashboard/network', label: 'Network (Vetted Carriers)', icon: Network },
+  { href: '/dashboard/margin', label: 'Margin Analytics', icon: BarChart3 },
+  { href: '/customers', label: 'Customers', icon: Handshake },
+  { href: '/settlements', label: 'Settlements', icon: Landmark },
+];
+
+const brokerNavCore = [
+  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/dashboard/map', label: 'Live Map', icon: MapPin },
+  { href: '/dashboard/enterprise', label: 'Enterprise Overview', icon: Building2 },
+];
+
+const brokerNavMain = [...brokerNavPrimary, ...brokerNavCore];
 
 /** Drivers see only these; no Dispatch, no Trailers. */
 const driverNav = [
@@ -90,6 +139,8 @@ export function Sidebar({
   canSeeMap = true,
   isFounder = false,
   fullName = null,
+  isDemoGuest = false,
+  isBrokerOrg = false,
 }: {
   organizations: Organization[];
   currentOrgId: string | null;
@@ -101,17 +152,45 @@ export function Sidebar({
   canSeeMap?: boolean;
   isFounder?: boolean;
   fullName?: string | null;
+  /** Unauthenticated sandbox: exit clears demo cookie and returns home. */
+  isDemoGuest?: boolean;
+  /** Logged-in org is a freight broker (not asset carrier). */
+  isBrokerOrg?: boolean;
 }) {
   const pathname = usePathname();
+  const { isDemoMode, demoRole } = useDemoMode();
+  const sandboxHref = (href: string) => {
+    if (!isDemoMode) return href;
+    return href.includes('?') ? `${href}&mode=demo&role=${demoRole}` : `${href}?mode=demo&role=${demoRole}`;
+  };
   const [isTauri, setIsTauri] = useState(false);
   const [adminGearOpen, setAdminGearOpen] = useState(false);
   const [supportTicketOpen, setSupportTicketOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [safetyAdminOpen, setSafetyAdminOpen] = useState(isDemoGuest);
   const adminGearRef = useRef<HTMLDivElement>(null);
 
   const closeMobile = () => setMobileOpen(false);
 
-  const navFiltered = isDispatcher ? [profileNavItem, ...dispatcherNav] : [profileNavItem, ...nav];
+  const isBrokerNav = isBrokerOrg || (isDemoMode && demoRole === 'broker');
+  const safetyNavItems = isBrokerNav
+    ? safetyAdminNav.filter((item) => item.href !== '/dashboard/ifta')
+    : safetyAdminNav;
+  const navTailFiltered = isBrokerNav ? navTail.filter((item) => item.href !== '/trailers') : navTail;
+
+  const isSafetySectionActive = safetyNavItems.some(
+    (item) => pathname === item.href || pathname.startsWith(`${item.href}/`)
+  );
+
+  useEffect(() => {
+    if (isSafetySectionActive) setSafetyAdminOpen(true);
+  }, [isSafetySectionActive]);
+
+  const topNav = isBrokerNav
+    ? brokerNavMain
+    : isDispatcher
+      ? dispatcherNav
+      : navMain;
   const showMapLock = !canSeeMap;
 
   useEffect(() => {
@@ -136,6 +215,12 @@ export function Sidebar({
   }, []);
 
   const signOut = async () => {
+    if (isDemoGuest) {
+      document.cookie = 'vf_demo=; path=/; max-age=0';
+      document.cookie = 'vf_demo_role=; path=/; max-age=0';
+      window.location.href = '/';
+      return;
+    }
     const supabase = createClient();
     await supabase.auth.signOut();
     window.location.href = '/login';
@@ -151,14 +236,14 @@ export function Sidebar({
         </div>
       )}
       <div className="p-4 border-b border-border">
-        <Link href="/dashboard" onClick={onNav} className="flex items-center gap-3">
+        <Link href={sandboxHref('/dashboard')} onClick={onNav} className="flex items-center gap-3">
           <Logo size={32} />
           <span className="flex items-baseline gap-1 tracking-[0.2em]">
             <span className="font-bold text-cyber-amber text-base">VANTAG</span>
             <span className="font-light text-electric-teal text-base">FLEET</span>
           </span>
         </Link>
-        <p className="text-xs text-soft-cloud/60 mt-0.5 ml-11">Compliance</p>
+        <p className="text-xs text-soft-cloud/60 mt-0.5 ml-11">TMS</p>
         {fullName && (
           <p className="text-sm text-soft-cloud/80 mt-2 ml-11">Welcome back, {fullName}</p>
         )}
@@ -175,16 +260,24 @@ export function Sidebar({
           />
         </div>
       )}
+      {!isDriverOnly && <GlobalSearchBar mode={isBrokerNav ? 'broker' : 'carrier'} />}
       <nav className="flex-1 p-3 space-y-0.5 overflow-auto">
-        {(isDriverOnly ? driverNav : navFiltered).map((item) => {
+        {(isDriverOnly ? driverNav : [profileNavItem, ...topNav]).map((item) => {
           const isActive = pathname === item.href || (item.href.startsWith('/dashboard#') && pathname === '/dashboard');
           const Icon = item.icon;
           const isMapLink = item.href === '/dashboard/map';
           const showLock = isMapLink && showMapLock;
+          const joyrideId =
+            item.href === '/dispatch'
+              ? 'demo-joyride-dispatch'
+              : item.href === '/settlements'
+                ? 'demo-joyride-accounting'
+                : undefined;
           return (
             <Link
               key={item.href}
-              href={item.href}
+              id={joyrideId}
+              href={sandboxHref(item.href)}
               onClick={onNav}
               className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors min-h-[44px] md:min-h-0 ${
                 isActive
@@ -198,6 +291,71 @@ export function Sidebar({
             </Link>
           );
         })}
+        {!isDriverOnly && (
+          <div className="pt-1">
+            <button
+              type="button"
+              onClick={() => setSafetyAdminOpen((o) => !o)}
+              className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium transition-colors min-h-[44px] md:min-h-0 text-left ${
+                isSafetySectionActive
+                  ? 'bg-midnight-ink/80 text-electric-teal/90'
+                  : 'text-soft-cloud/70 hover:text-soft-cloud hover:bg-midnight-ink/60'
+              }`}
+              aria-expanded={safetyAdminOpen}
+            >
+              <ShieldCheck className="size-5 shrink-0 opacity-80" />
+              <span className="flex-1">Safety &amp; Admin</span>
+              <ChevronDown className={`size-4 shrink-0 transition-transform ${safetyAdminOpen ? 'rotate-180' : ''}`} />
+            </button>
+            {safetyAdminOpen && (
+              <div className="ml-2 pl-2 border-l border-white/10 space-y-0.5 mt-0.5">
+                {safetyNavItems.map((item) => {
+                  const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
+                  const Icon = item.icon;
+                  return (
+                    <Link
+                      key={item.href}
+                      id={item.href === '/compliance' ? 'demo-joyride-compliance' : undefined}
+                      href={sandboxHref(item.href)}
+                      onClick={onNav}
+                      className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors min-h-[44px] md:min-h-0 ${
+                        isActive
+                          ? 'bg-electric-teal/20 text-electric-teal'
+                          : 'text-soft-cloud/70 hover:text-soft-cloud hover:bg-midnight-ink/60'
+                      }`}
+                    >
+                      <Icon className="size-4 shrink-0" />
+                      {item.label}
+                    </Link>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+        {!isDriverOnly && (!isDispatcher || isBrokerNav) &&
+          navTailFiltered.map((item) => {
+            const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
+            const Icon = item.icon;
+            const isMapLink = item.href === '/dashboard/map';
+            const showLock = isMapLink && showMapLock;
+            return (
+              <Link
+                key={item.href}
+                href={sandboxHref(item.href)}
+                onClick={onNav}
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors min-h-[44px] md:min-h-0 ${
+                  isActive
+                    ? 'bg-electric-teal/20 text-electric-teal'
+                    : 'text-soft-cloud/70 hover:text-soft-cloud hover:bg-midnight-ink/60'
+                }`}
+              >
+                <Icon className="size-5 shrink-0" />
+                {item.label}
+                {showLock && <Lock className="size-4 shrink-0 text-cyber-amber/80 ml-auto" aria-label="Upgrade to unlock" />}
+              </Link>
+            );
+          })}
         {showAdminLink && (
           <Link
             href="/admin"
@@ -280,7 +438,7 @@ export function Sidebar({
     <>
       {/* Mobile: fixed top bar */}
       <header className="md:hidden fixed top-0 left-0 right-0 z-40 h-14 flex items-center justify-between px-4 border-b border-border bg-midnight-ink/95 backdrop-blur-sm pt-safe">
-        <Link href="/dashboard" className="flex items-center gap-2 min-h-[44px] items-center">
+        <Link href={sandboxHref('/dashboard')} className="flex items-center gap-2 min-h-[44px] items-center">
           <Logo size={28} />
           <span className="font-bold text-cyber-amber text-sm">VANTAG</span>
           <span className="text-electric-teal text-sm font-light">FLEET</span>
@@ -317,7 +475,10 @@ export function Sidebar({
         </div>
       )}
       {/* Desktop: sidebar */}
-      <aside className="hidden md:flex w-64 shrink-0 border-r border-border bg-midnight-ink/80 backdrop-blur-md flex flex-col relative">
+      <aside
+        id="tour-sidebar"
+        className="hidden md:flex w-64 shrink-0 border-r border-border bg-midnight-ink/80 backdrop-blur-md flex flex-col relative"
+      >
         {sidebarContent}
       </aside>
     </>

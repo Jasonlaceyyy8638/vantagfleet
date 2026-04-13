@@ -7,13 +7,13 @@ import { LandingPage } from '@/components/LandingPage';
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
-  title: 'VantagFleet — Fleet Compliance & DOT Ready',
+  title: 'VantagFleet — Modern TMS for Carriers',
   description:
-    'VantagFleet is the compliance dashboard that understands the road. IFTA reporting, audit exports, MCS-150, BOC-3, and driver tools. Enterprise grade. No more audit anxiety.',
+    'A secure TMS for dispatch, live GPS tracking, driver settlements, and IFTA—with an industry-leading compliance engine built in. Motive & Geotab. Enterprise grade.',
   openGraph: {
-    title: 'VantagFleet — Fleet Compliance & DOT Ready',
+    title: 'VantagFleet — Modern TMS for Carriers',
     description:
-      'VantagFleet is the compliance dashboard that understands the road. IFTA, audit exports, and driver tools. Enterprise grade.',
+      'Dispatch, live tracking, settlements, and compliance in one command center. Built for carriers who move freight first.',
     siteName: 'VantagFleet',
     type: 'website',
   },

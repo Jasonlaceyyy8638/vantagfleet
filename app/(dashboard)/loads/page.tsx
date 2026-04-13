@@ -6,6 +6,7 @@ import { ProfitabilityCalculator } from './ProfitabilityCalculator';
 import { IftaSection } from './IftaSection';
 import { AddLoadForm } from './AddLoadForm';
 import { getDashboardOrgId, isSuperAdminImpersonating } from '@/lib/admin';
+import { LoadsSandboxView } from '@/src/components/demo/LoadsSandboxView';
 
 function getQuarterRange(): { start: string; end: string; label: string } {
   const now = new Date();
@@ -20,8 +21,17 @@ function getQuarterRange(): { start: string; end: string; label: string } {
 }
 
 export default async function LoadsPage() {
-  const supabase = await createClient();
   const cookieStore = await cookies();
+  if (cookieStore.get('vf_demo')?.value === '1') {
+    const role = cookieStore.get('vf_demo_role')?.value === 'broker' ? 'broker' : 'carrier';
+    return (
+      <div className="p-6 md:p-8 max-w-4xl">
+        <LoadsSandboxView role={role} />
+      </div>
+    );
+  }
+
+  const supabase = await createClient();
   const orgId = await getDashboardOrgId(supabase, cookieStore);
   if (!orgId) {
     return (
@@ -112,7 +122,7 @@ export default async function LoadsPage() {
   return (
     <UpgradeOverlay hasAccess={hasAccess} title="Load Board & Profitability">
       <div className="p-6 md:p-8 max-w-4xl">
-        <h1 className="text-2xl font-bold text-soft-cloud mb-2">Loads</h1>
+        <h1 className="text-2xl font-bold text-soft-cloud mb-2">Active Loads</h1>
         <p className="text-soft-cloud/70 mb-8">
           Add loads with IFTA mileage breakdown, profitability calculator, and quarterly IFTA summary.
         </p>

@@ -10,6 +10,7 @@ import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
 import { isAdmin, canImpersonateCarrier, getDashboardOrgId, IMPERSONATE_COOKIE } from '@/lib/admin';
 import { showBetaRibbon, hasFullAccess, canSeeMap } from '@/lib/userHasAccess';
+import { DemoLayoutShell } from '@/src/components/tour/DemoLayoutShell';
 
 /** VantagFleet admin owner: never show onboarding or DOT prompt; send to /admin. */
 const ADMIN_OWNER_ID = 'ae175e55-72b4-4441-9e3c-02ecd8225bf7';
@@ -19,14 +20,21 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const cookieStore = await cookies();
+  const isDemoGuest = cookieStore.get('vf_demo')?.value === '1';
+
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user && !isDemoGuest) redirect('/login');
+  if (!user && isDemoGuest) {
+    return <DemoLayoutShell>{children}</DemoLayoutShell>;
+  }
   if (!user) redirect('/login');
   if ((user.user_metadata as Record<string, unknown>)?.must_change_password === true) {
     redirect('/account/change-password?required=1');
   }
 
-  const cookieStore = await cookies();
   const impersonatedId = cookieStore.get(IMPERSONATE_COOKIE)?.value;
   const staffCanImpersonate = await canImpersonateCarrier(supabase);
 
@@ -35,12 +43,17 @@ export default async function DashboardLayout({
     const currentOrgId = impersonatedId;
     const admin = createAdminClient();
     const [{ data: org }, { data: impProfile }] = await Promise.all([
-      admin.from('organizations').select('id, name, usdot_number, status, created_at, updated_at').eq('id', currentOrgId).single(),
+      admin
+        .from('organizations')
+        .select('id, name, usdot_number, status, created_at, updated_at, business_type')
+        .eq('id', currentOrgId)
+        .single(),
       admin.from('profiles').select('is_founder').eq('org_id', currentOrgId).limit(1).maybeSingle(),
     ]);
     const organizations = org ? [org] : [];
     const showAdminLink = true;
     const isFounderImpersonating = (impProfile as { is_founder?: boolean } | null)?.is_founder === true;
+    const isBrokerOrg = (org as { business_type?: string | null } | null)?.business_type === 'broker';
     return (
       <div className="flex min-h-screen flex-col">
         <ImpersonationBar carrierName={org?.name?.trim() || 'this carrier'} />
@@ -53,6 +66,7 @@ export default async function DashboardLayout({
             canSeeMap={true}
             isFounder={isFounderImpersonating}
             fullName={null}
+            isBrokerOrg={isBrokerOrg}
           />
           <main className="flex-1 min-h-0 overflow-auto overflow-x-hidden pt-14 md:pt-0">
             {children}
@@ -89,18 +103,18 @@ export default async function DashboardLayout({
   ] = await Promise.all([
     supabase
       .from('organizations')
-      .select('id, name, usdot_number, status, created_at, updated_at')
+      .select('id, name, usdot_number, status, created_at, updated_at, business_type')
       .in('id', orgIds)
       .order('name'),
     supabase
       .from('profiles')
-      .select('is_beta_tester, beta_expires_at, ifta_enabled, subscription_status, is_founder, full_name')
+      .select('is_beta_tester, beta_expires_at, ifta_enabled, subscription_status, is_founder, full_name, account_type')
       .eq('user_id', user.id)
       .eq('org_id', currentOrgId)
       .single(),
     supabase
       .from('organizations')
-      .select('subscription_status, tier')
+      .select('subscription_status, tier, business_type')
       .eq('id', currentOrgId)
       .single(),
   ]);
@@ -109,9 +123,19 @@ export default async function DashboardLayout({
   const currentProfile = (profiles ?? []).find((p) => p.org_id === currentOrgId);
   const isDriverOnly = currentProfile?.role === 'Driver';
   const isDispatcher = currentProfile?.role === 'Dispatcher' || currentProfile?.role === 'Driver_Manager';
-  const profileForAccess = profileRow as { is_beta_tester?: boolean; beta_expires_at?: string | null; ifta_enabled?: boolean; subscription_status?: string | null; is_founder?: boolean; full_name?: string | null } | null;
+  const profileForAccess = profileRow as {
+    is_beta_tester?: boolean;
+    beta_expires_at?: string | null;
+    ifta_enabled?: boolean;
+    subscription_status?: string | null;
+    is_founder?: boolean;
+    full_name?: string | null;
+    account_type?: string | null;
+  } | null;
   const fullName = profileForAccess?.full_name ?? null;
-  const orgForAccess = orgRow as { subscription_status?: string | null; tier?: string | null } | null;
+  const orgForAccess = orgRow as { subscription_status?: string | null; tier?: string | null; business_type?: string | null } | null;
+  const isBrokerOrg =
+    orgForAccess?.business_type === 'broker' || profileForAccess?.account_type === 'broker';
   const fullAccess = hasFullAccess(profileForAccess, orgForAccess);
   const showBetaRibbonFlag = showBetaRibbon(profileForAccess, orgForAccess);
   const mapAccess = canSeeMap(profileForAccess, orgForAccess);
@@ -135,6 +159,7 @@ export default async function DashboardLayout({
         canSeeMap={mapAccess}
         isFounder={profileForAccess?.is_founder === true}
         fullName={fullName}
+        isBrokerOrg={isBrokerOrg}
       />
       <main className="flex-1 min-h-0 overflow-auto flex flex-col overflow-x-hidden pt-14 md:pt-0">
         <BetaCountdownBanner

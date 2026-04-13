@@ -12,6 +12,7 @@ import { cookies } from 'next/headers';
 import { isAdmin, getDashboardOrgId, canImpersonateCarrier, IMPERSONATE_COOKIE } from '@/lib/admin';
 import { getVehicleLocations, type FleetMapLocation } from '@/lib/motive';
 import { getDeviceLocations } from '@/lib/geotab';
+import { DEMO_BROKER_ORG_ID, DEMO_ORG_ID } from '@/src/constants/demoData';
 async function getGeotabCredential(orgId: string): Promise<{ server: string; database: string; userName: string; sessionId: string } | null> {
   const admin = createAdminClient();
   const { data } = await admin
@@ -73,6 +74,17 @@ async function fetchLocationsForOrg(orgId: string, orgName?: string): Promise<Fl
 
 export async function GET(request: NextRequest) {
   try {
+    const cookieStore = await cookies();
+    const queryOrgId = request.nextUrl.searchParams.get('org_id');
+    // Interactive demo (`vf_demo`) has no Supabase session; map pins come from client `sandboxMode` + demo data.
+    if (
+      cookieStore.get('vf_demo')?.value === '1' &&
+      queryOrgId &&
+      (queryOrgId === DEMO_ORG_ID || queryOrgId === DEMO_BROKER_ORG_ID)
+    ) {
+      return NextResponse.json({ locations: [] });
+    }
+
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
@@ -101,14 +113,12 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ locations: all });
     }
 
-    const cookieStore = await cookies();
     const { data: profiles } = await supabase.from('profiles').select('org_id').eq('user_id', user.id);
     const userOrgIds = Array.from(new Set((profiles ?? []).map((p) => p.org_id).filter((id): id is string => id != null)));
     const canImpersonate = await canImpersonateCarrier(supabase);
     const impersonatedOrg = cookieStore.get(IMPERSONATE_COOKIE)?.value;
 
     let orgId: string | null = null;
-    const queryOrgId = request.nextUrl.searchParams.get('org_id');
     if (queryOrgId && (userOrgIds.includes(queryOrgId) || (canImpersonate && impersonatedOrg === queryOrgId))) {
       orgId = queryOrgId;
     }

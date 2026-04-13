@@ -1,6 +1,7 @@
 import { Suspense } from 'react';
 import { createClient } from '@/lib/supabase/server';
 import { cookies } from 'next/headers';
+import { DemoDashboardHomeClient } from '@/src/components/demo/DemoDashboardHomeClient';
 import {
   getDaysUntil,
   isExpiringWithinDays,
@@ -22,7 +23,6 @@ import {
 } from 'lucide-react';
 import { InviteButton } from '@/components/InviteButton';
 import { HealthCard } from '@/components/HealthCard';
-import { CompliancePowerUps } from './CompliancePowerUps';
 import { DashboardWelcomeBanner } from './DashboardWelcomeBanner';
 import { DashboardMapSection } from './DashboardMapSection';
 import { getDashboardOrgId, isSuperAdminImpersonating } from '@/lib/admin';
@@ -30,12 +30,25 @@ import { getEffectiveOrgFeatures } from '@/app/actions/admin';
 import { userHasAccess, hasFullAccess, getBetaDaysRemaining, canSeeMap } from '@/lib/userHasAccess';
 import { BetaExpirationBanner } from '@/components/BetaExpirationBanner';
 import { OnboardingChecklist } from './OnboardingChecklist';
+import { BrokerDashboardHome } from './BrokerDashboardHome';
 
 const ALERT_DAYS = 30;
 
-export default async function DashboardPage() {
-  const supabase = await createClient();
+type DashboardPageProps = {
+  searchParams?: { demo?: string; mode?: string };
+};
+
+export default async function DashboardPage({ searchParams }: DashboardPageProps) {
   const cookieStore = await cookies();
+  const isDemo =
+    searchParams?.demo === 'true' ||
+    searchParams?.mode === 'demo' ||
+    cookieStore.get('vf_demo')?.value === '1';
+  if (isDemo) {
+    return <DemoDashboardHomeClient />;
+  }
+
+  const supabase = await createClient();
   const orgId = await getDashboardOrgId(supabase, cookieStore);
   if (!orgId) {
     return (
@@ -46,6 +59,60 @@ export default async function DashboardPage() {
   }
 
   const { data: { user } } = await supabase.auth.getUser();
+
+  const [{ data: orgMeta }, { data: profileBrokerCheck }] = await Promise.all([
+    supabase
+      .from('organizations')
+      .select('tier, features, subscription_status, business_type')
+      .eq('id', orgId)
+      .single(),
+    user
+      ? supabase
+          .from('profiles')
+          .select(
+            'role, ifta_enabled, is_beta_tester, beta_expires_at, subscription_status, account_type'
+          )
+          .eq('user_id', user.id)
+          .eq('org_id', orgId)
+          .single()
+      : { data: null },
+  ]);
+
+  const isBrokerOrg =
+    (orgMeta as { business_type?: string | null } | null)?.business_type === 'broker' ||
+    (profileBrokerCheck as { account_type?: string | null } | null)?.account_type === 'broker';
+
+  if (isBrokerOrg) {
+    const profileData = profileBrokerCheck as {
+      role?: string;
+      ifta_enabled?: boolean;
+      is_beta_tester?: boolean;
+      beta_expires_at?: string | null;
+      subscription_status?: string | null;
+      account_type?: string | null;
+    } | null;
+    const orgData = orgMeta as {
+      tier?: string | null;
+      features?: unknown;
+      subscription_status?: string | null;
+      business_type?: string | null;
+    } | null;
+    const adminImpersonating = await isSuperAdminImpersonating(supabase, cookieStore);
+    const mapAccess = adminImpersonating || canSeeMap(profileData, orgData);
+    const betaDaysRemaining = getBetaDaysRemaining(profileData);
+    return (
+      <div className="p-4 sm:p-6 md:p-8 max-w-6xl w-full overflow-x-hidden">
+        <Suspense fallback={null}>
+          <DashboardWelcomeBanner />
+        </Suspense>
+        {betaDaysRemaining != null && betaDaysRemaining > 0 && (
+          <BetaExpirationBanner daysRemaining={betaDaysRemaining} />
+        )}
+        <BrokerDashboardHome orgId={orgId} mapAccess={mapAccess} />
+      </div>
+    );
+  }
+
   const driverIds = (await supabase.from('drivers').select('id').eq('org_id', orgId)).data?.map((d) => d.id) ?? [];
 
   const [
@@ -281,9 +348,6 @@ export default async function DashboardPage() {
           </div>
         </section>
       )}
-
-      {/* Compliance Power-Ups — MCS-150 & BOC-3 waitlist */}
-      <CompliancePowerUps />
 
       {/* Required documents — New Hire / carrier docs */}
       <section className="mb-8 rounded-xl bg-card border border-[#30363d] overflow-hidden">

@@ -19,10 +19,12 @@ export function NewHireDocumentsClient({
   orgId,
   drivers,
   initialDocs = [],
+  demoMode = false,
 }: {
   orgId: string;
   drivers: Driver[];
   initialDocs: DriverDoc[];
+  demoMode?: boolean;
 }) {
   const [selectedDriverId, setSelectedDriverId] = useState<string>(drivers[0]?.id ?? '');
   const [docs, setDocs] = useState<DriverDoc[]>(initialDocs);
@@ -33,7 +35,7 @@ export function NewHireDocumentsClient({
 
   const onDrop = useCallback(
     async (acceptedFiles: File[]) => {
-      if (!selectedDriverId || acceptedFiles.length === 0) return;
+      if (demoMode || !selectedDriverId || acceptedFiles.length === 0) return;
       setError(null);
       setLastResults([]);
       setUploading(true);
@@ -68,19 +70,24 @@ export function NewHireDocumentsClient({
       setUploadProgress(null);
       setUploading(false);
     },
-    [orgId, selectedDriverId]
+    [orgId, selectedDriverId, demoMode]
   );
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: { 'image/*': ['.jpeg', '.jpg', '.png', '.webp'] },
-    disabled: uploading || !selectedDriverId || drivers.length === 0,
+    disabled: demoMode || uploading || !selectedDriverId || drivers.length === 0,
   });
 
   const docsForDriver = (driverId: string) => docs.filter((d) => d.driver_id === driverId);
 
   return (
     <div className="space-y-6">
+      {demoMode && (
+        <p className="text-sm text-cyber-amber/90 border border-cyber-amber/30 rounded-lg px-3 py-2 bg-cyber-amber/5">
+          Interactive sandbox — sample documents including rate confirmations. Uploads are disabled.
+        </p>
+      )}
       <div className="rounded-xl border border-[#30363d] bg-card p-5">
         <label className="block text-sm font-medium text-cloud-dancer/80 mb-2">Select driver</label>
         <div className="flex flex-wrap gap-2 items-center">

@@ -24,11 +24,24 @@ export type FleetMapLocation = {
   orgName?: string;
 };
 
+/** Active load stops (pickup/delivery) shown alongside ELD positions. */
+export type FleetStopOverlay = {
+  id: string;
+  lat: number;
+  lng: number;
+  label: string;
+  stopType: 'pickup' | 'delivery';
+};
+
 type FleetMapProps = {
   accessToken: string;
   /** When set, fetches locations for this org only (Dispatchers see all trucks in their org). */
   organizationId?: string | null;
   initialLocations?: FleetMapLocation[];
+  /** Geocoded load stops; rendered as square markers (distinct from truck pins). */
+  stopOverlays?: FleetStopOverlay[];
+  /** Unauthenticated demo: no polling / API; pins come only from `initialLocations`. */
+  sandboxMode?: boolean;
   height?: string;
   className?: string;
 };
@@ -42,6 +55,8 @@ export function FleetMap({
   accessToken,
   organizationId,
   initialLocations = [],
+  stopOverlays = [],
+  sandboxMode = false,
   height = '480px',
   className = '',
 }: FleetMapProps) {
@@ -87,6 +102,7 @@ export function FleetMap({
   }, []);
 
   const fetchLocations = useCallback(async () => {
+    if (sandboxMode) return;
     setLoading(true);
     setError(null);
     try {
@@ -115,16 +131,23 @@ export function FleetMap({
     } finally {
       setLoading(false);
     }
-  }, [organizationId]);
+  }, [organizationId, sandboxMode]);
 
   useEffect(() => {
+    if (sandboxMode) {
+      setLocations(initialLocations);
+      setLoading(false);
+      setError(null);
+      return;
+    }
     fetchLocations();
-  }, [fetchLocations]);
+  }, [fetchLocations, sandboxMode, initialLocations]);
 
   useEffect(() => {
+    if (sandboxMode) return;
     const t = setInterval(fetchLocations, POLL_MS);
     return () => clearInterval(t);
-  }, [fetchLocations]);
+  }, [fetchLocations, sandboxMode]);
 
   const handleMapLoad = useCallback((e: { target: MapboxMap }) => {
     const map = e.target;
@@ -185,12 +208,20 @@ export function FleetMap({
 
   const selected = locations.find((l) => l && l.id === selectedId);
   const hovered = locations.find((l) => l && l.id === hoveredId);
-  const hasCoords = locations.some((l) => l && Number.isFinite(l.lat) && Number.isFinite(l.lng));
+  const overlayPoints = (stopOverlays ?? []).filter(
+    (o) => o && Number.isFinite(o.lat) && Number.isFinite(o.lng)
+  );
+  const truckPoints = locations.filter((l) => l && Number.isFinite(l.lat) && Number.isFinite(l.lng));
+  const allPoints = [
+    ...truckPoints.map((l) => ({ lat: l.lat, lng: l.lng })),
+    ...overlayPoints.map((o) => ({ lat: o.lat, lng: o.lng })),
+  ];
+  const hasCoords = allPoints.length > 0;
   const centerLng = hasCoords
-    ? locations.reduce((s, l) => s + (l?.lng ?? 0), 0) / locations.length
+    ? allPoints.reduce((s, p) => s + p.lng, 0) / allPoints.length
     : -98;
   const centerLat = hasCoords
-    ? locations.reduce((s, l) => s + (l?.lat ?? 0), 0) / locations.length
+    ? allPoints.reduce((s, p) => s + p.lat, 0) / allPoints.length
     : 39;
 
   const mapHeight = height || '480px';
@@ -292,12 +323,23 @@ export function FleetMap({
         initialViewState={{
           longitude: Number(centerLng),
           latitude: Number(centerLat),
-          zoom: locations.length <= 1 ? 4 : 5,
+          zoom: allPoints.length <= 1 ? 4 : 5,
         }}
         style={{ width: '100%', height: effectiveHeight, minHeight: 400 }}
         mapStyle={MAPBOX_STYLE}
         onLoad={handleMapLoad}
       >
+        {overlayPoints.map((stop) => (
+          <Marker key={`stop-${stop.id}`} longitude={stop.lng} latitude={stop.lat} anchor="center">
+            <div className="cursor-default" title={stop.label}>
+              {stop.stopType === 'pickup' ? (
+                <span className="block size-4 rounded-full bg-green-500 border border-black/30 shadow-md ring-2 ring-white/40" />
+              ) : (
+                <span className="block size-4 rounded-sm bg-blue-500 border border-black/30 shadow-md ring-2 ring-white/40" />
+              )}
+            </div>
+          </Marker>
+        ))}
         {locations.filter((loc) => loc && loc.id && Number.isFinite(loc.lat) && Number.isFinite(loc.lng)).map((loc) => {
           const lateAlert = trafficOn && isInHeavyTraffic(loc);
           return (

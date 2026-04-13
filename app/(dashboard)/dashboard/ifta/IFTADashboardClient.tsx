@@ -18,6 +18,7 @@ import {
   DollarSign,
   Settings,
   PenLine,
+  X,
 } from 'lucide-react';
 import { calculateIfta } from '@/lib/ifta-calculate';
 import { createClient } from '@/lib/supabase/client';
@@ -34,6 +35,10 @@ type ReceiptRow = {
   gallons: number | null;
   status: string;
   file_url: string | null;
+  /** Demo / sandbox metadata for receipt viewer */
+  vendor?: string | null;
+  fuel_type?: string | null;
+  amount?: number | null;
 };
 
 const QUARTERS = [
@@ -77,6 +82,7 @@ export function IFTADashboardClient({
   initialReceipts,
   isSoloPro = false,
   isDispatcher = false,
+  demoMode = false,
 }: {
   iftaEnabled: boolean;
   profileId: string | null;
@@ -86,6 +92,8 @@ export function IFTADashboardClient({
   initialReceipts: ReceiptRow[];
   isSoloPro?: boolean;
   isDispatcher?: boolean;
+  /** Unauthenticated sandbox: receipts are static; uploads and server writes are disabled. */
+  demoMode?: boolean;
 }) {
   const [quarter, setQuarter] = useState<1 | 2 | 3 | 4>(initialQuarter);
   const [year] = useState(initialYear);
@@ -117,8 +125,19 @@ export function IFTADashboardClient({
   const [pdfLoading, setPdfLoading] = useState(false);
   const [useManualEntry, setUseManualEntry] = useState(false);
   const [auditExportModalOpen, setAuditExportModalOpen] = useState(false);
+  const [receiptViewer, setReceiptViewer] = useState<{
+    url: string;
+    vendor?: string | null;
+    amount?: number | null;
+    state?: string | null;
+    gallons?: number | null;
+    fuel_type?: string | null;
+    date?: string | null;
+  } | null>(null);
 
-  const processedOnly = receipts.filter((r) => r.status === 'processed');
+  const processedOnly = receipts.filter((r) =>
+    demoMode ? r.status === 'processed' || r.status === 'verified' : r.status === 'processed'
+  );
   const quarterlyTotalGallons = processedOnly.reduce((sum, r) => sum + (r.gallons ?? 0), 0);
   const totalFuelCredits = quarterlyTotalGallons * CREDIT_RATE;
   const processedCount = processedOnly.length;
@@ -166,6 +185,7 @@ export function IFTADashboardClient({
   }, [editingCell]);
 
   const loadReceipts = useCallback(async (q: number, y: number) => {
+    if (demoMode) return;
     if (!profileId) return;
     const supabase = createClient();
     const { data } = await supabase
@@ -185,7 +205,7 @@ export function IFTADashboardClient({
         file_url: r.file_url ?? null,
       }))
     );
-  }, [profileId]);
+  }, [profileId, demoMode]);
 
   const loadMileage = useCallback(async (q: number, y: number) => {
     setMileageLoading(true);
@@ -211,13 +231,19 @@ export function IFTADashboardClient({
   }, []);
 
   useEffect(() => {
+    if (demoMode) {
+      setMotiveMilesByState([]);
+      setMotiveTotalMiles(0);
+      setMileageError(null);
+      return;
+    }
     if (iftaEnabled && orgId) loadMileage(quarter, year);
     else {
       setMotiveMilesByState([]);
       setMotiveTotalMiles(0);
       setMileageError(null);
     }
-  }, [iftaEnabled, orgId, quarter, year, loadMileage]);
+  }, [iftaEnabled, orgId, quarter, year, loadMileage, demoMode]);
 
   const handleQuarterChange = (q: 1 | 2 | 3 | 4) => {
     setQuarter(q);
@@ -232,7 +258,7 @@ export function IFTADashboardClient({
   };
 
   const saveEdit = useCallback(async () => {
-    if (!editingCell || !profileId) return;
+    if (demoMode || !editingCell || !profileId) return;
     setUpdateError(null);
     const receipt = receipts.find((r) => r.id === editingCell.id);
     if (!receipt) {
@@ -268,11 +294,11 @@ export function IFTADashboardClient({
       )
     );
     setEditingCell(null);
-  }, [editingCell, editValue, profileId, receipts]);
+  }, [editingCell, editValue, profileId, receipts, demoMode]);
 
   const handleApprove = useCallback(
     async (receiptId: string) => {
-      if (!profileId) return;
+      if (demoMode || !profileId) return;
       setApprovingId(receiptId);
       setUpdateError(null);
       const result = await approveIftaReceipt(profileId, receiptId);
@@ -285,7 +311,7 @@ export function IFTADashboardClient({
       }
       setApprovingId(null);
     },
-    [profileId]
+    [profileId, demoMode]
   );
 
   const handleExport = useCallback(() => {
@@ -318,7 +344,7 @@ export function IFTADashboardClient({
 
   const handleFiles = useCallback(
     async (files: FileList | null) => {
-      if (!files?.length || !iftaEnabled || !profileId) return;
+      if (demoMode || !files?.length || !iftaEnabled || !profileId) return;
       setUploading(true);
       setScanError(null);
       for (let i = 0; i < files.length; i++) {
@@ -392,7 +418,7 @@ export function IFTADashboardClient({
       }
       setUploading(false);
     },
-    [iftaEnabled, profileId, quarter, year]
+    [iftaEnabled, profileId, quarter, year, demoMode]
   );
 
   const handleDrop = (e: React.DragEvent) => {
@@ -844,7 +870,7 @@ export function IFTADashboardClient({
                       <th className="px-3 py-3 font-medium">State</th>
                       <th className="px-3 py-3 font-medium">Gallons</th>
                       <th className="px-3 py-3 font-medium">Status</th>
-                      <th className="px-3 py-3 font-medium text-right w-28">Actions</th>
+                      <th className="px-3 py-3 font-medium text-right min-w-[8.5rem]">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -860,18 +886,42 @@ export function IFTADashboardClient({
                         >
                           <td className="px-3 py-2 align-middle">
                             {r.file_url ? (
-                              <a
-                                href={r.file_url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="block w-16 h-12 rounded-lg border border-white/10 bg-midnight-ink overflow-hidden focus:ring-2 focus:ring-cyber-amber focus:outline-none"
-                              >
-                                <img
-                                  src={r.file_url}
-                                  alt="Receipt"
-                                  className="w-full h-full object-cover"
-                                />
-                              </a>
+                              demoMode ? (
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setReceiptViewer({
+                                      url: r.file_url!,
+                                      vendor: r.vendor ?? null,
+                                      amount: r.amount ?? null,
+                                      state: r.state,
+                                      gallons: r.gallons,
+                                      fuel_type: r.fuel_type ?? null,
+                                      date: r.receipt_date,
+                                    })
+                                  }
+                                  className="block w-16 h-12 rounded-lg border border-white/10 bg-midnight-ink overflow-hidden focus:ring-2 focus:ring-cyber-amber focus:outline-none"
+                                >
+                                  <img
+                                    src={r.file_url}
+                                    alt="Receipt thumbnail"
+                                    className="w-full h-full object-cover"
+                                  />
+                                </button>
+                              ) : (
+                                <a
+                                  href={r.file_url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="block w-16 h-12 rounded-lg border border-white/10 bg-midnight-ink overflow-hidden focus:ring-2 focus:ring-cyber-amber focus:outline-none"
+                                >
+                                  <img
+                                    src={r.file_url}
+                                    alt="Receipt"
+                                    className="w-full h-full object-cover"
+                                  />
+                                </a>
+                              )
                             ) : (
                               <div className="w-16 h-12 rounded-lg border border-white/10 bg-white/5 flex items-center justify-center">
                                 <ImageIcon className="size-5 text-soft-cloud/40" />
@@ -978,21 +1028,43 @@ export function IFTADashboardClient({
                             )}
                           </td>
                           <td className="px-3 py-2 align-middle text-right">
-                            {r.status !== 'verified' && (r.status === 'processed' || r.status === 'pending') && (
-                              <button
-                                type="button"
-                                onClick={() => handleApprove(r.id)}
-                                disabled={!!approvingId}
-                                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-electric-teal/20 text-electric-teal text-xs font-medium hover:bg-electric-teal/30 disabled:opacity-50 transition-colors"
-                              >
-                                {approvingId === r.id ? (
-                                  <Loader2 className="size-3.5 animate-spin" />
-                                ) : (
-                                  <CheckCircle2 className="size-3.5" />
-                                )}
-                                Approve
-                              </button>
-                            )}
+                            <div className="flex flex-col items-end gap-1.5">
+                              {demoMode && r.file_url && (
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setReceiptViewer({
+                                      url: r.file_url!,
+                                      vendor: r.vendor ?? null,
+                                      amount: r.amount ?? null,
+                                      state: r.state,
+                                      gallons: r.gallons,
+                                      fuel_type: r.fuel_type ?? null,
+                                      date: r.receipt_date,
+                                    })
+                                  }
+                                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-cyber-amber/40 bg-cyber-amber/10 text-cyber-amber text-xs font-medium hover:bg-cyber-amber/20 transition-colors"
+                                >
+                                  <FileText className="size-3.5" />
+                                  View Receipt
+                                </button>
+                              )}
+                              {r.status !== 'verified' && (r.status === 'processed' || r.status === 'pending') && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleApprove(r.id)}
+                                  disabled={!!approvingId}
+                                  className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-electric-teal/20 text-electric-teal text-xs font-medium hover:bg-electric-teal/30 disabled:opacity-50 transition-colors"
+                                >
+                                  {approvingId === r.id ? (
+                                    <Loader2 className="size-3.5 animate-spin" />
+                                  ) : (
+                                    <CheckCircle2 className="size-3.5" />
+                                  )}
+                                  Approve
+                                </button>
+                              )}
+                            </div>
                           </td>
                         </tr>
                       );
@@ -1004,6 +1076,87 @@ export function IFTADashboardClient({
           </div>
         </section>
       </div>
+
+      {/* Demo: full-screen receipt preview (image placeholder / mock PDF chrome) */}
+      {receiptViewer && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm"
+          role="dialog"
+          aria-modal
+          aria-label="Receipt preview"
+          onClick={() => setReceiptViewer(null)}
+        >
+          <div
+            className="relative w-full max-w-2xl max-h-[92vh] overflow-hidden rounded-xl border border-white/15 bg-card shadow-2xl flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between gap-3 border-b border-white/10 bg-midnight-ink/90 px-4 py-3">
+              <div className="flex min-w-0 items-center gap-2">
+                <FileArchive className="size-5 shrink-0 text-cyber-amber" aria-hidden />
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-soft-cloud truncate">Fuel receipt (demo)</p>
+                  <p className="text-xs text-soft-cloud/60 truncate">
+                    {receiptViewer.vendor ?? 'Receipt'} · PDF preview
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setReceiptViewer(null)}
+                className="shrink-0 rounded-lg p-2 text-soft-cloud/70 hover:bg-white/10 hover:text-soft-cloud"
+                aria-label="Close"
+              >
+                <X className="size-5" />
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto bg-[#0d1117]">
+              <div className="border-b border-dashed border-white/10 px-4 py-2 text-center">
+                <p className="text-[10px] uppercase tracking-widest text-soft-cloud/45">Mock document — not a real PDF</p>
+              </div>
+              <div className="flex justify-center bg-gradient-to-b from-midnight-ink to-[#0a0f18] p-4">
+                <img
+                  src={receiptViewer.url}
+                  alt="Receipt"
+                  className="max-h-[min(70vh,520px)] w-auto max-w-full rounded-lg border border-white/10 object-contain shadow-lg"
+                />
+              </div>
+              <div className="space-y-1 border-t border-white/10 px-4 py-4 text-sm text-soft-cloud/85">
+                {receiptViewer.date && (
+                  <p>
+                    <span className="text-soft-cloud/50">Date:</span> {receiptViewer.date}
+                  </p>
+                )}
+                {receiptViewer.state && (
+                  <p>
+                    <span className="text-soft-cloud/50">State:</span> {receiptViewer.state}
+                  </p>
+                )}
+                {receiptViewer.gallons != null && (
+                  <p>
+                    <span className="text-soft-cloud/50">Gallons:</span> {receiptViewer.gallons.toFixed(1)}
+                  </p>
+                )}
+                {receiptViewer.fuel_type && (
+                  <p>
+                    <span className="text-soft-cloud/50">Fuel:</span> {receiptViewer.fuel_type}
+                  </p>
+                )}
+                {receiptViewer.amount != null && (
+                  <p>
+                    <span className="text-soft-cloud/50">Amount:</span>{' '}
+                    {receiptViewer.amount.toLocaleString(undefined, { style: 'currency', currency: 'USD' })}
+                  </p>
+                )}
+                {receiptViewer.vendor && (
+                  <p>
+                    <span className="text-soft-cloud/50">Vendor:</span> {receiptViewer.vendor}
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Confirmation modal */}
       {confirmModal && (

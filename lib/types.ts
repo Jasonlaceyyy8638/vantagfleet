@@ -6,6 +6,8 @@ export interface Organization {
   id: string;
   name: string;
   usdot_number: string | null;
+  /** carrier | broker — from signup / org settings */
+  business_type?: string | null;
   status: OrgStatus;
   created_at: string;
   updated_at: string;
@@ -16,6 +18,8 @@ export interface Profile {
   user_id: string;
   org_id: string;
   role: AppRole;
+  /** carrier | broker from signup */
+  account_type?: string | null;
   full_name: string | null;
   created_at: string;
   updated_at: string;

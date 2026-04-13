@@ -22,7 +22,12 @@ export async function middleware(request: NextRequest) {
   }
 
   // Public API routes: no auth required
-  if (pathname.startsWith('/api/update') || pathname.startsWith('/api/verify-dot')) {
+  if (
+    pathname.startsWith('/api/update') ||
+    pathname.startsWith('/api/verify-dot') ||
+    pathname.startsWith('/api/verify-mc') ||
+    pathname.startsWith('/api/signup-lead')
+  ) {
     return NextResponse.next();
   }
 
@@ -45,8 +50,58 @@ export async function middleware(request: NextRequest) {
     response = NextResponse.next({ request });
   }
 
+  const demoCookie = request.cookies.get('vf_demo')?.value === '1';
+  const demoQuery =
+    url.searchParams.get('demo') === 'true' || url.searchParams.get('mode') === 'demo';
+
+  const isCarrierSandboxPath = (p: string) => {
+    const roots = [
+      '/dashboard',
+      '/dispatch',
+      '/drivers',
+      '/vehicles',
+      '/loads',
+      '/customers',
+      '/settlements',
+      '/compliance',
+      '/regulatory',
+      '/settings',
+      '/documents',
+      '/trailers',
+      '/roadside-mode',
+      '/profile',
+    ];
+    return roots.some((r) => p === r || p.startsWith(`${r}/`));
+  };
+
+  /** First hit with ?mode=demo on any sandbox route sets cookies (not only /dashboard). */
+  const shouldSeedDemoCookies = demoQuery && isCarrierSandboxPath(pathname);
+
+  const isUnauthenticatedDemo =
+    isCarrierSandboxPath(pathname) && (demoCookie || demoQuery);
+
   // Allow public paths and auth callback without requiring user
-  if (isPublic || pathname === '/' || pathname.startsWith('/pricing') || pathname === '/privacy' || pathname === '/terms' || pathname === '/contact' || pathname === '/download' || pathname.startsWith('/releases') || pathname.startsWith('/roadside/view') || pathname.startsWith('/inspect/') || pathname.startsWith('/forgot-password')) {
+  if (
+    isPublic ||
+    pathname === '/' ||
+    pathname.startsWith('/pricing') ||
+    pathname === '/privacy' ||
+    pathname === '/terms' ||
+    pathname === '/contact' ||
+    pathname === '/download' ||
+    pathname.startsWith('/releases') ||
+    pathname.startsWith('/roadside/view') ||
+    pathname.startsWith('/inspect/') ||
+    pathname.startsWith('/forgot-password') ||
+    isUnauthenticatedDemo
+  ) {
+    if (shouldSeedDemoCookies) {
+      response.cookies.set('vf_demo', '1', { path: '/', maxAge: 1800, sameSite: 'lax' });
+      const roleParam = url.searchParams.get('role');
+      if (roleParam === 'broker' || roleParam === 'carrier') {
+        response.cookies.set('vf_demo_role', roleParam, { path: '/', maxAge: 1800, sameSite: 'lax' });
+      }
+    }
     return response;
   }
 

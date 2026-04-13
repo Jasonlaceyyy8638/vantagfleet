@@ -1,10 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { Check, Loader2, Sparkles, X, Zap } from 'lucide-react';
+import { Check, Loader2, Sparkles, Zap } from 'lucide-react';
 import { useBetaSpotsLive } from '@/lib/useBetaSpotsLive';
 import {
   FOUNDER_ENTERPRISE_DAYS,
@@ -14,34 +13,33 @@ import {
 
 type Billing = 'monthly' | 'yearly';
 
+/** Carrier-focused TMS (Founder / Fleet Master tier). */
+const CARRIER_TIER_POINTS = [
+  'Full Dispatch & Load Lifecycle Management',
+  'Motive & Geotab Real-Time GPS Integration',
+  'Automated Driver Settlements & Payroll',
+  'One-Click IFTA & Fuel Receipt Tracking',
+  'In-App Safety & Compliance Monitoring',
+];
+
+/** Broker-focused TMS (Enterprise tier, with carriers). */
+const BROKER_TIER_POINTS = [
+  'Unlimited Load Posting & Marketplace Access',
+  'Advanced Carrier Vetting & Vantag-Verify Engine',
+  'Real-Time Gross Margin & Spread Analytics',
+  'Automated Invoicing & Customer Factoring',
+  'Live Freight Tracking & Milestone Updates',
+];
+
 const SOLO_PRO_POINTS = [
-  'Owner Operators',
-  'AI Receipt Scanning',
-  'Roadside Shield & Doc Locker',
-  'Expiry Alerts',
+  'Dispatch & load lifecycle for owner-operators',
+  'Motive & Geotab Real-Time GPS Integration',
+  'One-Click IFTA & Fuel Receipt Tracking',
+  'In-App Safety & Compliance Monitoring',
+  'AI receipt scanning & document locker',
 ];
 
-const SOLO_PRO_EXCLUDED = ['ELD Integration: Not included'];
-
-const FLEET_MASTER_POINTS = [
-  'Small Fleets (2–5 trucks)',
-  'Universal ELD Integration (Motive, Geotab, Samsara)',
-  'Automated IFTA Reporting',
-  'One-Click Audit-Ready PDF Exports',
-  'Real-time Profitability',
-  'Everything in Solo Pro',
-];
-
-const ENTERPRISE_POINTS = [
-  'Unlimited Trucks',
-  'Multi-user access',
-  'Universal ELD Integration (Motive, Geotab, Samsara)',
-  'Automated IFTA Reporting',
-  'One-Click Audit-Ready PDF Exports',
-  'Audit-Ready IFTA Reports',
-  'Everything in Fleet Master',
-  'Dedicated support',
-];
+const FLEET_MASTER_POINTS = CARRIER_TIER_POINTS;
 
 export function Pricing() {
   const router = useRouter();
@@ -134,10 +132,12 @@ export function Pricing() {
               <Zap className="size-4" aria-hidden />
             </div>
             <h2 className="text-2xl sm:text-3xl font-bold text-white">
-              Founder beta is full — get{' '}
-              <span className="text-cyber-amber">{POST_BETA_ENTERPRISE_TRIAL_DAYS} days of Enterprise free</span>
+              Founder beta is full —{' '}
+              <span className="text-cyber-amber">
+                {POST_BETA_ENTERPRISE_TRIAL_DAYS}-Day Free Trial — No Credit Card Required
+              </span>
             </h2>
-            <p className="text-lg text-emerald-300 font-semibold">No credit card required to start</p>
+            <p className="text-lg text-emerald-300 font-semibold">Same full Enterprise stack for carriers & brokers</p>
             <p className="text-sm text-soft-cloud/80">
               Same Enterprise stack: live map, dispatchers, compliance at scale. Checkout skips the card until your trial ends — then you choose monthly or annual billing below.
             </p>
@@ -179,12 +179,6 @@ export function Pricing() {
             {SOLO_PRO_POINTS.map((point, i) => (
               <li key={i} className="flex items-start gap-2">
                 <Check className="size-4 text-electric-teal shrink-0 mt-0.5" />
-                <span>{point}</span>
-              </li>
-            ))}
-            {SOLO_PRO_EXCLUDED.map((point, i) => (
-              <li key={`excluded-${i}`} className="flex items-start gap-2 text-soft-cloud/60">
-                <X className="size-4 text-red-400 shrink-0 mt-0.5" aria-hidden />
                 <span>{point}</span>
               </li>
             ))}
@@ -256,20 +250,23 @@ export function Pricing() {
           {showFounderBadge && (
             <div className="mt-4 mb-1 space-y-1">
               <div className="px-3 py-1.5 rounded-lg bg-cyber-amber/20 border border-cyber-amber/40 text-cyber-amber text-xs font-semibold text-center leading-snug">
-                🎁 FOUNDER DEAL: ${FOUNDER_ENTERPRISE_LIFETIME_MONTHLY_USD}/mo Enterprise for life ·{' '}
-                {FOUNDER_ENTERPRISE_DAYS} days on us now · no card to sign up
+                🎁 Founder: {FOUNDER_ENTERPRISE_DAYS} Days Full Enterprise Access - $0 Today.
               </div>
+              <p className="text-center text-[11px] text-soft-cloud/70 leading-snug">
+                Then ${FOUNDER_ENTERPRISE_LIFETIME_MONTHLY_USD}/mo Enterprise for life · no card to sign up
+              </p>
               <p className="text-center text-[11px] font-medium text-soft-cloud/70 tabular-nums">
                 <span className="text-cyber-amber font-bold">{betaSpotsRemaining}</span> of {betaCap} founder spots left · live
               </p>
             </div>
           )}
           {betaFull && (
-            <div className="mb-3 px-2 py-1 rounded-lg bg-emerald-500/15 border border-emerald-400/40 text-center text-xs font-bold text-emerald-300">
-              {POST_BETA_ENTERPRISE_TRIAL_DAYS}-DAY TRIAL · NO CARD TO START
+            <div className="mb-3 px-2 py-1.5 rounded-lg bg-emerald-500/15 border border-emerald-400/40 text-center text-xs font-bold text-emerald-300 leading-snug">
+              {POST_BETA_ENTERPRISE_TRIAL_DAYS}-Day Free Trial - No Credit Card Required
             </div>
           )}
           <h3 className={`text-xl font-bold text-soft-cloud ${showFounderBadge && !betaFull ? 'mt-2' : ''}`}>Enterprise</h3>
+          <p className="mt-1 text-xs text-soft-cloud/55">Carriers & brokers · one total freight-ops platform</p>
           <div className="mt-4 flex items-baseline gap-1">
             <span className="text-3xl font-bold text-cyber-amber">
               {billing === 'yearly' ? '$3,990' : '$399'}
@@ -281,14 +278,34 @@ export function Pricing() {
           <p className="mt-1 text-xs text-soft-cloud/60">
             {billing === 'yearly' ? 'Billed annually · Save 2 months' : 'or $3,990/year'}
           </p>
-          <ul className="mt-6 space-y-3 flex-1 text-sm text-soft-cloud/90">
-            {ENTERPRISE_POINTS.map((point, i) => (
-              <li key={i} className="flex items-start gap-2">
-                <Check className="size-4 text-electric-teal shrink-0 mt-0.5" />
-                <span>{point}</span>
-              </li>
-            ))}
-          </ul>
+          <div className="mt-6 space-y-5 flex-1">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-electric-teal/90 mb-2">
+                Carriers
+              </p>
+              <ul className="space-y-3 text-sm text-soft-cloud/90">
+                {CARRIER_TIER_POINTS.map((point, i) => (
+                  <li key={`c-${i}`} className="flex items-start gap-2">
+                    <Check className="size-4 text-electric-teal shrink-0 mt-0.5" />
+                    <span>{point}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-electric-teal/90 mb-2">
+                Brokers
+              </p>
+              <ul className="space-y-3 text-sm text-soft-cloud/90">
+                {BROKER_TIER_POINTS.map((point, i) => (
+                  <li key={`b-${i}`} className="flex items-start gap-2">
+                    <Check className="size-4 text-electric-teal shrink-0 mt-0.5" />
+                    <span>{point}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
           <button
             type="button"
             onClick={() => {
@@ -314,33 +331,6 @@ export function Pricing() {
         </div>
       </div>
 
-      {/* Add-ons Section — IFTA is standard on Fleet Master & Enterprise */}
-      <section className="border-t border-white/10 pt-12">
-        <h2 className="text-lg font-bold text-soft-cloud text-center mb-8">Add-ons</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-2xl mx-auto">
-          <div className="rounded-xl border border-white/10 bg-white/5 p-5 flex flex-col items-center text-center">
-            <p className="font-bold text-soft-cloud">BOC-3 Filing</p>
-            <p className="text-2xl font-bold text-cyber-amber mt-1">$79</p>
-            <p className="text-xs text-soft-cloud/60 mt-0.5">One-time</p>
-            <Link
-              href="/contact"
-              className="mt-4 w-full py-2.5 rounded-lg border border-cyber-amber/50 text-cyber-amber text-sm font-medium hover:bg-cyber-amber/10 flex items-center justify-center"
-            >
-              Get started
-            </Link>
-          </div>
-          <div className="rounded-xl border border-white/10 bg-white/5 p-5 flex flex-col items-center text-center">
-            <p className="font-bold text-soft-cloud">Biennial Updates</p>
-            <p className="text-2xl font-bold text-cyber-amber mt-1">$99</p>
-            <Link
-              href="/contact"
-              className="mt-4 w-full py-2.5 rounded-lg border border-cyber-amber/50 text-cyber-amber text-sm font-medium hover:bg-cyber-amber/10 flex items-center justify-center"
-            >
-              Get started
-            </Link>
-          </div>
-        </div>
-      </section>
     </div>
   );
 }

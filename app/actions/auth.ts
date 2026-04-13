@@ -4,6 +4,8 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 
+export type SignupAccountType = 'carrier' | 'broker';
+
 export async function createOrganization(name: string, usdot_number: string) {
   const trimmed = usdot_number?.trim();
   if (!trimmed) return { error: 'USDOT number is required.' };
@@ -25,6 +27,97 @@ export async function createOrganization(name: string, usdot_number: string) {
     return { error: error.message };
   }
   return { orgId: data.id };
+}
+
+/** Create org during signup with carrier vs broker fields (migration 087). */
+export async function createSignupOrganization(
+  accountType: SignupAccountType,
+  data:
+    | {
+        companyName: string;
+        usdotNumber: string;
+        fleetSize: number | null;
+        mcNumber?: string | null;
+        address?: string | null;
+      }
+    | { brokerageName: string; mcNumber: string; usdotNumber?: string | null; address?: string | null }
+): Promise<{ orgId: string } | { error: string }> {
+  let admin;
+  try {
+    admin = createAdminClient();
+  } catch {
+    return { error: 'Service is temporarily unavailable. Please try again later.' };
+  }
+
+  if (accountType === 'carrier') {
+    const { companyName, usdotNumber, fleetSize, mcNumber, address } = data as {
+      companyName: string;
+      usdotNumber: string;
+      fleetSize: number | null;
+      mcNumber?: string | null;
+      address?: string | null;
+    };
+    const usdot = usdotNumber?.trim();
+    const mcDigits = mcNumber?.replace(/\D/g, '') ?? '';
+    if (!companyName?.trim()) return { error: 'Company name is required.' };
+    if (!usdot) return { error: 'USDOT number is required.' };
+    const fleetSizeNum =
+      fleetSize != null && !Number.isNaN(Number(fleetSize)) ? Math.max(0, Math.floor(Number(fleetSize))) : null;
+
+    const { data: row, error } = await admin
+      .from('organizations')
+      .insert({
+        name: companyName.trim(),
+        usdot_number: usdot,
+        mc_number: mcDigits.length > 0 ? mcDigits : null,
+        fleet_size: fleetSizeNum,
+        business_type: 'carrier',
+        status: 'active',
+        address: address?.trim() || null,
+      })
+      .select('id')
+      .single();
+
+    if (error) {
+      if (error.code === '23505' || error.message?.includes('unique')) {
+        return { error: 'This USDOT or MC number is already registered. Sign in or use different numbers.' };
+      }
+      return { error: error.message };
+    }
+    return { orgId: row.id };
+  }
+
+  const { brokerageName, mcNumber, usdotNumber, address } = data as {
+    brokerageName: string;
+    mcNumber: string;
+    usdotNumber?: string | null;
+    address?: string | null;
+  };
+  const mc = mcNumber?.replace(/\D/g, '') ?? '';
+  const dotDigits = usdotNumber?.replace(/\D/g, '') ?? '';
+  if (!brokerageName?.trim()) return { error: 'Brokerage name is required.' };
+  if (!mc) return { error: 'MC number is required.' };
+
+  const { data: row, error } = await admin
+    .from('organizations')
+    .insert({
+      name: brokerageName.trim(),
+      usdot_number: dotDigits.length > 0 ? dotDigits : null,
+      mc_number: mc,
+      business_type: 'broker',
+      status: 'active',
+      address: address?.trim() || null,
+    })
+    .select('id')
+    .single();
+
+  if (error) {
+    if (error.code === '23505' || error.message?.includes('mc_number') || error.message?.includes('unique')) {
+      return { error: 'This MC number is already registered. Sign in or verify your MC.' };
+    }
+    return { error: error.message };
+  }
+  return { orgId: row.id };
 }
 
 export async function createProfileAfterSignUp(orgId: string, fullName: string | null) {

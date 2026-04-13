@@ -19,19 +19,31 @@ export async function GET(request: Request) {
       if (user.id === ADMIN_OWNER_ID) {
         return NextResponse.redirect(`${origin}/admin`);
       }
-      // Beta-to-paid: first 5 get is_beta_tester (handle_new_user); #6+ go to pricing after signup.
-      if (redirectTo === '/dashboard') {
+      // Beta vs paid: after signup email confirm, non–beta users go to pricing; beta users land by account_type.
+      const signupDashboardPaths = new Set(['/dashboard', '/dashboard/dispatch', '/dashboard/loads']);
+      const isSignupDashboardFlow =
+        signupDashboardPaths.has(redirectTo) ||
+        (redirectTo.startsWith('/dashboard?') && redirectTo.split('?')[0] === '/dashboard');
+      if (isSignupDashboardFlow) {
         const { data: profile } = await supabase
           .from('profiles')
-          .select('is_beta_tester')
+          .select('is_beta_tester, account_type')
           .eq('user_id', user.id)
           .not('org_id', 'is', null)
           .limit(1)
-          .single();
-        const isBeta = (profile as { is_beta_tester?: boolean } | null)?.is_beta_tester === true;
+          .maybeSingle();
+        const p = profile as { is_beta_tester?: boolean; account_type?: string | null } | null;
+        const isBeta = p?.is_beta_tester === true;
         if (!isBeta) {
           return NextResponse.redirect(`${origin}/pricing`);
         }
+        if (p?.account_type === 'broker') {
+          return NextResponse.redirect(`${origin}/dashboard/loads`);
+        }
+        if (p?.account_type === 'carrier') {
+          return NextResponse.redirect(`${origin}/dashboard/dispatch`);
+        }
+        return NextResponse.redirect(`${origin}/dashboard`);
       }
       return NextResponse.redirect(`${origin}${redirectTo}`);
     }

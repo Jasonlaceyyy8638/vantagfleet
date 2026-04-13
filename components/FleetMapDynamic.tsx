@@ -1,7 +1,7 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import type { FleetMapLocation } from './FleetMap';
+import type { FleetMapLocation, FleetStopOverlay } from './FleetMap';
 
 const FleetMap = dynamic(
   () => import('./FleetMap').then((m) => ({ default: m.FleetMap })),
@@ -12,6 +12,8 @@ type Props = {
   accessToken: string;
   organizationId?: string | null;
   initialLocations?: FleetMapLocation[];
+  stopOverlays?: FleetStopOverlay[];
+  sandboxMode?: boolean;
   height?: string;
   className?: string;
 };

@@ -2,10 +2,15 @@ import { createClient } from '@/lib/supabase/server';
 import { getDashboardOrgId } from '@/lib/admin';
 import { cookies } from 'next/headers';
 import { ComplianceClient } from './ComplianceClient';
+import { ComplianceSandboxView } from '@/src/components/demo/ComplianceSandboxView';
 
 export default async function CompliancePage() {
-  const supabase = await createClient();
   const cookieStore = await cookies();
+  if (cookieStore.get('vf_demo')?.value === '1') {
+    return <ComplianceSandboxView />;
+  }
+
+  const supabase = await createClient();
   const orgId = await getDashboardOrgId(supabase, cookieStore);
 
   if (!orgId) {

@@ -30,10 +30,13 @@ export function DriverListClient({
   orgId,
   initialDrivers,
   initialComplianceDocs = [],
+  demoMode = false,
 }: {
   orgId: string;
   initialDrivers: Driver[];
   initialComplianceDocs?: ComplianceDoc[];
+  /** Unauthenticated sandbox: read-only list, no invites or uploads. */
+  demoMode?: boolean;
 }) {
   const [drivers, setDrivers] = useState<Driver[]>(initialDrivers);
   const [complianceDocs, setComplianceDocs] = useState<ComplianceDoc[]>(initialComplianceDocs);
@@ -171,22 +174,29 @@ export function DriverListClient({
 
   return (
     <div className="space-y-6">
+      {demoMode && (
+        <p className="text-sm text-cyber-amber/90 border border-cyber-amber/30 rounded-lg px-3 py-2 bg-cyber-amber/5">
+          Interactive sandbox — sample drivers and med card dates. Invites and uploads are disabled.
+        </p>
+      )}
       <div className="flex justify-between items-center">
         <p className="text-cloud-dancer/70 text-sm">{drivers.length} driver{drivers.length !== 1 ? 's' : ''}</p>
-        <button
-          type="button"
-          onClick={() => setShowForm((v) => !v)}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-cyber-amber hover:bg-cyber-amber/90 text-deep-ink text-sm font-medium"
-        >
-          <UserPlus className="size-4" />
-          Add driver
-        </button>
+        {!demoMode && (
+          <button
+            type="button"
+            onClick={() => setShowForm((v) => !v)}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-cyber-amber hover:bg-cyber-amber/90 text-deep-ink text-sm font-medium"
+          >
+            <UserPlus className="size-4" />
+            Add driver
+          </button>
+        )}
       </div>
 
-      {successMessage && (
+      {!demoMode && successMessage && (
         <p className="text-sm text-emerald-400 bg-emerald-500/10 px-4 py-2 rounded-lg">{successMessage}</p>
       )}
-      {showForm && (
+      {!demoMode && showForm && (
         <form
           onSubmit={handleAddDriver}
           className="rounded-xl border border-[#30363d] bg-card p-5 space-y-4"
@@ -347,6 +357,7 @@ export function DriverListClient({
                 ×
               </button>
             </div>
+            {!demoMode && (
             <div className="mb-6 p-4 rounded-xl border border-amber-500/30 bg-amber-500/5">
               <h3 className="text-sm font-semibold text-amber-400 mb-3 flex items-center gap-2">
                 <ScanLine className="size-4" />
@@ -396,58 +407,77 @@ export function DriverListClient({
                 )}
               </div>
             </div>
-            <div className="mb-6 flex flex-wrap items-center gap-3">
-              <input
-                ref={smartScanInputRef}
-                type="file"
-                accept="image/jpeg,image/png,image/webp"
-                className="hidden"
-                onChange={handleSmartScanFileChange}
-              />
-              <button
-                type="button"
-                onClick={handleSmartScanClick}
-                disabled={smartScanLoading}
-                className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border border-amber-500/50 bg-amber-500/10 hover:bg-amber-500/20 disabled:opacity-50 text-amber-400 text-sm font-medium"
-              >
-                {smartScanLoading ? (
-                  <>
-                    <Loader2 className="size-4 animate-spin" />
-                    AI is analyzing...
-                  </>
-                ) : (
-                  <>
-                    <Scan className="size-4" />
-                    Smart Scan
-                  </>
-                )}
-              </button>
-              <span className="text-xs text-cloud-dancer/60">Upload Medical Card or CDL for AI extraction</span>
-            </div>
-            {smartScanError && <p className="mb-4 text-sm text-red-400">{smartScanError}</p>}
-            {smartScanResult && (
-              <div className="mb-6 rounded-lg bg-emerald-500/10 border border-emerald-500/30 p-3 text-sm text-emerald-300">
-                <p className="font-medium">Compliance scan complete</p>
-                <p className="mt-1">Expiration Date: {smartScanResult.expirationDate}</p>
-                {smartScanResult.name && <p>Driver Name: {smartScanResult.name}</p>}
-                {smartScanResult.type && <p className="text-cloud-dancer/70">Document: {smartScanResult.type}</p>}
-                <p className="mt-1 text-amber-400/90">Status set to REVIEW_REQUIRED</p>
-              </div>
             )}
-            <DocumentUpload
-              driverId={docsDriver.id}
-              driverName={docsDriver.name}
-              orgId={orgId}
-              initialDocs={docsForDriver(docsDriver.id).map((d) => ({
-                id: d.id,
-                doc_type: d.doc_type,
-                file_path: d.file_path,
-                expiry_date: d.expiry_date,
-              }))}
-              onDocAdded={(doc) =>
-                setComplianceDocs((prev) => [...prev, { ...doc, driver_id: docsDriver.id }])
-              }
-            />
+            {!demoMode && (
+              <>
+                <div className="mb-6 flex flex-wrap items-center gap-3">
+                  <input
+                    ref={smartScanInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    className="hidden"
+                    onChange={handleSmartScanFileChange}
+                  />
+                  <button
+                    type="button"
+                    onClick={handleSmartScanClick}
+                    disabled={smartScanLoading}
+                    className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border border-amber-500/50 bg-amber-500/10 hover:bg-amber-500/20 disabled:opacity-50 text-amber-400 text-sm font-medium"
+                  >
+                    {smartScanLoading ? (
+                      <>
+                        <Loader2 className="size-4 animate-spin" />
+                        AI is analyzing...
+                      </>
+                    ) : (
+                      <>
+                        <Scan className="size-4" />
+                        Smart Scan
+                      </>
+                    )}
+                  </button>
+                  <span className="text-xs text-cloud-dancer/60">Upload Medical Card or CDL for AI extraction</span>
+                </div>
+                {smartScanError && <p className="mb-4 text-sm text-red-400">{smartScanError}</p>}
+                {smartScanResult && (
+                  <div className="mb-6 rounded-lg bg-emerald-500/10 border border-emerald-500/30 p-3 text-sm text-emerald-300">
+                    <p className="font-medium">Compliance scan complete</p>
+                    <p className="mt-1">Expiration Date: {smartScanResult.expirationDate}</p>
+                    {smartScanResult.name && <p>Driver Name: {smartScanResult.name}</p>}
+                    {smartScanResult.type && <p className="text-cloud-dancer/70">Document: {smartScanResult.type}</p>}
+                    <p className="mt-1 text-amber-400/90">Status set to REVIEW_REQUIRED</p>
+                  </div>
+                )}
+              </>
+            )}
+            {demoMode ? (
+              <ul className="space-y-2 text-sm text-soft-cloud/85">
+                {docsForDriver(docsDriver.id).length === 0 ? (
+                  <li className="text-soft-cloud/50">No DQ files in this sample.</li>
+                ) : (
+                  docsForDriver(docsDriver.id).map((d) => (
+                    <li key={d.id} className="rounded-lg border border-white/10 px-3 py-2">
+                      {d.doc_type} · expires {d.expiry_date ?? '—'}
+                    </li>
+                  ))
+                )}
+              </ul>
+            ) : (
+              <DocumentUpload
+                driverId={docsDriver.id}
+                driverName={docsDriver.name}
+                orgId={orgId}
+                initialDocs={docsForDriver(docsDriver.id).map((d) => ({
+                  id: d.id,
+                  doc_type: d.doc_type,
+                  file_path: d.file_path,
+                  expiry_date: d.expiry_date,
+                }))}
+                onDocAdded={(doc) =>
+                  setComplianceDocs((prev) => [...prev, { ...doc, driver_id: docsDriver.id }])
+                }
+              />
+            )}
           </div>
         </div>
       )}

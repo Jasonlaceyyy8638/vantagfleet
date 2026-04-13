@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { DEMO_ORG_ID } from '@/src/constants/demoData';
 
 export type PlatformRole = 'ADMIN' | 'EMPLOYEE' | 'SUPPORT' | 'BILLING';
 
@@ -128,7 +129,12 @@ export async function getDashboardOrgId(
     return impersonated;
   }
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return null;
+  if (!user) {
+    if (cookieStore.get('vf_demo')?.value === '1') {
+      return DEMO_ORG_ID;
+    }
+    return null;
+  }
   const { data: profiles } = await supabase
     .from('profiles')
     .select('org_id')

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 
-const FMCSA_BASE = 'https://mobile.fmcsa.dot.gov/qc/services/carriers';
+import { fetchCompanyData } from '@/services/fmcsa';
 
 /**
  * DOT verification uses the FMCSA QCMobile/Census API.
@@ -30,39 +30,30 @@ export async function GET(request: Request) {
     );
   }
 
+  const digits = dotNumber.replace(/\D/g, '');
+  if (digits.length < 4) {
+    return NextResponse.json({ error: 'Enter a valid DOT number.' }, { status: 400 });
+  }
+
   try {
-    const fmcsaUrl = `${FMCSA_BASE}/${encodeURIComponent(dotNumber)}?webKey=${encodeURIComponent(webKey)}`;
-    const res = await fetch(fmcsaUrl, {
-      cache: 'no-store',
-      headers: { Accept: 'application/json' },
-    });
-
-    if (!res.ok) {
-      const is5xx = res.status >= 500;
-      const message = is5xx
-        ? 'The government DOT database is temporarily unavailable. Please try again in a few minutes.'
-        : `FMCSA responded with ${res.status}. Try again later.`;
-      return NextResponse.json({ error: message }, { status: 502 });
-    }
-
-    let data: { content?: { carrier?: { legalName?: string; allowedToOperate?: string } } };
-    try {
-      data = await res.json();
-    } catch {
-      return NextResponse.json({ error: 'Invalid response from FMCSA' }, { status: 502 });
-    }
-
-    const carrier = data?.content?.carrier;
-
-    if (!carrier) {
+    const data = await fetchCompanyData(digits, 'dot');
+    if (!data) {
       return NextResponse.json({ error: 'Carrier not found' }, { status: 404 });
     }
 
+    const active = data.allowedToOperate === true;
+
     return NextResponse.json({
       ok: true,
-      legalName: carrier.legalName ?? null,
+      legalName: data.legalName,
+      physicalAddress: data.physicalAddress,
+      dot_number: data.dot_number,
+      mc_number: data.mc_number,
+      authorityType: data.authorityType,
+      authority_type: data.authority_type,
+      entity_type: data.authority_type,
       /** true when DOT Census (MCS-150) is current; does not imply BMC-91/BOC-3 or operating authority. */
-      active: carrier.allowedToOperate === 'Y',
+      active,
       verificationScope: 'census',
     });
   } catch (err) {

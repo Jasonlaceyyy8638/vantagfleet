@@ -4,10 +4,29 @@ import { cookies } from 'next/headers';
 import { hasFullAccess } from '@/lib/userHasAccess';
 import { UpgradeOverlay } from '@/components/UpgradeOverlay';
 import { FleetClient } from '@/app/(dashboard)/dashboard/fleet/FleetClient';
+import { resolveDemoPage } from '@/src/constants/demoData';
+import { VehiclesSandboxView } from '@/src/components/demo/VehiclesSandboxView';
 
 export default async function VehiclesPage() {
-  const supabase = await createClient();
   const cookieStore = await cookies();
+  if (cookieStore.get('vf_demo')?.value === '1') {
+    const role = cookieStore.get('vf_demo_role')?.value === 'broker' ? 'broker' : 'carrier';
+    const payload = resolveDemoPage(role, 'vehicles') as {
+      drivers: { id: string; name: string; assigned_vehicle_id: string | null; status: string }[];
+      vehicles: { id: string; vin: string; plate: string; year: number | null; status: string }[];
+    };
+    return (
+      <div className="p-6 md:p-8 max-w-5xl">
+        <h1 className="text-2xl font-bold text-soft-cloud mb-2">Vehicles</h1>
+        <p className="text-soft-cloud/70 mb-6">
+          Add vehicles (with VIN decoder), assign drivers, and manage your fleet. Unassigned drivers appear in the Pool; archive or reactivate as needed.
+        </p>
+        <VehiclesSandboxView drivers={payload.drivers} vehicles={payload.vehicles} />
+      </div>
+    );
+  }
+
+  const supabase = await createClient();
   const orgId = await getDashboardOrgId(supabase, cookieStore);
 
   if (!orgId) {

@@ -4,10 +4,31 @@ import { getDashboardOrgId, isSuperAdminImpersonating } from '@/lib/admin';
 import { redirect } from 'next/navigation';
 import { hasFullAccess } from '@/lib/userHasAccess';
 import { IFTADashboardClient } from './IFTADashboardClient';
+import { DEMO_MOCK_PROFILE_ID, DEMO_ORG_ID, getDemoAccountingIftaReceiptRows } from '@/src/constants/demoData';
 
 export default async function IFTADashboardPage() {
-  const supabase = await createClient();
   const cookieStore = await cookies();
+  if (cookieStore.get('vf_demo')?.value === '1') {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth() + 1;
+    const currentQuarter = Math.ceil(month / 3) as 1 | 2 | 3 | 4;
+    return (
+      <IFTADashboardClient
+        demoMode
+        iftaEnabled
+        profileId={DEMO_MOCK_PROFILE_ID}
+        orgId={DEMO_ORG_ID}
+        currentQuarter={currentQuarter}
+        currentYear={year}
+        initialReceipts={getDemoAccountingIftaReceiptRows()}
+        isSoloPro={false}
+        isDispatcher={false}
+      />
+    );
+  }
+
+  const supabase = await createClient();
   const orgId = await getDashboardOrgId(supabase, cookieStore);
   if (!orgId) redirect('/dashboard');
 
