@@ -12,6 +12,10 @@ const config: Config = {
         "midnight-ink": "#0B0F19",
         "electric-teal": "#00F5D4",
         "cyber-amber": "#FFB000",
+        /** Muted gold for enterprise marketing surfaces (pairs with cyber-amber CTAs). */
+        "brand-gold-muted": "#C9A227",
+        /** Trust / chrome — common in logistics SaaS alongside warm accent. */
+        "brand-navy": "#0c1526",
         "soft-cloud": "#E2E8F0",
         /* Legacy aliases for existing classes */
         "deep-ink": "#0B0F19",

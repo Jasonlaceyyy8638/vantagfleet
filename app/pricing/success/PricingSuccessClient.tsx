@@ -4,24 +4,18 @@ import { useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { CheckCircle } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import { SUBSCRIPTION_TRIAL_DAYS } from '@/lib/beta-config';
 
 const CYBER_AMBER = '#FFB000';
 const ELECTRIC_TEAL = '#00F5D4';
 
-export function PricingSuccessClient({
-  planName,
-  enterprisePostBetaTrial = false,
-}: {
-  planName: string | null;
-  enterprisePostBetaTrial?: boolean;
-}) {
+export function PricingSuccessClient({ planName }: { planName: string | null }) {
   const hasFired = useRef(false);
 
   useEffect(() => {
     if (hasFired.current || typeof window === 'undefined') return;
     hasFired.current = true;
 
-    // Cannon-style burst from center with brand colors
     confetti({
       particleCount: 120,
       spread: 100,
@@ -38,34 +32,12 @@ export function PricingSuccessClient({
           <CheckCircle className="size-16 text-electric-teal" aria-hidden />
         </div>
         <h1 className="text-3xl font-bold text-soft-cloud mb-3">Welcome to VantagFleet</h1>
-        {enterprisePostBetaTrial ? (
-          <>
-            <p className="text-xl text-soft-cloud font-semibold mb-4">
-              Your 14-day Enterprise trial is active
-            </p>
-            <p className="text-soft-cloud/80 text-sm mb-4">
-              No card was required to start. Stripe will email you before your trial ends so you can add payment and keep full access.
-            </p>
-          </>
-        ) : planName === 'Fleet Master' ? (
-          <>
-            <p className="text-xl text-soft-cloud font-semibold mb-4">
-              Your 7-day free trial is now active
-            </p>
-            <p className="text-soft-cloud/80 text-sm mb-4">
-              Check your email for your trial reminder (sent 3 days before trial ends).
-            </p>
-          </>
-        ) : (
-          <>
-            <p className="text-xl text-soft-cloud font-semibold mb-4">
-              You&apos;re all set — welcome to VantagFleet
-            </p>
-            <p className="text-soft-cloud/80 text-sm mb-4">
-              Head to the dashboard to finish setup.
-            </p>
-          </>
-        )}
+        <p className="text-xl text-soft-cloud font-semibold mb-4">
+          Your {SUBSCRIPTION_TRIAL_DAYS}-day trial is active
+        </p>
+        <p className="text-soft-cloud/80 text-sm mb-4">
+          Your card on file is used after the trial unless you cancel. Check your email for reminders and receipts.
+        </p>
         {planName && planName !== 'your plan' && (
           <p className="text-soft-cloud/70 text-sm mb-6">
             You’re on <strong>{planName}</strong>.

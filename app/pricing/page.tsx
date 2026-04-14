@@ -1,27 +1,31 @@
 import { Pricing } from '@/components/Pricing';
 import Link from 'next/link';
+import { SUBSCRIPTION_TRIAL_DAYS } from '@/lib/beta-config';
 
 export default function PricingPage() {
   return (
-    <div className="min-h-screen bg-midnight-ink text-soft-cloud">
-      <div className="p-6 md:p-10">
+    <div className="min-h-screen bg-slate-50 text-slate-900">
+      <div className="p-6 md:p-10 pb-16">
         <div className="max-w-4xl mx-auto text-center mb-10">
-          <h1 className="text-3xl font-bold text-soft-cloud">Solo Pro, Fleet Master & Enterprise</h1>
-          <p className="text-soft-cloud/70 mt-2">
-            Freight operations in one platform—dispatch, telematics, settlements, and broker tools without bolt-on modules.
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 mb-3">Pricing</p>
+          <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 tracking-tight">Solo, Fleet & Enterprise</h1>
+          <p className="text-slate-600 mt-3 text-lg">
+            TMS-class freight operations—dispatch, visibility, settlements, and broker workflows in one subscription.
           </p>
-          <p className="text-soft-cloud/60 text-sm mt-2 max-w-xl mx-auto">
-            Sign up at <Link href="/signup" className="text-cyber-amber/90 font-medium hover:underline">/signup</Link> with{' '}
-            <strong className="text-soft-cloud/80">no credit card</strong>. The first 5 accounts get{' '}
-            <strong className="text-cyber-amber/90">90 days of full Enterprise access</strong> ($0 today). After founder slots fill, Enterprise starts with a{' '}
-            <strong className="text-cyber-amber/90">14-day free trial—no credit card required</strong>.{' '}
-            Fleet Master includes a <strong className="text-soft-cloud/80">7-day trial</strong>, also{' '}
-            <strong className="text-soft-cloud/80">without a card at checkout</strong>. Add payment before the trial ends to stay subscribed.
+          <p className="text-slate-500 text-sm mt-4 max-w-xl mx-auto leading-relaxed">
+            Every paid plan includes a <strong className="text-slate-700">{SUBSCRIPTION_TRIAL_DAYS}-day trial</strong>.
+            Create an account at{' '}
+            <Link href="/signup" className="text-amber-700 font-semibold hover:underline">
+              /signup
+            </Link>{' '}
+            (email only), then choose a plan when you&apos;re ready.
           </p>
         </div>
-        <Pricing />
-        <p className="text-center text-soft-cloud/50 text-sm mt-8">
-          <Link href="/" className="hover:text-soft-cloud/80">← Back to home</Link>
+        <Pricing variant="light" />
+        <p className="text-center text-slate-500 text-sm mt-10">
+          <Link href="/" className="hover:text-slate-800 font-medium">
+            ← Back to home
+          </Link>
         </p>
       </div>
     </div>

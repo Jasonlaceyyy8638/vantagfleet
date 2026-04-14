@@ -559,7 +559,7 @@ export function SignUpForm() {
 
       if (isBeta) {
         const dest = at === 'broker' ? '/dashboard/loads' : '/dashboard/dispatch';
-        router.push(`${dest}?welcome=beta`);
+        router.push(`${dest}?welcome=access`);
       } else {
         router.push('/pricing');
       }
@@ -823,7 +823,7 @@ export function SignUpForm() {
             )}
           </div>
           <p className="mt-2 text-xs text-soft-cloud/55 leading-relaxed">
-            First 5 founders: 90 days of Enterprise-level access on us. No credit card required.
+            Paid plans include a 7-day trial; card required at checkout when you subscribe.
           </p>
           {brokerMcLookupError && <p className="mt-2 text-sm text-red-400">{brokerMcLookupError}</p>}
         </div>

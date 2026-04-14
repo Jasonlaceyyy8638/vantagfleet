@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server';
 import { getDashboardOrgId } from '@/lib/admin';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
-import { FounderSuccessScreen } from './FounderSuccessScreen';
+import { WelcomeSuccessScreen } from './WelcomeSuccessScreen';
 
 export default async function DashboardSuccessPage() {
   const supabase = await createClient();
@@ -33,7 +33,7 @@ export default async function DashboardSuccessPage() {
 
   return (
     <div className="p-6 md:p-8 max-w-2xl mx-auto">
-      <FounderSuccessScreen name={name} />
+      <WelcomeSuccessScreen name={name} />
     </div>
   );
 }

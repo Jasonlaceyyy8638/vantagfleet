@@ -125,7 +125,7 @@ export function DemoDashboardHomeClient() {
         <div className="mt-6 flex flex-wrap gap-3">
           <Link
             href={`/dashboard/marketplace${demoQs}`}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-lime-400/15 border border-lime-400/40 text-lime-300 font-semibold text-sm hover:bg-lime-400/20"
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-cyber-amber/15 border border-cyber-amber/40 text-cyber-amber font-semibold text-sm hover:bg-cyber-amber/22"
           >
             Marketplace
           </Link>
@@ -262,7 +262,7 @@ export function DemoDashboardHomeClient() {
         <div className="flex flex-wrap gap-3">
           <Link
             href={`/dispatch${demoQs}`}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-lime-400/15 border border-lime-400/40 text-lime-300 font-semibold text-sm hover:bg-lime-400/20"
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-cyber-amber/15 border border-cyber-amber/40 text-cyber-amber font-semibold text-sm hover:bg-cyber-amber/22"
           >
             <LayoutGrid className="size-4" />
             Dispatch Board

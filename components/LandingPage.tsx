@@ -20,11 +20,13 @@ import {
   Smartphone,
   Monitor,
   LayoutGrid,
+  Route,
+  Radio,
+  Landmark,
+  Fuel,
+  ShieldCheck,
 } from 'lucide-react';
 import type { NavbarRole } from '@/lib/admin';
-import { useBetaSpotsLive } from '@/lib/useBetaSpotsLive';
-import { FOUNDER_ENTERPRISE_DAYS } from '@/lib/beta-config';
-import { PostBetaEnterpriseTrialBanner } from '@/components/PostBetaEnterpriseTrialBanner';
 import { HeroDispatchPreview } from '@/components/landing/HeroDispatchPreview';
 import { DemoMapMock } from '@/components/landing/DemoMapMock';
 import { DemoRolePickerModal } from '@/components/landing/DemoRolePickerModal';
@@ -32,6 +34,40 @@ import { demoLoads, demoLoadLaneLabel } from '@/src/constants/demoData';
 
 const glassCardClass =
   'backdrop-blur-lg border border-white/10 rounded-2xl shadow-[0_0_40px_-12px_rgba(255,176,0,0.15)]';
+
+/** Full TMS-style pillars — matches how buyers evaluate Alvys-class platforms (without naming competitors). */
+const ENTERPRISE_STACK = [
+  {
+    title: 'Dispatch & load control',
+    body: 'Plan, assign, and execute loads from one board—status, equipment, and exceptions visible at a glance.',
+    Icon: Route,
+  },
+  {
+    title: 'Real-time visibility',
+    body: 'ELD-linked positions and stop-level context so dispatch, ops, and customers share one truth.',
+    Icon: Radio,
+  },
+  {
+    title: 'Settlements & pay',
+    body: 'Driver pay, carrier rates, and customer billing logic tied to the same load record—fewer disputes, faster closes.',
+    Icon: Landmark,
+  },
+  {
+    title: 'IFTA & fuel',
+    body: 'Mileage and fuel data organized for reporting—built for audit-ready workflows, not end-of-quarter panic.',
+    Icon: Fuel,
+  },
+  {
+    title: 'Safety & compliance',
+    body: 'Documents, expirations, and fleet health signals in-app—operations-first, not a bolt-on filing shop.',
+    Icon: ShieldCheck,
+  },
+  {
+    title: 'Integrations',
+    body: 'Motive, Geotab, and the rest of your stack connected where it matters—fewer portals, fewer copy-paste errors.',
+    Icon: Plug,
+  },
+] as const;
 
 type LandingPageProps = { isAuthenticated?: boolean; navbarRole?: NavbarRole | null };
 
@@ -45,40 +81,6 @@ export function LandingPage({ isAuthenticated = false, navbarRole = null }: Land
   const [driverAppNotifySubmitting, setDriverAppNotifySubmitting] = useState(false);
   const [driverAppNotifySuccess, setDriverAppNotifySuccess] = useState(false);
   const [driverAppNotifyError, setDriverAppNotifyError] = useState<string | null>(null);
-
-  const { remaining: betaSpotsRemaining, cap: betaCap } = useBetaSpotsLive(!isAuthenticated);
-  const [waitlistEmail, setWaitlistEmail] = useState('');
-  const [waitlistSubmitting, setWaitlistSubmitting] = useState(false);
-  const [waitlistSuccess, setWaitlistSuccess] = useState(false);
-  const [waitlistError, setWaitlistError] = useState<string | null>(null);
-  const betaOpen = betaSpotsRemaining != null && betaSpotsRemaining > 0;
-  const betaFull = betaSpotsRemaining !== null && betaSpotsRemaining === 0;
-
-  const handleWaitlistSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const email = waitlistEmail.trim();
-    if (!email) return;
-    setWaitlistError(null);
-    setWaitlistSubmitting(true);
-    try {
-      const res = await fetch('/api/waitlist', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setWaitlistError(data?.error ?? 'Something went wrong.');
-        return;
-      }
-      setWaitlistSuccess(true);
-      setWaitlistEmail('');
-    } catch {
-      setWaitlistError('Network error. Try again.');
-    } finally {
-      setWaitlistSubmitting(false);
-    }
-  };
 
   useEffect(() => {
     const code = searchParams.get('code');
@@ -134,61 +136,6 @@ export function LandingPage({ isAuthenticated = false, navbarRole = null }: Land
         aria-hidden
       />
 
-      {/* Founder 90-day beta strip (marketing + waitlist when full) */}
-      {!isAuthenticated && betaSpotsRemaining !== null && (
-        <div className="border-b border-cyber-amber/35 bg-gradient-to-r from-cyber-amber/15 via-cyber-amber/10 to-cyber-amber/15 px-4 py-3 sm:py-4 text-center">
-          {betaOpen ? (
-            <p className="text-sm sm:text-base font-medium text-slate-100 max-w-3xl mx-auto leading-relaxed">
-              <span className="text-cyber-amber font-semibold">{FOUNDER_ENTERPRISE_DAYS}-day Enterprise founder access</span>
-              {' — '}
-              Only the first <span className="text-cyber-amber font-semibold tabular-nums">{betaCap}</span> carriers get full Enterprise-level features on us.{' '}
-              <span className="text-emerald-300/95 font-medium">No credit card to sign up.</span>{' '}
-              <span className="inline-flex flex-wrap items-baseline justify-center gap-x-1 gap-y-0.5">
-                <span className="whitespace-nowrap tabular-nums font-bold text-white text-base sm:text-lg">
-                  {betaSpotsRemaining} of {betaCap}
-                </span>
-                <span className="whitespace-nowrap">founder spots left</span>
-                <span className="text-slate-500 text-xs font-normal w-full sm:w-auto">· live</span>
-              </span>{' '}
-              <Link href="/signup" className="text-cyber-amber underline underline-offset-2 hover:no-underline font-semibold">
-                Start Moving Freight
-              </Link>
-            </p>
-          ) : betaFull ? (
-            <div className="max-w-3xl mx-auto space-y-5">
-              <PostBetaEnterpriseTrialBanner />
-              <div className="rounded-xl border border-white/10 bg-midnight-ink/40 px-4 py-3">
-                <p className="text-xs sm:text-sm font-medium text-slate-400 mb-2">
-                  Rather get notified if a founder spot opens? Join the waitlist.
-                </p>
-                {waitlistSuccess ? (
-                  <p className="text-sm text-emerald-400">You&apos;re on the list. Thanks!</p>
-                ) : (
-                  <form onSubmit={handleWaitlistSubmit} className="flex flex-col sm:flex-row gap-2 justify-center items-stretch sm:items-center max-w-lg mx-auto">
-                    <input
-                      type="email"
-                      required
-                      value={waitlistEmail}
-                      onChange={(e) => setWaitlistEmail(e.target.value)}
-                      placeholder="Email"
-                      className="min-h-[44px] rounded-lg border border-white/20 bg-midnight-ink/80 px-3 py-2 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-cyber-amber/50"
-                    />
-                    <button
-                      type="submit"
-                      disabled={waitlistSubmitting}
-                      className="min-h-[44px] shrink-0 rounded-lg border border-cyber-amber/40 bg-transparent px-4 py-2 text-sm font-semibold text-cyber-amber hover:bg-cyber-amber/10 disabled:opacity-60"
-                    >
-                      {waitlistSubmitting ? 'Submitting…' : 'Join waitlist'}
-                    </button>
-                  </form>
-                )}
-                {waitlistError && <p className="text-sm text-red-400 mt-2">{waitlistError}</p>}
-              </div>
-            </div>
-          ) : null}
-        </div>
-      )}
-
       {/* Hero: fixed Navbar is z-50; extra top padding + stacking so headline never sits under the bar */}
       <section className="relative z-0 flex min-h-[100dvh] flex-col justify-center overflow-hidden bg-midnight-ink pt-24 sm:pt-28 md:pt-32 sm:min-h-screen">
         <div className="absolute inset-0 z-0 bg-gradient-to-b from-midnight-ink via-[#0a1020] to-cyber-amber/15" aria-hidden />
@@ -236,7 +183,7 @@ export function LandingPage({ isAuthenticated = false, navbarRole = null }: Land
                   <button
                     type="button"
                     onClick={() => setDemoRoleModalOpen(true)}
-                    className="inline-flex items-center justify-center gap-2 min-h-[56px] sm:min-h-[60px] px-8 sm:px-12 py-4 rounded-2xl bg-lime-400 text-midnight-ink font-extrabold text-base sm:text-lg hover:bg-lime-300 active:scale-[0.98] transition-all shadow-[0_0_40px_-8px_rgba(190,242,100,0.55)] touch-manipulation border-2 border-lime-300/80 w-full sm:w-auto text-center"
+                    className="inline-flex items-center justify-center gap-2 min-h-[56px] sm:min-h-[60px] px-8 sm:px-12 py-4 rounded-2xl bg-cyber-amber text-midnight-ink font-extrabold text-base sm:text-lg hover:bg-cyber-amber/90 active:scale-[0.98] transition-all shadow-[0_0_44px_-8px_rgba(255,176,0,0.45)] touch-manipulation border-2 border-cyber-amber/85 w-full sm:w-auto text-center"
                   >
                     Click to Launch Live Interactive Demo
                     <LayoutGrid className="size-5 shrink-0" />
@@ -335,6 +282,47 @@ export function LandingPage({ isAuthenticated = false, navbarRole = null }: Land
         </div>
       </section>
 
+      {/* Enterprise TMS stack — buyer checklist (parity framing vs all-in-one TMS category) */}
+      <section className="relative py-24 px-4 bg-brand-navy border-t border-white/[0.06]">
+        <div className="max-w-6xl mx-auto">
+          <motion.h2
+            initial={{ opacity: 0, y: 18 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.2 }}
+            className="text-3xl sm:text-4xl font-bold text-white text-center mb-3 tracking-tight"
+          >
+            One platform. <span className="text-cyber-amber">Serious logistics</span> infrastructure.
+          </motion.h2>
+          <motion.p
+            initial={{ opacity: 0, y: 12 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.2 }}
+            className="text-center text-soft-cloud/65 max-w-2xl mx-auto mb-12 text-base"
+          >
+            The same operational pillars buyers expect from an all-in-one TMS—dispatch, money, compliance, and
+            visibility—without stitching together five different tools.
+          </motion.p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            {ENTERPRISE_STACK.map(({ title, body, Icon }, i) => (
+              <motion.div
+                key={title}
+                initial={{ opacity: 0, y: 16 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, amount: 0.12 }}
+                transition={{ duration: 0.45, delay: i * 0.05 }}
+                className="rounded-2xl border border-white/[0.08] bg-[var(--brand-navy-deep)]/90 p-6 flex flex-col gap-3 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)]"
+              >
+                <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-cyber-amber/25 bg-cyber-amber/10">
+                  <Icon className="size-5 text-cyber-amber" aria-hidden />
+                </div>
+                <h3 className="text-lg font-semibold text-white leading-snug">{title}</h3>
+                <p className="text-sm text-slate-400 leading-relaxed flex-1">{body}</p>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* Live demo CTA (replaces founder video block) */}
       <section className="relative py-20 px-4 bg-midnight-ink border-t border-white/5">
         <div className="max-w-3xl mx-auto text-center">
@@ -364,7 +352,7 @@ export function LandingPage({ isAuthenticated = false, navbarRole = null }: Land
               <button
                 type="button"
                 onClick={() => setDemoRoleModalOpen(true)}
-                className="inline-flex items-center justify-center gap-3 min-h-[60px] px-10 sm:px-14 py-4 rounded-2xl bg-lime-400 text-midnight-ink font-extrabold text-lg sm:text-xl hover:bg-lime-300 transition-all shadow-[0_0_48px_-10px_rgba(190,242,100,0.55)] border-2 border-lime-300/90"
+                className="inline-flex items-center justify-center gap-3 min-h-[60px] px-10 sm:px-14 py-4 rounded-2xl bg-cyber-amber text-midnight-ink font-extrabold text-lg sm:text-xl hover:bg-cyber-amber/90 transition-all shadow-[0_0_48px_-10px_rgba(255,176,0,0.4)] border-2 border-cyber-amber/85"
               >
                 Click to Launch Live Interactive Demo
                 <LayoutGrid className="size-6 shrink-0" />
@@ -1013,7 +1001,6 @@ function CTASection({
 }: {
   isAuthenticated: boolean;
   navbarRole?: NavbarRole | null;
-  betaOpen?: boolean;
 }) {
   return (
     <section id="contact" className="relative py-20 sm:py-28 md:py-32 px-4 sm:px-6 bg-[#0f172a] border-t border-slate-600/30 scroll-mt-24">

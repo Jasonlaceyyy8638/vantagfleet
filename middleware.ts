@@ -1,10 +1,22 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import { updateSession } from '@/lib/supabase/middleware';
+import { canAccessVantagControlAdmin } from '@/lib/admin/control-access';
 
 const PUBLIC_PATHS = ['/login', '/signup', '/invite', '/register', '/auth/callback', '/roadside/view', '/inspect'];
 
 /** VantagFleet owner: always send to /admin; bypass carrier onboarding. */
 const ADMIN_OWNER_ID = 'ae175e55-72b4-4441-9e3c-02ecd8225bf7';
+
+/** Forward pathname to server components (admin layout branching). */
+function forwardPathname(request: NextRequest, pathname: string, response: NextResponse): NextResponse {
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set('x-vf-pathname', pathname);
+  const res = NextResponse.next({ request: { headers: requestHeaders } });
+  response.cookies.getAll().forEach((c) => {
+    res.cookies.set(c.name, c.value);
+  });
+  return res;
+}
 
 export async function middleware(request: NextRequest) {
   const url = request.nextUrl;
@@ -34,7 +46,7 @@ export async function middleware(request: NextRequest) {
   const isPublic = PUBLIC_PATHS.some((p) => pathname.startsWith(p));
 
   let response: NextResponse;
-  let user: { id: string } | null = null;
+  let user: { id: string; email: string | null } | null = null;
   let isStaff: boolean | undefined;
   let isAdmin: boolean | undefined;
   let isSuperAdmin: boolean | undefined;
@@ -90,6 +102,7 @@ export async function middleware(request: NextRequest) {
     pathname === '/contact' ||
     pathname === '/download' ||
     pathname.startsWith('/releases') ||
+    pathname.startsWith('/resources') ||
     pathname.startsWith('/roadside/view') ||
     pathname.startsWith('/inspect/') ||
     pathname.startsWith('/forgot-password') ||
@@ -102,7 +115,7 @@ export async function middleware(request: NextRequest) {
         response.cookies.set('vf_demo_role', roleParam, { path: '/', maxAge: 1800, sameSite: 'lax' });
       }
     }
-    return response;
+    return forwardPathname(request, pathname, response);
   }
 
   // Protect all other routes: require authenticated user
@@ -117,7 +130,7 @@ export async function middleware(request: NextRequest) {
   const carrierRoutes = ['/dashboard', '/drivers', '/vehicles', '/loads', '/compliance', '/regulatory', '/settings', '/roadside-mode', '/dispatcher', '/trailers'];
 
   if (user.id === ADMIN_OWNER_ID) {
-    return response;
+    return forwardPathname(request, pathname, response);
   }
 
   // Staff (not owner): when not impersonating, carrier routes redirect to /admin
@@ -125,14 +138,22 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/admin', request.url));
   }
 
-  // Admin portal: any platform staff may access
+  // /admin/control-center: allowlisted corporate email only (not general staff)
+  if (pathname.startsWith('/admin/control-center')) {
+    if (!canAccessVantagControlAdmin(user.email)) {
+      return new NextResponse(null, { status: 404 });
+    }
+    return forwardPathname(request, pathname, response);
+  }
+
+  // Admin portal (rest of /admin): platform staff only
   if (pathname.startsWith('/admin')) {
     if (isStaff !== true) {
       return NextResponse.redirect(new URL('/', request.url));
     }
   }
 
-  return response;
+  return forwardPathname(request, pathname, response);
 }
 
 export const config = {

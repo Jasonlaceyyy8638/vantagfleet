@@ -23,8 +23,7 @@ export type OrgForMapAccess = {
 };
 
 /**
- * Live Map access: true if profile.is_beta_tester OR subscription_tier is fleet_master ($199) or enterprise ($399).
- * Returns false for Solo Pro ($29) tier.
+ * Live Map access: true if profile.is_beta_tester OR subscription_tier is solo_pro, fleet_master, or enterprise.
  */
 export function canSeeMap(
   profile: ProfileForAccess | null | undefined,
@@ -33,7 +32,7 @@ export function canSeeMap(
   if (!profile) return false;
   if (profile.is_beta_tester === true) return true;
   const tier = (org?.tier ?? '').toString().trim().toLowerCase().replace(/\s+/g, '_');
-  return tier === 'fleet_master' || tier === 'enterprise';
+  return tier === 'solo_pro' || tier === 'fleet_master' || tier === 'enterprise';
 }
 
 /**

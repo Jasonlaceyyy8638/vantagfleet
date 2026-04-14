@@ -6,8 +6,9 @@ import { PwaRegister } from '@/components/PwaRegister';
 import { NextStepProviders } from '@/components/NextStepProviders';
 
 export const metadata: Metadata = {
-  title: 'Vantag Fleet — Compliance',
-  description: 'Multi-tenant trucking compliance SaaS',
+  title: 'Vantag Fleet — TMS for carriers & brokers',
+  description:
+    'All-in-one transportation management: dispatch, live tracking, settlements, IFTA, and safety—built for serious logistics teams.',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,

@@ -41,8 +41,8 @@ export function DemoSandboxChrome({ children }: { children: ReactNode }) {
         className="pointer-events-none fixed inset-0 z-[110] flex items-start justify-center pt-16 md:pt-6"
         aria-hidden
       >
-        <div className="rounded-lg border border-lime-400/35 bg-midnight-ink/55 px-4 py-2 text-center shadow-lg backdrop-blur-sm">
-          <p className="text-[11px] font-bold uppercase tracking-[0.35em] text-lime-400/95">Demo sandbox</p>
+        <div className="rounded-lg border border-cyber-amber/35 bg-midnight-ink/55 px-4 py-2 text-center shadow-lg backdrop-blur-sm">
+          <p className="text-[11px] font-bold uppercase tracking-[0.35em] text-cyber-amber/95">Demo sandbox</p>
           <p className="text-[10px] text-soft-cloud/40 mt-1">Sample data · no database writes</p>
         </div>
       </div>

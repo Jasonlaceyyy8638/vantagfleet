@@ -1,6 +1,8 @@
 import { createClient } from '@/lib/supabase/server';
 import { getPlatformRole, canAccessAdmin } from '@/lib/admin';
-import { redirect } from 'next/navigation';
+import { canAccessVantagControlAdmin } from '@/lib/admin/control-access';
+import { redirect, notFound } from 'next/navigation';
+import { headers } from 'next/headers';
 import { AdminShell } from './AdminShell';
 import { AdminPinGate } from '@/components/AdminPinGate';
 
@@ -16,11 +18,19 @@ export default async function AdminLayout({
   children: React.ReactNode;
 }) {
   try {
+    const pathname = (await headers()).get('x-vf-pathname') ?? '';
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (user && (user.user_metadata as Record<string, unknown>)?.must_change_password === true) {
       redirect('/account/change-password?required=1');
     }
+
+    if (pathname.startsWith('/admin/control-center')) {
+      if (!user) redirect('/login');
+      if (!canAccessVantagControlAdmin(user.email)) notFound();
+      return <>{children}</>;
+    }
+
     const canAccess = await canAccessAdmin(supabase);
     if (!canAccess) redirect('/');
 

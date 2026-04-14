@@ -55,6 +55,22 @@ type CustomerRow = { id: string; name: string };
 
 const ACTIVE = new Set(['available', 'assigned', 'dispatched', 'in_transit', 'at_pickup', 'delivered']);
 
+function laneBrief(load: LoadRow): string {
+  const stops = load.load_stops ?? [];
+  const pickup = stops.find((s) => s.stop_type === 'pickup') ?? stops[0];
+  const delivery = stops.find((s) => s.stop_type === 'delivery') ?? stops[1];
+  const p = [pickup?.city, pickup?.state].filter(Boolean).join(', ');
+  const d = [delivery?.city, delivery?.state].filter(Boolean).join(', ');
+  if (!p && !d) return '—';
+  if (!d) return p;
+  if (!p) return d;
+  return `${p} → ${d}`;
+}
+
+function statusLabel(status: string): string {
+  return status.replace(/_/g, ' ');
+}
+
 export function DispatchCommandCenterClient({
   orgId,
   mapboxToken,
@@ -147,6 +163,16 @@ export function DispatchCommandCenterClient({
     () => loadRows.filter((l) => ACTIVE.has(l.status) && l.status !== 'available'),
     [loadRows]
   );
+
+  const boardLoads = useMemo(() => loadRows.filter((l) => ACTIVE.has(l.status)), [loadRows]);
+
+  const dispatchStats = useMemo(() => {
+    const board = loadRows.filter((l) => ACTIVE.has(l.status));
+    const inTransit = loadRows.filter((l) => l.status === 'in_transit').length;
+    const atPickup = loadRows.filter((l) => l.status === 'at_pickup').length;
+    const assigned = loadRows.filter((l) => l.status === 'assigned' || l.status === 'dispatched').length;
+    return { inTransit, atPickup, assigned, total: board.length };
+  }, [loadRows]);
 
   const resetForm = () => {
     setLoadDate(new Date().toISOString().slice(0, 10));
@@ -405,10 +431,27 @@ export function DispatchCommandCenterClient({
             resetForm();
             setModalOpen(true);
           }}
-          className="rounded-lg bg-electric-teal/90 hover:bg-electric-teal text-midnight-ink font-semibold px-4 py-2.5 text-sm shrink-0"
+          className="rounded-lg bg-cyber-amber hover:bg-cyber-amber/90 text-midnight-ink font-semibold px-4 py-2.5 text-sm shrink-0 shadow-sm shadow-cyber-amber/20"
         >
           Create load
         </button>
+      </div>
+
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        {[
+          { label: brokerMode ? 'Posted / active' : 'Active loads', value: dispatchStats.total },
+          { label: 'In transit', value: dispatchStats.inTransit },
+          { label: 'At pickup', value: dispatchStats.atPickup },
+          { label: 'Assigned / dispatched', value: dispatchStats.assigned },
+        ].map((k) => (
+          <div
+            key={k.label}
+            className="rounded-lg border border-white/10 bg-card/60 px-4 py-3"
+          >
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-cloud-dancer/50">{k.label}</p>
+            <p className="text-2xl font-bold text-cloud-dancer tabular-nums mt-1">{k.value}</p>
+          </div>
+        ))}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -508,6 +551,63 @@ export function DispatchCommandCenterClient({
               </ul>
             </>
           )}
+        </div>
+      </div>
+
+      <div className="rounded-xl border border-white/10 bg-card/30 overflow-hidden">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 px-4 py-3 border-b border-white/10 bg-midnight-ink/40">
+          <h2 className="text-sm font-semibold text-cloud-dancer">Load board</h2>
+          <p className="text-[11px] text-cloud-dancer/50">
+            Dense operational view—reference, lane, equipment, and status in one place.
+          </p>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[720px] text-left text-sm">
+            <thead>
+              <tr className="border-b border-white/10 text-[11px] uppercase tracking-wider text-cloud-dancer/50">
+                <th className="px-4 py-2.5 font-semibold">Reference</th>
+                <th className="px-4 py-2.5 font-semibold">Lane</th>
+                <th className="px-4 py-2.5 font-semibold">Driver</th>
+                <th className="px-4 py-2.5 font-semibold">Equipment</th>
+                <th className="px-4 py-2.5 font-semibold">Status</th>
+                <th className="px-4 py-2.5 font-semibold">Load date</th>
+              </tr>
+            </thead>
+            <tbody>
+              {boardLoads.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-4 py-8 text-center text-cloud-dancer/55">
+                    No active loads yet. Create a load to see it on the board.
+                  </td>
+                </tr>
+              ) : (
+                boardLoads.map((l) => (
+                  <tr key={l.id} className="border-b border-white/[0.06] hover:bg-white/[0.03]">
+                    <td className="px-4 py-3 font-medium text-soft-cloud whitespace-nowrap">
+                      {l.reference_number?.trim() || l.id.slice(0, 8)}
+                    </td>
+                    <td className="px-4 py-3 text-cloud-dancer/85 max-w-[220px]">{laneBrief(l)}</td>
+                    <td className="px-4 py-3 text-cloud-dancer/80 whitespace-nowrap">{l.driver_name ?? '—'}</td>
+                    <td className="px-4 py-3 text-cloud-dancer/80 whitespace-nowrap">{l.vehicle_label ?? '—'}</td>
+                    <td className="px-4 py-3">
+                      <span
+                        className={`inline-flex rounded-md px-2 py-0.5 text-xs font-medium capitalize ${
+                          l.status === 'available'
+                            ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/25'
+                            : l.status === 'in_transit'
+                              ? 'bg-sky-500/15 text-sky-200 border border-sky-500/25'
+                              : 'bg-white/5 text-cloud-dancer/90 border border-white/10'
+                        }`}
+                      >
+                        {statusLabel(l.status)}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-cloud-dancer/70 tabular-nums whitespace-nowrap">{l.load_date}</td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
 

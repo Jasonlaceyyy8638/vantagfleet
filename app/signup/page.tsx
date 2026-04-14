@@ -4,7 +4,6 @@ import { isAdmin } from '@/lib/admin';
 import { SignUpForm } from './SignUpForm';
 import { Logo } from '@/components/Logo';
 import { AuthBackground } from '@/components/AuthBackground';
-import { BetaSpotsLiveBadge } from '@/components/BetaSpotsLiveBadge';
 import Link from 'next/link';
 
 export default async function SignUpPage() {
@@ -23,14 +22,11 @@ export default async function SignUpPage() {
           <h1 className="text-xl font-bold text-soft-cloud mt-4">
             Welcome to <span className="text-soft-cloud">Vantag</span><span className="text-cyber-amber">Fleet</span>
           </h1>
-          <BetaSpotsLiveBadge />
         </div>
         <div className="text-soft-cloud/70 text-sm mb-4 space-y-2 text-left">
-          <p>Register your company, then set your login. <span className="text-soft-cloud/90">No credit card required</span> — email and password only.</p>
           <p>
-            <span className="text-cyber-amber/95 font-semibold">First 5 founders:</span>{' '}
-            <span className="text-soft-cloud/90">90 days of Enterprise-level access</span> on us. After those slots are full, new carriers can start a{' '}
-            <span className="text-soft-cloud/90">14-day Enterprise trial</span> without a card at checkout (see pricing).
+            Register your company, then set your login. Subscriptions include a 7-day trial; a card is collected in
+            Stripe when you choose a plan.
           </p>
         </div>
         <SignUpForm />

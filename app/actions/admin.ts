@@ -20,6 +20,7 @@ import type {
   SafetyRating,
 } from '@/lib/admin-types';
 import { ORG_FEATURE_KEYS } from '@/lib/admin-types';
+import { getStripeFleetMonthlyPriceId, getStripeSoloMonthlyPriceId } from '@/lib/stripe-price-ids';
 
 /** Allow owner (ADMIN_OWNER_ID) and anyone with isAdmin; else require platform_roles staff. */
 async function requireStaff() {
@@ -221,12 +222,19 @@ export async function createManualSubscription(
 ): Promise<{ subscriptionId: string } | { error: string }> {
   await requireStaff();
   const secretKey = process.env.STRIPE_SECRET_KEY;
-  const starterPriceId = process.env.STRIPE_STARTER_PRICE_ID;
-  const proPriceId = process.env.STRIPE_PRO_PRICE_ID;
+  const starterPriceId = getStripeSoloMonthlyPriceId();
+  const proPriceId = getStripeFleetMonthlyPriceId();
   if (!secretKey) return { error: 'Stripe is not configured.' };
 
   const priceId = tier === 'pro' ? proPriceId : starterPriceId;
-  if (!priceId) return { error: `STRIPE_${tier.toUpperCase()}_PRICE_ID is not set.` };
+  if (!priceId) {
+    return {
+      error:
+        tier === 'pro'
+          ? 'Set STRIPE_FLEET_MONTHLY_PRICE_ID (or legacy STRIPE_PRO_PRICE_ID).'
+          : 'Set STRIPE_SOLO_MONTHLY_PRICE_ID (or legacy STRIPE_STARTER_PRICE_ID).',
+    };
+  }
 
   const admin = createAdminClient();
   const { data: org, error: orgError } = await admin
@@ -746,11 +754,18 @@ export async function downgradeCarrierPlan(
 ): Promise<{ ok: true } | { error: string }> {
   await requireStaff();
   const secretKey = process.env.STRIPE_SECRET_KEY;
-  const starterPriceId = process.env.STRIPE_STARTER_PRICE_ID;
-  const proPriceId = process.env.STRIPE_PRO_PRICE_ID;
+  const starterPriceId = getStripeSoloMonthlyPriceId();
+  const proPriceId = getStripeFleetMonthlyPriceId();
   if (!secretKey) return { error: 'Stripe is not configured.' };
   const priceId = newTier === 'pro' ? proPriceId : starterPriceId;
-  if (!priceId) return { error: `STRIPE_${newTier.toUpperCase()}_PRICE_ID is not set.` };
+  if (!priceId) {
+    return {
+      error:
+        newTier === 'pro'
+          ? 'Set STRIPE_FLEET_MONTHLY_PRICE_ID (or legacy STRIPE_PRO_PRICE_ID).'
+          : 'Set STRIPE_SOLO_MONTHLY_PRICE_ID (or legacy STRIPE_STARTER_PRICE_ID).',
+    };
+  }
 
   const admin = createAdminClient();
   const { data: org, error: orgErr } = await admin

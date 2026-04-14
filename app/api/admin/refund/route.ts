@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { createClient } from '@/lib/supabase/server';
-import { getPlatformRole, isPlatformStaff, ADMIN_OWNER_ID } from '@/lib/admin';
+import { canAccessVantagControlAdmin } from '@/lib/admin/control-access';
 
 export async function POST(request: NextRequest) {
   const supabase = await createClient();
@@ -9,10 +9,8 @@ export async function POST(request: NextRequest) {
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
-  const isOwner = user.id === ADMIN_OWNER_ID;
-  const role = await getPlatformRole(supabase);
-  if (!isOwner && !isPlatformStaff(role)) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  if (!canAccessVantagControlAdmin(user.email)) {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 });
   }
 
   const secretKey = process.env.STRIPE_SECRET_KEY;

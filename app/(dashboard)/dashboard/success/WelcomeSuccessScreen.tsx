@@ -11,7 +11,7 @@ type Props = {
   name: string | null;
 };
 
-export function FounderSuccessScreen({ name }: Props) {
+export function WelcomeSuccessScreen({ name }: Props) {
   const hasFired = useRef(false);
 
   useEffect(() => {
@@ -44,19 +44,23 @@ export function FounderSuccessScreen({ name }: Props) {
     }, 200);
   }, []);
 
-  const displayName = name?.trim() || 'Founder';
+  const displayName = name?.trim() || 'there';
 
   return (
     <div className="min-h-[60vh] flex flex-col items-center justify-center p-6 md:p-8">
       <h1 className="text-2xl md:text-3xl font-bold text-soft-cloud text-center mb-4">
-        Welcome to the Inner Circle, {displayName}! 🚚
+        Welcome to VantagFleet, {displayName}
       </h1>
       <p className="text-soft-cloud/85 text-center max-w-lg mb-4">
-        Your Lifetime Founder Discount is now active. You will receive 20% off your VantagFleet subscription for as long as your account is active. Thank you for being one of our first 5 partners.
+        Your partner discount is active: 20% off your VantagFleet subscription while your account stays active. Thank you
+        for helping shape the product.
       </p>
       <p className="text-soft-cloud/70 text-sm text-center max-w-lg mb-8">
         Questions or feedback? Reply to us at{' '}
-        <a href="mailto:feedback@vantagfleet.com" className="text-cyber-amber hover:underline">feedback@vantagfleet.com</a>.
+        <a href="mailto:feedback@vantagfleet.com" className="text-cyber-amber hover:underline">
+          feedback@vantagfleet.com
+        </a>
+        .
       </p>
       <Link
         href="/dashboard"

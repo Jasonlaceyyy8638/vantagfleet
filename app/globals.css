@@ -9,6 +9,9 @@
   --border: #1e293b;
   --primary: #00F5D4;
   --accent: #FFB000;
+  /* Enterprise marketing: warm accent + deep navy (competes with “trust” palettes without going full Big Tech blue). */
+  --brand-accent-soft: rgba(255, 176, 0, 0.12);
+  --brand-navy-deep: #0a0f1a;
 }
 
 body {

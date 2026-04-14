@@ -7,6 +7,7 @@ import { Logo } from '@/components/Logo';
 import { createClient } from '@/lib/supabase/client';
 import { LogOut } from 'lucide-react';
 import { SystemStatusIndicator, type SystemStatus } from '@/components/SystemStatusIndicator';
+import { isVantagControlNavAdmin } from '@/lib/admin/control-access-client';
 
 const ADMIN_OWNER_ID = 'ae175e55-72b4-4441-9e3c-02ecd8225bf7';
 
@@ -53,6 +54,7 @@ function NavbarInner({
   const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null);
   const [demoMode, setDemoMode] = useState(false);
   const [isBrokerAccount, setIsBrokerAccount] = useState(false);
+  const [isVantagControlUser, setIsVantagControlUser] = useState(false);
 
   /** `mode=demo` / `vf_demo` cookie — hide ELD/network status; map uses sandbox only. */
   useEffect(() => {
@@ -126,10 +128,12 @@ function NavbarInner({
       if (error || !user) {
         setAuth(false);
         setRole(null);
+        setIsVantagControlUser(false);
         setReady(true);
         return;
       }
       setAuth(true);
+      setIsVantagControlUser(isVantagControlNavAdmin(user.email ?? null));
       getNavRole(user.id, supabase).then(setRole).finally(() => setReady(true));
     });
   }, []);
@@ -230,6 +234,16 @@ function NavbarInner({
         )}
         {ready && auth && (
           <>
+            {isVantagControlUser && (
+              <Link
+                href="/admin/control-center"
+                className={
+                  pathname.startsWith('/admin/control-center') ? linkActive : linkBase
+                }
+              >
+                Vantag Control
+              </Link>
+            )}
             {isAdmin && (
               <>
                 <Link

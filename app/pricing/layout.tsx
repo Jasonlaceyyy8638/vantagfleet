@@ -1,9 +1,9 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Vantag Fleet — Powerful Tools for Serious Logistics Teams',
+  title: 'Vantag Fleet — TMS Pricing | Solo, Fleet & Enterprise',
   description:
-    'Freight operations in one platform—Solo Pro, Fleet Master, and Enterprise TMS pricing.',
+    'Transparent TMS pricing for carriers and brokers: Solo, Fleet, and Enterprise. Founder access, trials, and annual savings.',
 };
 
 export default function PricingLayout({ children }: { children: React.ReactNode }) {
