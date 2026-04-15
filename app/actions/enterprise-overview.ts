@@ -62,9 +62,14 @@ export async function getEnterpriseOverview(): Promise<EnterpriseOverviewData | 
     .single();
 
   const tier = (org as { tier?: string | null } | null)?.tier ?? null;
+  const sub = (org as { subscription_status?: string | null } | null)?.subscription_status ?? '';
+  const tierNorm = tier?.toString().trim().toLowerCase() ?? '';
   const isEnterprise =
+    tierNorm === 'enterprise' ||
     tier === 'Enterprise' ||
-    (org as { subscription_status?: string | null } | null)?.subscription_status === 'active'; // Show for any active sub if no tier; or require tier === 'Enterprise'
+    sub === 'active' ||
+    sub === 'active_paid' ||
+    sub === 'trialing';
 
   const { start, end } = getCurrentMonthRange();
   const monthLabel = new Date().toLocaleString('default', { month: 'long', year: 'numeric' });

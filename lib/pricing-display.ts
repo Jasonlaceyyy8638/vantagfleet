@@ -1,12 +1,12 @@
 /**
  * Display-only pricing (marketing + Pricing.tsx).
- * Keep Stripe Price IDs / amounts in the Stripe dashboard in sync with these numbers
- * (STRIPE_SOLO_PRO_* / STRIPE_FLEET_MASTER_* / STRIPE_ENTERPRISE_* in checkout route).
+ * Checkout bills your Stripe Price objects (env IDs below)—keep amounts aligned when you change these numbers.
  *
- * Rationale: positions VantagFleet in the same buyer category as full TMS (vs $29/mo “app” pricing).
+ * Single public plan for now. Env: STRIPE_VANTAG_MONTHLY_PRICE_ID, STRIPE_VANTAG_ANNUAL_PRICE_ID (see lib/stripe-price-ids.ts).
  */
 export const PRICING_USD = {
-  solo: { monthly: 59, annual: 590 },
-  fleet: { monthly: 199, annual: 1990 },
-  enterprise: { monthly: 449, annual: 4490 },
+  /** Full VantagFleet — monthly */
+  monthly: 129,
+  /** Full VantagFleet — annual (10× monthly ≈ “save two months” vs 12×) */
+  annual: 1290,
 } as const;

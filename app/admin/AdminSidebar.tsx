@@ -5,22 +5,22 @@ import { usePathname } from 'next/navigation';
 import {
   Headphones,
   Building2,
-  ShieldCheck,
   LayoutDashboard,
   UserCog,
   DollarSign,
-  FileCheck,
+  Route,
   MessageCircle,
   Home,
   X,
+  Truck,
 } from 'lucide-react';
 
 const adminNav = [
-  { href: '/admin', label: 'Overview', icon: ShieldCheck },
+  { href: '/admin', label: 'Overview', icon: LayoutDashboard },
   { href: '/admin/support', label: 'Customer Support', icon: Headphones },
   { href: '/admin/support/chat', label: 'Live Chat', icon: MessageCircle },
   { href: '/admin/revenue', label: 'Revenue', icon: DollarSign },
-  { href: '/admin/compliance', label: 'IFTA Audit', icon: FileCheck },
+  { href: '/admin/compliance', label: 'Fuel & mileage', icon: Route },
   { href: '/admin/setup', label: 'Organization Setup', icon: Building2 },
   { href: '/admin/team', label: 'Team', icon: UserCog },
 ];
@@ -44,10 +44,10 @@ export function AdminSidebar({
           onClick={onClose}
           className="flex items-center gap-2 font-semibold text-cyber-amber"
         >
-          <ShieldCheck className="size-5" />
-          VantagFleet Admin
+          <Truck className="size-5" />
+          VantagFleet TMS
         </Link>
-        <p className="text-xs text-soft-cloud/50 mt-1">Staff only</p>
+        <p className="text-xs text-soft-cloud/50 mt-1">Staff operations console</p>
       </div>
       <nav className="flex-1 p-3 space-y-0.5 overflow-auto">
         {adminNav.map((item) => {
@@ -87,7 +87,7 @@ export function AdminSidebar({
           onClick={onClose}
           className="flex items-center gap-2 text-sm text-soft-cloud/70 hover:text-soft-cloud px-3 py-2.5 rounded-lg hover:bg-white/5 min-h-[44px] md:min-h-0"
         >
-          <ShieldCheck className="size-4" />
+          <LayoutDashboard className="size-4" />
           Back to Overview
         </Link>
         <Link

@@ -76,44 +76,22 @@ export async function POST(request: NextRequest) {
     const billing = (body?.billing as string | undefined)?.toLowerCase().trim();
     const isAnnual = billing === 'annual' || billing === 'yearly';
 
-    const tierLc = (tier ?? '').toString().trim().toLowerCase();
-    const isSolo = tierLc === 'solo_pro' || tierLc === 'starter' || tierLc === 'solo';
-    const isFleet = tierLc === 'fleet_master' || tierLc === 'pro' || tierLc === 'fleet';
-    const isEnt = tierLc === 'enterprise';
-
-    let key: string | null = null;
-    if (isSolo) {
-      key = isAnnual ? 'starter_annual' : 'starter_monthly';
-    } else if (isFleet) {
-      key = isAnnual ? 'pro_annual' : 'pro';
-    } else if (isEnt) {
-      key = isAnnual ? 'enterprise_annual' : 'enterprise_monthly';
-    }
-
+    // Single subscription plan: monthly or annual (legacy tier names still hit the same Stripe prices).
+    const priceKey = isAnnual ? 'vantag_annual' : 'vantag_monthly';
     const rawTier = tier?.trim();
     const priceId =
-      (key && PRICE_IDS[key]) || (rawTier?.startsWith('price_') ? rawTier : null);
+      PRICE_IDS[priceKey] || (rawTier?.startsWith('price_') ? rawTier : null);
 
     if (!priceId) {
-      if (!key) {
-        return NextResponse.json(
-          {
-            error: `Unknown tier "${tier ?? ''}". Use solo_pro, fleet_master, or enterprise (or raw Stripe price id starting with price_). Billing: monthly, annual, or yearly.`,
-          },
-          { status: 400 }
-        );
-      }
       return NextResponse.json(
         {
-          error: `Stripe price ID is not configured for this plan (${key}). Set ${checkoutPriceEnvHint(key)} in your environment.`,
+          error: `Stripe price ID is not configured for ${isAnnual ? 'annual' : 'monthly'} billing. Set ${checkoutPriceEnvHint(priceKey)} in your environment.`,
         },
         { status: 400 }
       );
     }
 
-    const isPro = key === 'pro' || key === 'pro_annual';
-    const isEnterprise = key === 'enterprise_monthly' || key === 'enterprise_annual';
-    const tierLabel = isEnterprise ? 'Enterprise' : isPro ? 'Fleet' : 'Solo';
+    const tierLabel = 'VantagFleet';
 
     const subscriptionData: Stripe.Checkout.SessionCreateParams['subscription_data'] = {
       trial_period_days: SUBSCRIPTION_TRIAL_DAYS,
@@ -155,6 +133,7 @@ export async function POST(request: NextRequest) {
       metadata: {
         business_name: 'VantagFleet',
         tier: tierLabel,
+        plan: 'vantag_unified',
         support_email: EMAIL_BILLING,
         ...(orgId && { org_id: orgId }),
       },

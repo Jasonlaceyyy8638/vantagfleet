@@ -328,7 +328,7 @@ export function IntegrationsHubClient({ orgId, initialIntegrations, isEldLocked 
                         const res = await fetch('/api/checkout', {
                           method: 'POST',
                           headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({ tier: 'fleet_master', billing: 'monthly' }),
+                          body: JSON.stringify({ tier: 'vantag', billing: 'monthly' }),
                         });
                         const data = await res.json();
                         if (data.url) window.location.href = data.url;

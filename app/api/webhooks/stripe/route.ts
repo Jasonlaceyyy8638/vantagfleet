@@ -77,8 +77,8 @@ export async function POST(request: NextRequest) {
       console.log('[webhooks/stripe] Received subscription checkout — storing stripe_customer_id and plan_tier');
       const customerId = typeof session.customer === 'string' ? session.customer : session.customer?.id;
       const orgId = metadata.org_id as string | undefined;
-      const tier = (metadata.tier as string) || 'Pro';
-      const planLevel = tier === 'Solo' || tier === 'Solo Pro' ? 'solo' : 'pro';
+      const planLevel = 'pro';
+      const tierDb = 'enterprise';
 
       if (orgId && customerId) {
         try {
@@ -89,7 +89,7 @@ export async function POST(request: NextRequest) {
               trial_active: true,
               plan_level: planLevel,
               subscription_status: 'trialing',
-              tier: tier || null,
+              tier: tierDb,
             })
             .eq('id', orgId);
           if (error) {

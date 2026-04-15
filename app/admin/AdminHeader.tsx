@@ -28,13 +28,13 @@ export function AdminHeader({ onMenuClick }: { onMenuClick?: () => void }) {
             <Menu className="size-6" />
           </button>
         )}
-        <span className="text-sm text-soft-cloud/60 hidden sm:inline">Admin Portal</span>
+        <span className="text-sm text-soft-cloud/60 hidden sm:inline">TMS staff</span>
         <Link
           href="/admin"
           className="inline-flex items-center gap-1.5 text-sm font-medium text-cyber-amber hover:text-cyber-amber/90 transition-colors py-2"
         >
           <LayoutDashboard className="size-4 shrink-0" />
-          <span className="hidden sm:inline">Main dashboard</span>
+          <span className="hidden sm:inline">Command center</span>
         </Link>
       </div>
       <button

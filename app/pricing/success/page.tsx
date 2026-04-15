@@ -19,13 +19,17 @@ export default async function PricingSuccessPage({ searchParams }: Props) {
   }
 
   const planName =
-    tierLabel === 'Solo Pro' || tierLabel === 'Fleet' || tierLabel === 'Enterprise'
-      ? tierLabel
-      : tierLabel === 'Solo'
-        ? 'Solo Pro'
-        : tierLabel === 'Pro' || tierLabel === 'Fleet Master'
-          ? 'Fleet'
-          : null;
+    tierLabel === 'VantagFleet'
+      ? 'VantagFleet'
+      : tierLabel === 'Solo Pro' || tierLabel === 'Fleet' || tierLabel === 'Enterprise'
+        ? tierLabel
+        : tierLabel === 'Solo'
+          ? 'Solo Pro'
+          : tierLabel === 'Pro' || tierLabel === 'Fleet Master'
+            ? 'Fleet'
+            : tierLabel
+              ? tierLabel
+              : null;
 
   return <PricingSuccessClient planName={planName} />;
 }

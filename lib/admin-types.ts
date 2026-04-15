@@ -40,8 +40,6 @@ export type AdminStats = {
 
 export type WishlistCounts = { geotab: number; samsara: number };
 
-export type CompliancePowerupWaitlistCounts = { mcs150: number; boc3: number };
-
 export type UserRequestRow = {
   id: string;
   type: string;

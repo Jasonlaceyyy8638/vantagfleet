@@ -11,7 +11,7 @@ import {
 import type { ProfileRow, AdminStats, CarrierRow, CarrierIntegrationsRow } from '@/lib/admin-types';
 import { listVantagStaff, updateVantagStaffRole, removeVantagStaffMember, type VantagStaffRow, type VantagStaffRole } from '@/app/actions/admin-team';
 import type { StripeStats } from '@/app/actions/stripe-stats';
-import { Building2, Loader2, UserPlus, Users, DollarSign, Truck, UserCheck, CreditCard, TrendingUp, Plug, Gift, ChevronDown, FileText, Scale, Trash2 } from 'lucide-react';
+import { Building2, Loader2, UserPlus, Users, DollarSign, Truck, UserCheck, CreditCard, TrendingUp, Plug, Gift, ChevronDown, Trash2 } from 'lucide-react';
 
 type OrgOption = { id: string; name: string };
 
@@ -31,7 +31,6 @@ export function AdminPageClient({
   initialCarriers,
   initialCarrierIntegrations = [],
   initialStaff,
-  powerupWaitlistCounts = { mcs150: 0, boc3: 0 },
   loadError,
   canImpersonate = false,
 }: {
@@ -42,7 +41,6 @@ export function AdminPageClient({
   initialCarriers: CarrierRow[];
   initialCarrierIntegrations?: CarrierIntegrationsRow[];
   initialStaff: VantagStaffRow[];
-  powerupWaitlistCounts?: { mcs150: number; boc3: number };
   loadError?: string | null;
   /** Admin and Support can view carrier dashboard as that carrier; Billing cannot. */
   canImpersonate?: boolean;
@@ -232,7 +230,7 @@ export function AdminPageClient({
             <Truck className="size-8 text-cyber-amber" />
           </div>
           <div>
-            <p className="text-sm text-soft-cloud/60">Active Carriers</p>
+            <p className="text-sm text-soft-cloud/60">Active TMS accounts</p>
             <p className="text-2xl font-bold text-soft-cloud">{initialStats.activeFleets}</p>
           </div>
         </div>
@@ -243,21 +241,6 @@ export function AdminPageClient({
           <div>
             <p className="text-sm text-soft-cloud/60">New Signups This Week</p>
             <p className="text-2xl font-bold text-soft-cloud">{initialStats.newSignupsThisWeek}</p>
-          </div>
-        </div>
-        <div className="rounded-xl border border-amber-500/20 bg-white/5 backdrop-blur-sm p-6">
-          <p className="text-sm text-soft-cloud/60 mb-2">Compliance Power-Up Waitlist</p>
-          <div className="flex flex-wrap gap-4">
-            <div className="flex items-center gap-2">
-              <FileText className="size-5 text-amber-400" />
-              <span className="text-soft-cloud">MCS-150:</span>
-              <span className="font-bold text-amber-400">{powerupWaitlistCounts.mcs150}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Scale className="size-5 text-amber-400" />
-              <span className="text-soft-cloud">BOC-3:</span>
-              <span className="font-bold text-amber-400">{powerupWaitlistCounts.boc3}</span>
-            </div>
           </div>
         </div>
       </section>
@@ -327,9 +310,11 @@ export function AdminPageClient({
             <CreditCard className="size-5 text-cyber-amber" />
           </div>
           <div>
-            <h2 className="font-semibold text-soft-cloud">Carrier List</h2>
+            <h2 className="font-semibold text-soft-cloud">Carrier accounts</h2>
             <p className="text-sm text-soft-cloud/60">
-              {canImpersonate ? 'View dashboard as a carrier (full access) for support.' : 'Carrier list. Admin and Support can view as carrier.'}
+              {canImpersonate
+                ? 'Open a carrier’s TMS dashboard as them for support and troubleshooting.'
+                : 'Billing and carrier roster. Admin and Support can open a carrier session from here.'}
             </p>
           </div>
         </div>
@@ -337,28 +322,28 @@ export function AdminPageClient({
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-white/10 text-left text-soft-cloud/70">
-                <th className="px-6 py-3 font-medium">Company Name</th>
-                <th className="px-6 py-3 font-medium">DOT Number</th>
-                <th className="px-6 py-3 font-medium">Subscription</th>
-                <th className="px-6 py-3 font-medium">Safety Status</th>
-                <th className="px-6 py-3 font-medium">Authority</th>
+                <th className="px-6 py-3 font-medium">Company name</th>
+                <th className="px-6 py-3 font-medium">DOT number</th>
+                <th className="px-6 py-3 font-medium">Billing</th>
+                <th className="px-6 py-3 font-medium">FMCSA safety</th>
+                <th className="px-6 py-3 font-medium">Operating status</th>
                 <th className="px-6 py-3 font-medium">Actions</th>
               </tr>
             </thead>
             <tbody>
               {initialCarriers.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-8 text-center text-soft-cloud/50">No carriers yet.</td>
+                  <td colSpan={6} className="px-6 py-8 text-center text-soft-cloud/50">No carrier accounts yet.</td>
                 </tr>
               ) : (
                 initialCarriers.map((c) => {
-                  const complianceAtRisk = c.dotCensusActive && !c.authorityVerified;
+                  const insuranceGap = c.dotCensusActive && !c.authorityVerified;
                   return (
                   <tr
                     key={c.id}
                     className={`border-b border-white/5 hover:bg-white/5 ${
                       c.safetyRating === 'Unsatisfactory' ? 'bg-red-500/15 border-l-4 border-l-red-500' :
-                      complianceAtRisk ? 'bg-amber-500/10 border-l-4 border-l-amber-500' : ''
+                      insuranceGap ? 'bg-amber-500/10 border-l-4 border-l-amber-500' : ''
                     }`}
                   >
                     <td className="px-6 py-3 text-soft-cloud">{c.name}</td>
@@ -388,9 +373,9 @@ export function AdminPageClient({
                       </span>
                     </td>
                     <td className="px-6 py-3">
-                      {complianceAtRisk ? (
-                        <span className="font-medium text-amber-400" title="DOT census active but insurance (BMC-91) not verified — reach out to carrier">
-                          Compliance At Risk
+                      {insuranceGap ? (
+                        <span className="font-medium text-amber-400" title="DOT census shows active but BMC-91 insurance is not verified—follow up before full go-live">
+                          Insurance verification pending
                         </span>
                       ) : c.authorityVerified ? (
                         <span className="text-green-400">Verified</span>
@@ -510,8 +495,10 @@ export function AdminPageClient({
             <Plug className="size-5 text-cyber-amber" />
           </div>
           <div>
-            <h2 className="font-semibold text-soft-cloud">Carrier Integrations</h2>
-            <p className="text-sm text-soft-cloud/60">Which carriers have Samsara, Motive, or FMCSA connected.</p>
+            <h2 className="font-semibold text-soft-cloud">TMS integrations</h2>
+            <p className="text-sm text-soft-cloud/60">
+              Telematics and FMCSA connections that power dispatch, tracking, and fleet data.
+            </p>
           </div>
         </div>
         <div className="overflow-x-auto">

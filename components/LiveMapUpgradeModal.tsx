@@ -29,7 +29,7 @@ export function LiveMapUpgradeModal({ open, onClose, showTrialCopy = true }: Liv
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          tier: 'fleet_master',
+          tier: 'vantag',
           billing: 'monthly',
         }),
       });

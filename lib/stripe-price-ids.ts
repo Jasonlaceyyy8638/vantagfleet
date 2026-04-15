@@ -1,15 +1,10 @@
 /**
- * Stripe Price IDs — canonical env names (tier + billing period):
+ * Stripe Price IDs — canonical env names:
  *
- *   STRIPE_SOLO_MONTHLY_PRICE_ID
- *   STRIPE_SOLO_ANNUAL_PRICE_ID
- *   STRIPE_FLEET_MONTHLY_PRICE_ID
- *   STRIPE_FLEET_ANNUAL_PRICE_ID
- *   STRIPE_ENTERPRISE_MONTHLY_PRICE_ID
- *   STRIPE_ENTERPRISE_ANNUAL_PRICE_ID
- *   STRIPE_IFTA_PRICE_ID
+ *   Primary (single plan): STRIPE_VANTAG_MONTHLY_PRICE_ID, STRIPE_VANTAG_ANNUAL_PRICE_ID
+ *   IFTA add-on:          STRIPE_IFTA_PRICE_ID
  *
- * Legacy names are still read as fallbacks so existing deployments keep working.
+ * Legacy Solo / Fleet / Enterprise env names are still fallbacks so older deployments keep working.
  */
 function first(...values: Array<string | undefined>): string {
   for (const v of values) {
@@ -23,6 +18,19 @@ function first(...values: Array<string | undefined>): string {
 export function getCheckoutPriceIds(): Record<string, string> {
   const e = process.env;
   return {
+    vantag_monthly: first(
+      e.STRIPE_VANTAG_MONTHLY_PRICE_ID,
+      e.STRIPE_SOLO_MONTHLY_PRICE_ID,
+      e.STRIPE_STARTER_MONTHLY_PRICE_ID,
+      e.STRIPE_SOLO_PRO_MONTHLY_PRICE_ID
+    ),
+    vantag_annual: first(
+      e.STRIPE_VANTAG_ANNUAL_PRICE_ID,
+      e.STRIPE_SOLO_ANNUAL_PRICE_ID,
+      e.STRIPE_STARTER_ANNUAL_PRICE_ID,
+      e.STRIPE_STARTER_PRICE_ID,
+      e.STRIPE_SOLO_PRO_ANNUAL_PRICE_ID
+    ),
     starter_monthly: first(
       e.STRIPE_SOLO_MONTHLY_PRICE_ID,
       e.STRIPE_STARTER_MONTHLY_PRICE_ID,
@@ -57,6 +65,7 @@ export function getCheckoutPriceIds(): Record<string, string> {
 /** Staff manual subscription / downgrade: default monthly Solo vs Fleet. */
 export function getStripeSoloMonthlyPriceId(): string {
   return first(
+    process.env.STRIPE_VANTAG_MONTHLY_PRICE_ID,
     process.env.STRIPE_SOLO_MONTHLY_PRICE_ID,
     process.env.STRIPE_STARTER_MONTHLY_PRICE_ID,
     process.env.STRIPE_STARTER_PRICE_ID,
@@ -66,6 +75,7 @@ export function getStripeSoloMonthlyPriceId(): string {
 
 export function getStripeFleetMonthlyPriceId(): string {
   return first(
+    process.env.STRIPE_VANTAG_MONTHLY_PRICE_ID,
     process.env.STRIPE_FLEET_MONTHLY_PRICE_ID,
     process.env.STRIPE_PRO_PRICE_ID,
     process.env.STRIPE_FLEET_MASTER_MONTHLY_PRICE_ID
@@ -75,6 +85,9 @@ export function getStripeFleetMonthlyPriceId(): string {
 /** Human hint when checkout cannot resolve a price for this internal key. */
 export function checkoutPriceEnvHint(internalKey: string): string {
   const hints: Record<string, string> = {
+    vantag_monthly: 'STRIPE_VANTAG_MONTHLY_PRICE_ID (fallbacks: STRIPE_SOLO_* / STRIPE_STARTER_*)',
+    vantag_annual:
+      'STRIPE_VANTAG_ANNUAL_PRICE_ID (fallbacks: STRIPE_SOLO_ANNUAL_PRICE_ID / STRIPE_STARTER_* / STRIPE_SOLO_PRO_ANNUAL_PRICE_ID)',
     starter_monthly:
       'STRIPE_SOLO_MONTHLY_PRICE_ID (or STRIPE_STARTER_MONTHLY_PRICE_ID / STRIPE_SOLO_PRO_MONTHLY_PRICE_ID)',
     starter_annual:

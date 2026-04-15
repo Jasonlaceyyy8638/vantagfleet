@@ -27,7 +27,7 @@ export function MapUpgradeModal({ open, onClose }: MapUpgradeModalProps) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          tier: 'fleet_master',
+          tier: 'vantag',
           billing: 'monthly',
         }),
       });

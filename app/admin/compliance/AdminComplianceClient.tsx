@@ -32,7 +32,7 @@ function formatStatus(s: AuditRow['status']) {
 
 function generateReportText(rows: AuditRow[]): string {
   const lines = [
-    'VantagFleet IFTA Audit Report (Placeholder)',
+    'VantagFleet TMS — Mileage reconciliation report (placeholder)',
     `Generated: ${new Date().toISOString().slice(0, 19).replace('T', ' ')} Z`,
     '',
     'Date       | Vehicle ID | Motive Miles | Motus Miles | Discrepancy % | Status',
@@ -55,7 +55,7 @@ export function AdminComplianceClient() {
     setSaving(true);
     setMessage(null);
     const report = generateReportText(MOCK_AUDIT_ROWS);
-    const filename = `IFTA_Audit_Report_${new Date().toISOString().slice(0, 10)}.txt`;
+    const filename = `TMS_Mileage_Reconcile_${new Date().toISOString().slice(0, 10)}.txt`;
 
     try {
       const w = typeof window !== 'undefined' ? (window as unknown as { __TAURI__?: unknown; __TAURI_INTERNAL__?: unknown }) : null;
@@ -98,8 +98,10 @@ export function AdminComplianceClient() {
           <ArrowLeft className="size-5" />
         </Link>
         <div>
-          <h1 className="text-2xl font-bold text-soft-cloud">IFTA Audit Report</h1>
-          <p className="text-soft-cloud/60 text-sm">Motive vs Motus miles — discrepancy review. Motus data pending API access.</p>
+          <h1 className="text-2xl font-bold text-soft-cloud">Fuel & mileage reconciliation</h1>
+          <p className="text-soft-cloud/60 text-sm">
+            Compare telematics miles vs. third-party records for IFTA-ready reporting. Motus data pending API access.
+          </p>
         </div>
         <div className="ml-auto flex flex-wrap items-center gap-3 shrink-0">
           <HealthCard />
@@ -110,7 +112,7 @@ export function AdminComplianceClient() {
             className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-cyber-amber text-black font-semibold hover:bg-cyber-amber/90 disabled:opacity-60 transition-colors"
           >
             <FileDown className="size-4" />
-            {saving ? 'Saving…' : 'Generate PDF Audit'}
+            {saving ? 'Saving…' : 'Export mileage report'}
           </button>
         </div>
       </div>
@@ -161,8 +163,8 @@ export function AdminComplianceClient() {
       </div>
 
       <p className="text-xs text-soft-cloud/50">
-        Table shows placeholder data until Motus API is connected. Generate PDF Audit saves a text report — in the desktop app
-        you can choose where to save (e.g. Desktop); in the browser it downloads the file.
+        Table shows placeholder data until Motus API is connected. Export saves a text report—in the desktop app you can
+        pick a folder; in the browser it downloads the file.
       </p>
     </div>
   );

@@ -146,7 +146,7 @@ export default async function AdminRevenuePage() {
           <h2 className="font-semibold text-soft-cloud">Product Roadmap</h2>
         </div>
         <p className="px-6 py-2 text-sm text-soft-cloud/60">
-          Custom compliance requests from the dashboard FAB. Review and prioritize for the next Desktop App update.
+          Custom TMS and integration requests from the dashboard FAB. Review and prioritize for the next desktop app update.
         </p>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">

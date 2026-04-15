@@ -7,12 +7,11 @@ import {
   getAdminStats,
   getCarriersWithSubscription,
   listCarriersWithIntegrations,
-  getCompliancePowerupWaitlistCounts,
 } from '@/app/actions/admin';
 import { getStripeStats } from '@/app/actions/stripe-stats';
 import { listVantagStaff } from '@/app/actions/admin-team';
 import { AdminPageClient } from './AdminPageClient';
-import { ShieldCheck } from 'lucide-react';
+import { Truck } from 'lucide-react';
 
 const emptyStats = { totalRevenue: 0, activeFleets: 0, newSignupsThisWeek: 0 };
 const emptyStripeStats = { total_revenue: 0, active_subscriptions: 0 };
@@ -40,7 +39,6 @@ export default async function AdminPage() {
   let carrierIntegrations: Awaited<ReturnType<typeof listCarriersWithIntegrations>> = [];
   let staff: Awaited<ReturnType<typeof listVantagStaff>> = [];
   let stripeStats = emptyStripeStats;
-  let powerupWaitlist = { mcs150: 0, boc3: 0 };
   const loadError: string | null = null;
 
   async function safe<T>(fn: () => Promise<T>, fallback: T): Promise<T> {
@@ -51,7 +49,7 @@ export default async function AdminPage() {
     }
   }
 
-  const [p, o, s, c, ci, st, ss, pw] = await Promise.all([
+  const [p, o, s, c, ci, st, ss] = await Promise.all([
     safe(listProfilesForAdmin, []),
     safe(listOrganizationsForAdmin, []),
     safe(getAdminStats, emptyStats),
@@ -59,7 +57,6 @@ export default async function AdminPage() {
     safe(listCarriersWithIntegrations, []),
     safe(listVantagStaff, []),
     safe(getStripeStats, emptyStripeStats),
-    safe(getCompliancePowerupWaitlistCounts, { mcs150: 0, boc3: 0 }),
   ]);
   profiles = p;
   orgs = o;
@@ -68,18 +65,17 @@ export default async function AdminPage() {
   carrierIntegrations = ci;
   staff = st;
   stripeStats = ss;
-  powerupWaitlist = pw;
 
   return (
     <div className="space-y-8">
       <div className="flex items-center gap-3">
         <div className="p-2 rounded-xl bg-cyber-amber/20">
-          <ShieldCheck className="size-8 text-cyber-amber" />
+          <Truck className="size-8 text-cyber-amber" />
         </div>
         <div>
-          <h1 className="text-2xl font-bold text-soft-cloud">VantagFleet HQ</h1>
+          <h1 className="text-2xl font-bold text-soft-cloud">TMS command center</h1>
           <p className="text-soft-cloud/60 mt-0.5">
-            Staff only. Revenue, carriers, and team.
+            Staff only. Billing, carrier accounts, integrations, and support tools.
           </p>
         </div>
       </div>
@@ -92,7 +88,6 @@ export default async function AdminPage() {
         initialCarriers={carriers}
         initialCarrierIntegrations={carrierIntegrations}
         initialStaff={staff}
-        powerupWaitlistCounts={powerupWaitlist}
         loadError={loadError}
         canImpersonate={canImpersonate}
       />
